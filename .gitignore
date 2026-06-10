@@ -1,4 +1,6 @@
 .DS_Store
+# Genesis AI context（本地 SSOT，不入庫）
+/.ai
 /.build
 /.swiftpm
 /Packages
