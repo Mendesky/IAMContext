@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAM 權限 catalog 同步機制 — 設計建議</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1f2933; --muted:#67727e;
+    --line:#e4e8ec; --brand:#4f46e5; --brand-soft:#eef0fe;
+    --good:#0f9d8f; --good-soft:#e3f6f3;
+    --best:#2563eb; --best-soft:#e6efff;
+    --warn:#d9821b; --warn-soft:#fdf1e1;
+    --bad:#e0463e; --bad-soft:#fdeceb;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:48px 24px 96px}
+  header.hero{
+    background:linear-gradient(135deg,#4f46e5 0%,#6d5fe8 55%,#7c6cf0 100%);
+    color:#fff; border-radius:20px; padding:38px 36px; box-shadow:var(--shadow);
+    margin-bottom:28px;
+  }
+  header.hero .kicker{font-size:13px; letter-spacing:.12em; text-transform:uppercase; opacity:.85; margin:0 0 10px}
+  header.hero h1{margin:0 0 14px; font-size:30px; line-height:1.3; font-weight:800}
+  header.hero p.thesis{margin:0; font-size:17px; opacity:.95}
+  header.hero p.thesis b{background:rgba(255,255,255,.18); padding:1px 8px; border-radius:6px}
+
+  section{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:28px 30px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  h2{font-size:21px; margin:0 0 6px; display:flex; align-items:center; gap:10px}
+  h2 .num{
+    flex:0 0 auto; width:30px; height:30px; border-radius:9px; background:var(--brand-soft);
+    color:var(--brand); font-size:15px; font-weight:800; display:grid; place-items:center;
+  }
+  h2 + .sub{color:var(--muted); margin:0 0 18px; font-size:14.5px}
+  p{margin:0 0 12px}
+  .muted{color:var(--muted)}
+  code{background:#f0f2f5; padding:1px 6px; border-radius:5px; font-size:13px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+
+  .figure{margin:8px 0 4px; text-align:center}
+  .figure svg{max-width:100%; height:auto}
+  .caption{color:var(--muted); font-size:13px; text-align:center; margin-top:8px}
+
+  /* TL;DR */
+  .tldr{display:grid; gap:12px}
+  .rec{display:flex; gap:14px; align-items:flex-start; padding:14px 16px; border-radius:12px; border:1px solid var(--line)}
+  .rec .tag{flex:0 0 auto; font-size:12px; font-weight:800; padding:3px 10px; border-radius:999px; white-space:nowrap; margin-top:2px}
+  .rec.best{background:var(--best-soft); border-color:#cfe0ff}
+  .rec.best .tag{background:var(--best); color:#fff}
+  .rec.good{background:var(--good-soft); border-color:#c7ece6}
+  .rec.good .tag{background:var(--good); color:#fff}
+  .rec.warn{background:var(--warn-soft); border-color:#f4d9b3}
+  .rec.warn .tag{background:var(--warn); color:#fff}
+  .rec.bad{background:var(--bad-soft); border-color:#f6cbc8}
+  .rec.bad .tag{background:var(--bad); color:#fff}
+  .rec b{font-weight:700}
+
+  /* table */
+  table{width:100%; border-collapse:collapse; margin:6px 0 4px; font-size:14.5px}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:12.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700}
+  td .yes{color:var(--good); font-weight:700}
+  td .no{color:var(--muted)}
+
+  /* callout */
+  .callout{display:flex; gap:13px; padding:15px 17px; border-radius:12px; background:var(--warn-soft);
+    border:1px solid #f4d9b3; align-items:flex-start; margin:14px 0 2px}
+  .callout.key{background:var(--brand-soft); border-color:#d6dafe}
+  .callout .ic{flex:0 0 auto; font-size:20px; line-height:1.3}
+  .callout p{margin:0}
+
+  ul.clean{margin:6px 0 2px; padding-left:20px}
+  ul.clean li{margin:6px 0}
+
+  .pillrow{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 2px}
+  .pill{font-size:13px; padding:5px 12px; border-radius:999px; background:#f0f2f5; color:var(--ink); border:1px solid var(--line)}
+
+  footer{color:var(--muted); font-size:13px; text-align:center; margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">IAMContext · 架構建議</p>
+    <h1>各 Context 的權限 catalog 要怎麼進 IAM？</h1>
+    <p class="thesis">核心結論：別問「IAM 要不要 copy 一份」——那是陷阱。要問的是 <b>投影（projection）</b> 還是 <b>fork（copy）</b>。pull / push 只是傳輸細節。</p>
+  </header>
+
+  <!-- TL;DR -->
+  <section>
+    <h2><span class="num">★</span>一眼結論</h2>
+    <p class="sub">四點建議，依推薦程度排序。</p>
+    <div class="tldr">
+      <div class="rec best">
+        <span class="tag">最推薦</span>
+        <div><b>catalog 做成事件流 → IAM 投影成 universe read model。</b> 上游發 <code>PermissionCatalogPublished</code>，IAM 用 projector 投影。你怕的「copy」就變成跟 <code>GetPermissions</code> 同構的 read model——可重建、event log 即 provenance、<b>drift 結構上不可能</b>。</div>
+      </div>
+      <div class="rec good">
+        <span class="tag">退路</span>
+        <div><b>上游發極輕的「我變了」訊號，IAM 收到才 pull 完整 catalog 投影。</b> 上游不想扛發布整包時用。<b>仍是 projection，不是 copy。</b></div>
+      </div>
+      <div class="rec warn">
+        <span class="tag">注意</span>
+        <div><b>每份 catalog 一定要帶 version / content-hash。</b>「是否有更新」靠比 version，不要比對整包；push 幂等、pull 省流量都靠它。</div>
+      </div>
+      <div class="rec bad">
+        <span class="tag">最不推薦</span>
+        <div><b>IAM 定時巡所有 context + 自己 copy 一份（你的第一個想法）。</b> 把「列舉所有 context」「逐一 poll」「維護 N 份 fork」三個負擔全塞進 IAM → drift 重現、每多一個 context 就改一次 IAM。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Two axes -->
+  <section>
+    <h2><span class="num">1</span>先拆成兩個正交的軸</h2>
+    <p class="sub">你的問句把兩件事黏在一起了。真正決定成敗的是<b>軸 1</b>，不是你問的傳輸方式。</p>
+    <div class="figure">
+      <svg viewBox="0 0 620 470" role="img" aria-label="兩個軸的 2x2 矩陣">
+        <!-- Y axis label -->
+        <text x="22" y="230" transform="rotate(-90 22 230)" text-anchor="middle" font-size="13" font-weight="700" fill="#67727e">軸1 ：IAM 裡那份東西的性質</text>
+        <text x="44" y="60" font-size="11" fill="#67727e">▲ 投影（好）</text>
+        <text x="44" y="408" font-size="11" fill="#67727e">▼ copy-fork（差）</text>
+        <!-- X axis label -->
+        <text x="335" y="455" text-anchor="middle" font-size="13" font-weight="700" fill="#67727e">軸2 ：傳輸方式（誰觸發）</text>
+        <text x="100" y="437" font-size="11" fill="#67727e">◀ IAM 去 poll（pull）</text>
+        <text x="445" y="437" font-size="11" fill="#67727e">context 註冊（push）▶</text>
+
+        <!-- quadrants -->
+        <!-- TL projection+pull = good fallback -->
+        <rect x="70" y="40" width="265" height="185" rx="12" fill="#e3f6f3" stroke="#c7ece6"/>
+        <text x="86" y="70" font-size="22">✅</text>
+        <text x="120" y="71" font-size="15" font-weight="800" fill="#0f9d8f">可行 · 退路</text>
+        <text x="86" y="100" font-size="13.5" fill="#1f2933">投影 + IAM pull</text>
+        <text x="86" y="124" font-size="12.5" fill="#67727e">IAM 主動拉，但拉進來</text>
+        <text x="86" y="142" font-size="12.5" fill="#67727e">的是 read model，不是 fork。</text>
+        <text x="86" y="160" font-size="12.5" fill="#67727e">沒 drift，只是耦合稍重。</text>
+
+        <!-- TR projection+push = BEST -->
+        <rect x="338" y="40" width="265" height="185" rx="12" fill="#e6efff" stroke="#cfe0ff"/>
+        <text x="354" y="70" font-size="22">⭐</text>
+        <text x="388" y="71" font-size="15" font-weight="800" fill="#2563eb">最佳 · 推薦</text>
+        <text x="354" y="100" font-size="13.5" fill="#1f2933">投影 + context push</text>
+        <text x="354" y="124" font-size="12.5" fill="#67727e">事件流投影。drift 不可能、</text>
+        <text x="354" y="142" font-size="12.5" fill="#67727e">耦合方向對、新 context</text>
+        <text x="354" y="160" font-size="12.5" fill="#67727e">自己註冊，IAM 不用改。</text>
+
+        <!-- BL fork+pull = WORST -->
+        <rect x="70" y="228" width="265" height="185" rx="12" fill="#fdeceb" stroke="#f6cbc8"/>
+        <text x="86" y="258" font-size="22">❌</text>
+        <text x="120" y="259" font-size="15" font-weight="800" fill="#e0463e">最差</text>
+        <text x="86" y="288" font-size="13.5" fill="#1f2933">copy-fork + IAM poll</text>
+        <text x="86" y="312" font-size="12.5" fill="#67727e">＝你的第一個想法。</text>
+        <text x="86" y="330" font-size="12.5" fill="#67727e">列舉所有 context＋逐一 poll</text>
+        <text x="86" y="348" font-size="12.5" fill="#67727e">＋維護 N 份 fork，全塞 IAM。</text>
+
+        <!-- BR fork+push = still drifts -->
+        <rect x="338" y="228" width="265" height="185" rx="12" fill="#fdf1e1" stroke="#f4d9b3"/>
+        <text x="354" y="258" font-size="22">⚠️</text>
+        <text x="390" y="259" font-size="15" font-weight="800" fill="#d9821b">仍會 drift</text>
+        <text x="354" y="288" font-size="13.5" fill="#1f2933">copy-fork + push</text>
+        <text x="354" y="312" font-size="12.5" fill="#67727e">就算是 push 過來，只要</text>
+        <text x="354" y="330" font-size="12.5" fill="#67727e">IAM「copy 並自有維護」，</text>
+        <text x="354" y="348" font-size="12.5" fill="#67727e">上游一改你就過期。</text>
+      </svg>
+    </div>
+    <div class="callout key">
+      <span class="ic">🔑</span>
+      <p>關鍵是 <b>軸 1</b>：不管 pull 還是 push，只要 IAM「copy 成自有」就會 drift——正是你之前踩過的 <code>IAMC</code> / <code>IAM</code> 那種<b>不報錯、默默授錯權限</b>的 silent divergence。</p>
+    </div>
+  </section>
+
+  <!-- Axis 1 -->
+  <section>
+    <h2><span class="num">2</span>軸 1：別 copy-fork，要 derived projection</h2>
+    <p class="sub">「copy 一份」的問題不在時機，在 ownership。</p>
+    <div class="figure">
+      <svg viewBox="0 0 620 250" role="img" aria-label="fork 會 drift vs projection 可重建">
+        <!-- fork side -->
+        <text x="20" y="28" font-size="14" font-weight="800" fill="#e0463e">❌ copy-fork：上游一改就分岔</text>
+        <rect x="20" y="44" width="120" height="46" rx="9" fill="#fff" stroke="#e4e8ec"/>
+        <text x="80" y="66" text-anchor="middle" font-size="12.5" fill="#1f2933">上游 catalog</text>
+        <text x="80" y="82" text-anchor="middle" font-size="11" fill="#67727e">v3（最新）</text>
+        <rect x="20" y="150" width="120" height="46" rx="9" fill="#fdeceb" stroke="#f6cbc8"/>
+        <text x="80" y="172" text-anchor="middle" font-size="12.5" fill="#1f2933">IAM 自有副本</text>
+        <text x="80" y="188" text-anchor="middle" font-size="11" fill="#e0463e">v1（過期）</text>
+        <!-- one-time copy arrow -->
+        <line x1="80" y1="90" x2="80" y2="148" stroke="#cbd2d9" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="92" y="124" font-size="10.5" fill="#9aa5b1">一次性 copy</text>
+        <!-- drift gap -->
+        <path d="M150 67 Q210 67 210 120 Q210 173 150 173" fill="none" stroke="#e0463e" stroke-width="1.6" stroke-dasharray="3 4"/>
+        <text x="222" y="116" font-size="12" font-weight="700" fill="#e0463e">drift</text>
+        <text x="222" y="133" font-size="11" fill="#67727e">沒人會記得同步</text>
+
+        <!-- divider -->
+        <line x1="310" y1="30" x2="310" y2="215" stroke="#e4e8ec" stroke-width="1"/>
+
+        <!-- projection side -->
+        <text x="340" y="28" font-size="14" font-weight="800" fill="#2563eb">⭐ derived projection：永遠衍生自上游</text>
+        <rect x="340" y="44" width="120" height="46" rx="9" fill="#fff" stroke="#e4e8ec"/>
+        <text x="400" y="66" text-anchor="middle" font-size="12.5" fill="#1f2933">上游事件流</text>
+        <text x="400" y="82" text-anchor="middle" font-size="11" fill="#67727e">append-only</text>
+        <rect x="340" y="150" width="120" height="46" rx="9" fill="#e6efff" stroke="#cfe0ff"/>
+        <text x="400" y="172" text-anchor="middle" font-size="12.5" fill="#1f2933">IAM read model</text>
+        <text x="400" y="188" text-anchor="middle" font-size="11" fill="#2563eb">投影 · 可重建</text>
+        <line x1="400" y1="90" x2="400" y2="148" stroke="#2563eb" stroke-width="2" marker-end="url(#ar2)"/>
+        <text x="412" y="124" font-size="10.5" fill="#2563eb">持續投影</text>
+        <text x="488" y="118" font-size="12" font-weight="700" fill="#0f9d8f">零 drift</text>
+        <text x="488" y="135" font-size="11" fill="#67727e">log 就是 provenance</text>
+        <defs>
+          <marker id="ar2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#2563eb"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <p>正確心智：<b>IAM 持有的是各 context catalog 的「投影」</b>——衍生的、可重建的、帶 provenance（知道從哪來、版本多少）。它不是 IAM 的 authored 內容，只是為了 validate / baseline 維護的 cache。這樣「IAM 裡有一份」是合法的，因為它<b>本質是 derived，不是 fork</b>。</p>
+    <p class="muted">而你正好在 event sourcing / KurrentDB 上 → 投影幾乎免費。</p>
+  </section>
+
+  <!-- Axis 2 coupling -->
+  <section>
+    <h2><span class="num">3</span>軸 2：為什麼 push / register 贏過 IAM-poll</h2>
+    <p class="sub">不只是時效，是<b>耦合方向</b>。</p>
+    <div class="figure">
+      <svg viewBox="0 0 620 300" role="img" aria-label="pull hub 與 push registry 的耦合比較">
+        <defs>
+          <marker id="aOut" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#e0463e"/></marker>
+          <marker id="aIn" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f9d8f"/></marker>
+        </defs>
+
+        <!-- LEFT: pull hub -->
+        <text x="30" y="26" font-size="14" font-weight="800" fill="#e0463e">❌ IAM 去 poll 所有 context</text>
+        <!-- IAM center -->
+        <rect x="120" y="120" width="80" height="48" rx="10" fill="#fdeceb" stroke="#f6cbc8"/>
+        <text x="160" y="149" text-anchor="middle" font-size="13" font-weight="700" fill="#e0463e">IAM</text>
+        <!-- contexts around -->
+        <g font-size="11.5" fill="#1f2933">
+          <rect x="40" y="44" width="62" height="34" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="71" y="65" text-anchor="middle">Ctx A</text>
+          <rect x="220" y="44" width="62" height="34" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="251" y="65" text-anchor="middle">Ctx B</text>
+          <rect x="30" y="210" width="62" height="34" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="61" y="231" text-anchor="middle">Ctx C</text>
+          <rect x="230" y="210" width="62" height="34" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="261" y="231" text-anchor="middle">Ctx D</text>
+        </g>
+        <!-- arrows IAM -> each (IAM must know all) -->
+        <line x1="140" y1="120" x2="80" y2="80" stroke="#e0463e" stroke-width="1.6" marker-end="url(#aOut)"/>
+        <line x1="180" y1="120" x2="240" y2="80" stroke="#e0463e" stroke-width="1.6" marker-end="url(#aOut)"/>
+        <line x1="135" y1="168" x2="78" y2="208" stroke="#e0463e" stroke-width="1.6" marker-end="url(#aOut)"/>
+        <line x1="185" y1="168" x2="248" y2="208" stroke="#e0463e" stroke-width="1.6" marker-end="url(#aOut)"/>
+        <text x="160" y="285" text-anchor="middle" font-size="11.5" fill="#67727e">IAM 要認識每一個 context；多一個就改一次 code</text>
+
+        <!-- divider -->
+        <line x1="312" y1="30" x2="312" y2="270" stroke="#e4e8ec" stroke-width="1"/>
+
+        <!-- RIGHT: push to registry/stream -->
+        <text x="345" y="26" font-size="14" font-weight="800" fill="#0f9d8f">⭐ context 註冊 / 發布到單一入口</text>
+        <g font-size="11.5" fill="#1f2933">
+          <rect x="340" y="60" width="62" height="32" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="371" y="80" text-anchor="middle">Ctx A</text>
+          <rect x="340" y="120" width="62" height="32" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="371" y="140" text-anchor="middle">Ctx B</text>
+          <rect x="340" y="180" width="62" height="32" rx="8" fill="#fff" stroke="#e4e8ec"/><text x="371" y="200" text-anchor="middle">Ctx C</text>
+        </g>
+        <!-- registry/stream box -->
+        <rect x="438" y="96" width="96" height="80" rx="11" fill="#e3f6f3" stroke="#c7ece6"/>
+        <text x="486" y="128" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f9d8f">Registry</text>
+        <text x="486" y="146" text-anchor="middle" font-size="11.5" fill="#0f9d8f">/ 事件流</text>
+        <!-- arrows ctx -> registry -->
+        <line x1="402" y1="76" x2="436" y2="120" stroke="#0f9d8f" stroke-width="1.6" marker-end="url(#aIn)"/>
+        <line x1="402" y1="136" x2="436" y2="136" stroke="#0f9d8f" stroke-width="1.6" marker-end="url(#aIn)"/>
+        <line x1="402" y1="196" x2="436" y2="152" stroke="#0f9d8f" stroke-width="1.6" marker-end="url(#aIn)"/>
+        <!-- registry -> IAM -->
+        <rect x="438" y="210" width="96" height="42" rx="10" fill="#e6efff" stroke="#cfe0ff"/>
+        <text x="486" y="236" text-anchor="middle" font-size="13" font-weight="700" fill="#2563eb">IAM</text>
+        <line x1="486" y1="176" x2="486" y2="208" stroke="#2563eb" stroke-width="1.8" marker-end="url(#ar2)"/>
+        <text x="486" y="285" text-anchor="middle" font-size="11.5" fill="#67727e">IAM 只認識一個入口；新 context 自己註冊</text>
+      </svg>
+    </div>
+    <ul class="clean">
+      <li><b>IAM poll</b>：IAM 必須列舉並認識每一個 context、知道各自 endpoint/格式、逐一 diff → 變成耦合到全部 context 的 hub，<b>每多一個 context 就改一次 IAM</b>。</li>
+      <li><b>context 註冊 / push</b>：IAM 只認識「一個入口」（registry 或事件流）。新 context 自己 register / 發事件 → <b>IAM 一行都不用改</b>。耦合方向對了。</li>
+    </ul>
+  </section>
+
+  <!-- Recommended arch -->
+  <section>
+    <h2><span class="num">4</span>推薦架構：catalog 即事件流，IAM 投影</h2>
+    <p class="sub">跟你現有的 <code>GetPermissions</code> 同構，你會很眼熟。</p>
+    <div class="figure">
+      <svg viewBox="0 0 620 330" role="img" aria-label="事件溯源式 catalog 同步流程">
+        <defs>
+          <marker id="aF" markerWidth="10" markerHeight="10" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#4f46e5"/></marker>
+        </defs>
+        <!-- step 1 contexts publish -->
+        <rect x="20" y="40" width="130" height="92" rx="12" fill="#fff" stroke="#e4e8ec"/>
+        <text x="85" y="64" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2933">各 Context</text>
+        <text x="85" y="86" text-anchor="middle" font-size="11" fill="#67727e">發布</text>
+        <text x="85" y="106" text-anchor="middle" font-size="10.5" fill="#4f46e5">PermissionCatalog</text>
+        <text x="85" y="120" text-anchor="middle" font-size="10.5" fill="#4f46e5">Published</text>
+
+        <!-- step 2 KDB stream -->
+        <rect x="190" y="40" width="120" height="92" rx="12" fill="#eef0fe" stroke="#d6dafe"/>
+        <text x="250" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f46e5">KurrentDB</text>
+        <text x="250" y="98" text-anchor="middle" font-size="11" fill="#67727e">catalog 事件流</text>
+
+        <!-- step 3 projector -->
+        <rect x="350" y="40" width="110" height="92" rx="12" fill="#fff" stroke="#e4e8ec"/>
+        <text x="405" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2933">IAM</text>
+        <text x="405" y="98" text-anchor="middle" font-size="11" fill="#67727e">Projector</text>
+
+        <!-- step 4 read model -->
+        <rect x="500" y="40" width="100" height="92" rx="12" fill="#e6efff" stroke="#cfe0ff"/>
+        <text x="550" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2563eb">Universe</text>
+        <text x="550" y="92" text-anchor="middle" font-size="11" fill="#2563eb">read model</text>
+        <text x="550" y="110" text-anchor="middle" font-size="10" fill="#67727e">(全部權限字串)</text>
+
+        <line x1="150" y1="86" x2="188" y2="86" stroke="#4f46e5" stroke-width="2" marker-end="url(#aF)"/>
+        <line x1="310" y1="86" x2="348" y2="86" stroke="#4f46e5" stroke-width="2" marker-end="url(#aF)"/>
+        <line x1="460" y1="86" x2="498" y2="86" stroke="#4f46e5" stroke-width="2" marker-end="url(#aF)"/>
+
+        <!-- consumers -->
+        <line x1="550" y1="132" x2="550" y2="168" stroke="#4f46e5" stroke-width="2" marker-end="url(#aF)"/>
+        <text x="550" y="156" text-anchor="middle" font-size="10" fill="#9aa5b1">餵兩個用途</text>
+
+        <rect x="200" y="172" width="190" height="58" rx="11" fill="#e3f6f3" stroke="#c7ece6"/>
+        <text x="295" y="196" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f9d8f">(a) 驗證 grant / revoke</text>
+        <text x="295" y="215" text-anchor="middle" font-size="11" fill="#67727e">擋 typo / 過期權限</text>
+
+        <rect x="410" y="172" width="200" height="58" rx="11" fill="#e3f6f3" stroke="#c7ece6"/>
+        <text x="510" y="196" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f9d8f">(b) baseline(dept, jobTitle)</text>
+        <text x="510" y="215" text-anchor="middle" font-size="11" fill="#67727e">→ EnrollStaffs 發對的權限</text>
+
+        <line x1="540" y1="132" x2="320" y2="170" stroke="#0f9d8f" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#aIn)"/>
+        <line x1="555" y1="132" x2="520" y2="170" stroke="#0f9d8f" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#aIn)"/>
+
+        <!-- footnote: isomorphic -->
+        <rect x="20" y="262" width="580" height="48" rx="11" fill="#f0f2f5" stroke="#e4e8ec"/>
+        <text x="34" y="284" font-size="12" fill="#67727e">這條鏈跟你現在的 <tspan font-weight="700" fill="#1f2933">GetPermissions</tspan>（write → 事件流 → projector → read model）完全同構——</text>
+        <text x="34" y="301" font-size="12" fill="#67727e">差別只在事件來源從「IAM 自己的命令」換成「上游 context 的 catalog 發布」。</text>
+      </svg>
+    </div>
+    <p>你怕的「copy」在這裡就變成 <b>universe read model</b>：上游一發布、IAM projector 就更新，<code>allPermissions</code> 那 12 個寫死的假字串被它取代；baseline 再從這個 universe 取子集。<b>沒有手動 copy 步驟 → drift 無從發生。</b></p>
+  </section>
+
+  <!-- ownership reminder -->
+  <section>
+    <h2><span class="num">5</span>別忘了 ownership 的分辨</h2>
+    <p class="sub">會進 IAM 的是「vocabulary」；不會進、也輪不到上游定的是「policy」。</p>
+    <table>
+      <thead><tr><th style="width:30%">東西</th><th style="width:24%">誰擁有</th><th>進 IAM？</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>permission vocabulary</b><br><span class="muted">「這些權限字串存在、各代表什麼」</span></td>
+          <td>發布的那個 context</td>
+          <td><span class="yes">會（投影進來當 universe）</span><br><span class="muted">IAM 不可能管理它不知道存在的東西</span></td>
+        </tr>
+        <tr>
+          <td><b>指派 policy / baseline</b><br><span class="muted">「哪個部門/職稱該拿哪些權限」</span></td>
+          <td>IAM 自己</td>
+          <td><span class="no">不從上游來</span><br><span class="muted">這是 IAM 的 access 決策，別讓上游清單偷渡這層</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <span class="ic">📌</span>
+      <p>上游的 catalog 餵的是 IAM baseline 的<b>值域（codomain）</b>，不是 baseline 本身。catalog 即使躺在 IAM repo 裡，ownership 永遠是上游的——<b>IAM 只讀、不改它的語意</b>。</p>
+    </div>
+  </section>
+
+  <!-- next step -->
+  <section>
+    <h2><span class="num">→</span>下一步</h2>
+    <p>要的話我可以幫你把這條畫成具體 code，跟現有 <code>GetPermissions</code> 同構：</p>
+    <div class="pillrow">
+      <span class="pill">一條 PermissionCatalog 事件流</span>
+      <span class="pill">Universe read model + Projector</span>
+      <span class="pill">用它取代寫死的 allPermissions</span>
+      <span class="pill">baseline(dept, jobTitle) 取子集</span>
+      <span class="pill">補回測不到的 permissionNotMatch</span>
+    </div>
+    <p class="muted" style="margin-top:14px">先決定一件事：catalog 你要拿來做 <b>(a) 驗證授權合法性</b>、<b>(b) 推導 baseline</b>、還是兩者？要 (a) 的話 ingest 的嚴謹度（schema / 版本 / re-sync）要拉高，因為它變成授權正確性的依據。</p>
+  </section>
+
+  <footer>IAMContext · 2026-06-09 · 此文件為設計建議，非機器產生的 SSOT</footer>
+
+</div>
+</body>
+</html>
