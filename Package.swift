@@ -21,6 +21,11 @@ let package = Package(
         .package(url: "https://github.com/swift-server/swift-openapi-hummingbird", from: "2.0.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-log", from: "1.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", from: "2.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", from: "2.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-extras.git", from: "2.1.0"),
+        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.33.3"),
     ],
     targets: [
         .target(
@@ -45,11 +50,28 @@ let package = Package(
             dependencies: [
                 .target(name: "EmployeeAccessAggregate"),
                 .target(name: "IAMContextShared"),
+                .target(name: "Generated"),
                 .product(name: "DDDKit", package: "swift-ddd-kit"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "GRPCCore", package: "grpc-swift-2"),
+                .product(name: "GRPCServiceLifecycle", package: "grpc-swift-extras"),
+                .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
+                .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
+            ]
+        ),
+        // protoc-generated gRPC contract for proto/PermissionsService.proto.
+        // Regenerate (do NOT hand-edit) with protoc + protoc-gen-swift + protoc-gen-grpc-swift-2:
+        //   protoc --swift_out=Sources/Generated --swift_opt=Visibility=Package \
+        //          --grpc-swift-2_out=Sources/Generated --grpc-swift-2_opt=Visibility=Package \
+        //          -I proto proto/PermissionsService.proto
+        .target(
+            name: "Generated",
+            dependencies: [
+                .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ]
         ),
         // One-shot data importer: reads a staff JSON file and enrolls each staff

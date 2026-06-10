@@ -1,9 +1,13 @@
 import DDDKit
 import Foundation
+import GRPCCore
+import GRPCNIOTransportHTTP2Posix
+import GRPCServiceLifecycle
 import Hummingbird
 import KurrentDB
 import Logging
 import OpenAPIHummingbird
+import ServiceLifecycle
 import EmployeeAccessAggregate
 
 import IAMContextShared
@@ -48,7 +52,20 @@ struct IAMContextServer {
             router: router,
             configuration: .init(address: .hostname("0.0.0.0", port: port))
         )
-        logger.info("starting IAMContextServer on 0.0.0.0:\(port)")
-        try await app.runService()
+
+        // Context-to-context entry point (mirrors IdentityContext: HTTP for frontend/external,
+        // gRPC for inter-context calls — Identity pairs 24200/24201, IAM pairs PORT/GRPC_PORT).
+        let grpcPortString = ProcessInfo.processInfo.environment["GRPC_PORT"] ?? "24203"
+        let grpcPort = Int(grpcPortString) ?? 24203
+        let grpcServer = GRPCServer(transport: .http2NIOPosix(
+            address: .ipv4(host: "0.0.0.0", port: grpcPort),
+            transportSecurity: .plaintext
+          ), services: [
+            PermissionsService(kdbClient: kdbClient)
+          ])
+
+        logger.info("starting IAMContextServer on 0.0.0.0:\(port) (HTTP) / 0.0.0.0:\(grpcPort) (gRPC)")
+        let serviceGroup = ServiceGroup(services: [app, grpcServer], logger: logger)
+        try await serviceGroup.run()
     }
 }
