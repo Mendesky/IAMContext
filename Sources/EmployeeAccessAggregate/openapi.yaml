@@ -1,0 +1,373 @@
+openapi: 3.1.0
+info:
+  title: IAMContext EmployeeAccess API
+  version: 0.1.0
+paths:
+  /employee-access/{employeeAccessId}/grant-privilege:
+    post:
+      operationId: grantPrivilege
+      description: 'TODO: describe grantPrivilege'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrantPrivilegeRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/revoke-privilege:
+    post:
+      operationId: revokePrivilege
+      description: 'TODO: describe revokePrivilege'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokePrivilegeRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/assign-roles:
+    post:
+      operationId: assignRoles
+      description: 'TODO: describe assignRoles'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRolesRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/revoke-roles:
+    post:
+      operationId: revokeRoles
+      description: 'TODO: describe revokeRoles'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeRolesRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/promote-user:
+    post:
+      operationId: promoteUser
+      description: 'TODO: describe promoteUser'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoteUserRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/transfer-department:
+    post:
+      operationId: transferDepartment
+      description: 'TODO: describe transferDepartment'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferDepartmentRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/create-user-access-profile:
+    post:
+      operationId: createUserAccessProfile
+      description: 'TODO: describe createUserAccessProfile'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserAccessProfileRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/permissions/{userId}:
+    get:
+      operationId: getPermissions
+      description: 'TODO: describe GetPermissions'
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+components:
+  parameters:
+    employeeAccessId:
+      name: employeeAccessId
+      in: path
+      required: true
+      schema:
+        type: string
+    operatorId:
+      name: operatorId
+      in: header
+      required: true
+      schema:
+        type: string
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    NotFoundError:
+      description: '404 Not Found'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/EmployeeAccessApiError'
+    UnprocessableEntityError:
+      description: '422 Unprocessable Entity'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/EmployeeAccessApiError'
+    ServiceUnavailableError:
+      description: '503 Service Unavailable'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/EmployeeAccessApiError'
+  schemas:
+    EmployeeAccessId:
+      type: object
+      required:
+        - employeeAccessId
+      properties:
+        employeeAccessId:
+          type: string
+    EmployeeAccessApiError:
+      type: string
+      enum:
+        - aggregateNotFound
+        - invalidPayload
+        - invalidDateFormat
+        - undefinedDomainError
+        - serviceUnavailable
+        - userIdNotExist
+        - permissionNotMatch
+        - employeeNotActive
+        - permissionAlreadyExists
+        - permissionNotExist
+        - roleAlreadyExists
+        - roleNotExist
+        - departmentUnchanged
+    GrantPrivilegeRequest:
+      type: object
+      required:
+        - userId
+        - permissions
+      properties:
+        userId:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    RevokePrivilegeRequest:
+      type: object
+      required:
+        - userId
+        - permissions
+      properties:
+        userId:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    AssignRolesRequest:
+      type: object
+      required:
+        - userId
+        - roles
+      properties:
+        userId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    RevokeRolesRequest:
+      type: object
+      required:
+        - userId
+        - roles
+      properties:
+        userId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    PromoteUserRequest:
+      type: object
+      required:
+        - userId
+        - newJobTitle
+        - oldJobTitle
+      properties:
+        userId:
+          type: string
+        newJobTitle:
+          type: string
+        oldJobTitle:
+          type: string
+    TransferDepartmentRequest:
+      type: object
+      required:
+        - userId
+        - newDepartment
+        - newJobTitle
+      properties:
+        userId:
+          type: string
+        newDepartment:
+          type: string
+        newJobTitle:
+          type: string
+    CreateUserAccessProfileRequest:
+      type: object
+      required:
+        - userId
+        - department
+        - jobTitle
+      properties:
+        userId:
+          type: string
+        department:
+          type: string
+        jobTitle:
+          type: string

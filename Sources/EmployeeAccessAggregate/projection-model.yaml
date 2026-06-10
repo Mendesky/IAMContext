@@ -1,0 +1,11 @@
+GetPermissions:
+  model: readModel
+  events:
+    - PrivilegeGranted
+    - PrivilegeRevoked
+    - RolesAssigned
+    - RolesRevoked
+    - UserPromoted
+    - DepartmentTransferred
+    - UserAccessProfileCreated
+
