@@ -10,8 +10,6 @@ let package = Package(
     products: [
         .library(name: "EmployeeAccessAggregate", targets: ["EmployeeAccessAggregate"]),
         .executable(name: "IAMContextServer", targets: ["IAMContextServer"]),
-        .executable(name: "EnrollStaffs", targets: ["EnrollStaffs"]),
-        .executable(name: "RevokeAllPrivileges", targets: ["RevokeAllPrivileges"]),
         .library(name: "IAMContextShared", targets: ["IAMContextShared"]),
         // permission codegen plugins（給各 context 消費；原 PermissionKit）：
         // PermissionGenPlugin：1 份 *permissions.yaml → Permission.swift + PermissionRules.swift（執法用，OC 採用中）
@@ -83,29 +81,11 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ]
         ),
-        // One-shot data importer: reads a staff JSON file and enrolls each staff
-        // via the CreateUserAccessProfile use-case. Lives inside this package so it
-        // can reach the `package`-level application service / repository directly.
-        .executableTarget(
-            name: "EnrollStaffs",
-            dependencies: [
-                .target(name: "EmployeeAccessAggregate"),
-                .target(name: "IAMContextShared"),
-                .product(name: "DDDKit", package: "swift-ddd-kit"),
-            ]
-        ),
-        // One-shot correction: revokes the placeholder permissions that
-        // createUserAccessProfile granted, emitting a PrivilegeRevoked event per staff
-        // (so each profile ends with an empty permission set). Same-package access to the
-        // `package`-level RevokePrivilege application service.
-        .executableTarget(
-            name: "RevokeAllPrivileges",
-            dependencies: [
-                .target(name: "EmployeeAccessAggregate"),
-                .target(name: "IAMContextShared"),
-                .product(name: "DDDKit", package: "swift-ddd-kit"),
-            ]
-        ),
+        // NOTE: the one-shot staff backfill tools (EnrollStaffs / RevokeAllPrivileges) were moved out
+        // to ContextPlayground as `IAMContextPart` (HTTP importer) on 2026-06-12 — they belong with the
+        // rest of the all_staffs.json roster import tooling, and can't live in-process there (IAM's
+        // gradyzhuo/swift-ddd-kit fork clashes with ContextPlayground's Mendesky/DDDKit). See
+        // docs/grpc-auth-contract.md sibling note / ContextPlayground Sources/IAMContextPart.
         .target(
             name: "IAMContextShared"
         ),
