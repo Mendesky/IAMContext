@@ -284,6 +284,8 @@ components:
         - roleAlreadyExists
         - roleNotExist
         - departmentUnchanged
+        - userIdMismatch
+        - profileAlreadyExists
     GrantPrivilegeRequest:
       type: object
       required:

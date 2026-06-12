@@ -18,6 +18,9 @@ extension Components.Schemas.EmployeeAccessApiError {
         case .roleAlreadyExists: self = .roleAlreadyExists
         case .roleNotExist: self = .roleNotExist
         case .departmentUnchanged: self = .departmentUnchanged
+        // 2026-06-12: 整合性守門錯誤（code review 補洞）→ 客戶端錯誤，走 422。
+        case .userIdMismatch: self = .userIdMismatch
+        case .profileAlreadyExists: self = .profileAlreadyExists
         }
     }
 }

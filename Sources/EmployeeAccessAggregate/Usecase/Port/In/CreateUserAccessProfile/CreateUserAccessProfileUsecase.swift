@@ -8,6 +8,13 @@ package protocol CreateUserAccessProfileUsecase: Usecase where Input == CreateUs
 extension CreateUserAccessProfileUsecase {
     package func execute(input: CreateUserAccessProfileInput) async throws -> CreateUserAccessProfileOutput {
         do {
+            // DUPLICATE GUARD (code review 2026-06-12): KurrentStorageCoordinator.append 對新 aggregate（version==nil）
+            // 用 expectedRevision = .any，重複 create 會把第二個 UserAccessProfileCreated 直接 append 進既有 stream →
+            // 事件流出現兩個 createdEvent（污染重播）。先檢查 stream 是否已存在（含 soft-deleted，故 hiddingDeleted:false，
+            // 避免在已刪除的 stream 上再 append create），存在即擋。
+            if try await repository.find(byId: input.employeeAccessId, hiddingDeleted: false) != nil {
+                throw ContextError<EmployeeAccessError>.profileAlreadyExists(function: #function, message: "a profile already exists for employeeAccessId \(input.employeeAccessId)")
+            }
             let employeeAccess = try EmployeeAccess(id: input.employeeAccessId, userId: input.userId, department: input.department, jobTitle: input.jobTitle)
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
             return .init(id: employeeAccess.id, message: nil)

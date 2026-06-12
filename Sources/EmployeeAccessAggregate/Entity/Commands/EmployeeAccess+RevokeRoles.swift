@@ -8,6 +8,11 @@ extension EmployeeAccess {
         if let missing = roles.first(where: { !(self.roles ?? []).contains($0) }) {
             throw ContextError<EmployeeAccessError>.roleNotExist(function: #function, message: "role \(missing) does not exist for user")
         }
+        // IDENTITY GUARD (code review 2026-06-12): event 的 userId 必須等於本 profile 的 self.userId，不可信任請求值。
+        // 詳見 EmployeeAccess+GrantPrivilege.swift 同名守門的完整說明。
+        guard userId == self.userId else {
+            throw ContextError<EmployeeAccessError>.userIdMismatch(function: #function, message: "request userId does not match this profile's userId")
+        }
         let event = RolesRevoked(employeeAccessId: self.id, userId: userId, roles: roles, occurred: .now)
         try self.apply(event: event)
     }
