@@ -14,7 +14,8 @@ struct RevokePrivilegeIntegrationTests {
         self.repository = EmployeeAccessRepository(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
     }
 
-    // happy：撤一個 user 已有的權限（it:read 在 allPermissions）→ 差集移除。
+    // happy：撤一個 user 已有的權限（在 allPermissions＝OC 153 內）→ 差集移除。
+    // 註：allPermissions 已從舊 placeholder（含 it:read）換成 OC 權威 153 條，故改用真實存在的權限字串。
     @Test func revoke_existing_privilege_succeeds() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
@@ -23,10 +24,10 @@ struct RevokePrivilegeIntegrationTests {
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
             _ = try await RevokePrivilegeService(repository: repository).execute(input: .init(
-                employeeAccessId: employeeAccessId, userId: userId, permissions: ["it:read"], operatorId: operatorId
+                employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
             ))
             let aggregate = try #require(try await repository.find(byId: employeeAccessId))
-            #expect(aggregate.permissions?.contains("it:read") == false)
+            #expect(aggregate.permissions?.contains("OpportunityContext.AuditQuoting.AddAccounting") == false)
         }
     }
 

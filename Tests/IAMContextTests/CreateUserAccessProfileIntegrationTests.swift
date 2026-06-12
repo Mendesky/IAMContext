@@ -33,6 +33,26 @@ struct CreateUserAccessProfileIntegrationTests {
         }
     }
 
+    // guard（code review 2026-06-12）：同一 employeeAccessId 重複 create → profileAlreadyExists
+    // （避免第二個 createdEvent 被 .any expectedRevision 灌進既有 stream）。
+    @Test func create_duplicate_throws() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let operatorId = await bundle.generateId(for: "operatorId")
+            let usecase = CreateUserAccessProfileService(repository: repository)
+            _ = try await usecase.execute(input: .init(
+                employeeAccessId: employeeAccessId, userId: userId, department: "資訊部門", jobTitle: "組員", operatorId: operatorId
+            ))
+            let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
+                let _: CreateUserAccessProfileOutput = try await usecase.execute(input: .init(
+                    employeeAccessId: employeeAccessId, userId: userId, department: "資訊部門", jobTitle: "組員", operatorId: operatorId
+                ))
+            }
+            #expect(error?.error == .profileAlreadyExists)
+        }
+    }
+
     @Test func create_empty_userId_throws() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)

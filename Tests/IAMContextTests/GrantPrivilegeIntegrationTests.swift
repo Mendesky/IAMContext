@@ -30,7 +30,8 @@ struct GrantPrivilegeIntegrationTests {
         }
     }
 
-    // guard：授一個已存在的權限（allPermissions 內，如 it:read）→ permissionAlreadyExists。
+    // guard：授一個已存在的權限（在 allPermissions＝OC 153 內）→ permissionAlreadyExists。
+    // 註：allPermissions 已從舊 placeholder（含 it:read）換成 OC 權威 153 條，故改用真實存在的權限字串。
     @Test func grant_existing_privilege_throws() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
@@ -41,10 +42,30 @@ struct GrantPrivilegeIntegrationTests {
             let usecase = GrantPrivilegeService(repository: repository)
             let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
                 let _: GrantPrivilegeOutput = try await usecase.execute(input: .init(
-                    employeeAccessId: employeeAccessId, userId: userId, permissions: ["it:read"], operatorId: operatorId
+                    employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
                 ))
             }
             #expect(error?.error == .permissionAlreadyExists)
+        }
+    }
+
+    // guard（code review 2026-06-12）：請求帶的 userId 與 profile 真正的 userId 不一致 → userIdMismatch
+    // （防止把權限事件灌進別人的身分、污染 GetPermissions 投影）。
+    @Test func grant_userId_mismatch_throws() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let wrongUserId = await bundle.generateId(for: "wrongUserId")
+            let operatorId = await bundle.generateId(for: "operatorId")
+            try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
+
+            let usecase = GrantPrivilegeService(repository: repository)
+            let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
+                let _: GrantPrivilegeOutput = try await usecase.execute(input: .init(
+                    employeeAccessId: employeeAccessId, userId: wrongUserId, permissions: ["custom:new"], operatorId: operatorId
+                ))
+            }
+            #expect(error?.error == .userIdMismatch)
         }
     }
 
