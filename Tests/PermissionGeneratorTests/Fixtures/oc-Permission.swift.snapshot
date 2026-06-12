@@ -1,0 +1,223 @@
+// AUTO-GENERATED from openapi.yaml — see docs/permissions/permission-mapping.md. Regenerate: python3 scripts/gen-permissions.py
+// 權限總數：153
+// 命名規則：OpportunityContext.<Aggregate|Workflow|Query|File>.<OperationId(PascalCase)>
+
+/// 一個 API endpoint 所需的權限（型別 `[Permission]`）。open set 以相容外部 IAM 未知字串。
+public struct Permission: RawRepresentable, Hashable, Sendable, Codable {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    fileprivate init(_ value: String) { self.rawValue = value }
+}
+
+// MARK: - AuditQuoting (47)
+extension Permission {
+    public static let auditQuotingAddAccounting = Permission("OpportunityContext.AuditQuoting.AddAccounting")
+    public static let auditQuotingAddAccountingReform = Permission("OpportunityContext.AuditQuoting.AddAccountingReform")
+    public static let auditQuotingAddAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting = Permission("OpportunityContext.AuditQuoting.AddAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting")
+    public static let auditQuotingAddAssistanceCtp = Permission("OpportunityContext.AuditQuoting.AddAssistanceCtp")
+    public static let auditQuotingAddCashierOperation = Permission("OpportunityContext.AuditQuoting.AddCashierOperation")
+    public static let auditQuotingAddCustomizedReporting = Permission("OpportunityContext.AuditQuoting.AddCustomizedReporting")
+    public static let auditQuotingAddFinancialComplianceAudit = Permission("OpportunityContext.AuditQuoting.AddFinancialComplianceAudit")
+    public static let auditQuotingAddPayrollSupportOperation = Permission("OpportunityContext.AuditQuoting.AddPayrollSupportOperation")
+    public static let auditQuotingAddTaxComplianceAudit = Permission("OpportunityContext.AuditQuoting.AddTaxComplianceAudit")
+    public static let auditQuotingAddTaxComplianceAuditAndUndistributedEarningsAudit = Permission("OpportunityContext.AuditQuoting.AddTaxComplianceAuditAndUndistributedEarningsAudit")
+    public static let auditQuotingConfirmNoPredecessorAuditor = Permission("OpportunityContext.AuditQuoting.ConfirmNoPredecessorAuditor")
+    public static let auditQuotingCustomizeServiceItem = Permission("OpportunityContext.AuditQuoting.CustomizeServiceItem")
+    public static let auditQuotingDeleteCustomizedReporting = Permission("OpportunityContext.AuditQuoting.DeleteCustomizedReporting")
+    public static let auditQuotingEditAccountBalanceDetailReportNeed = Permission("OpportunityContext.AuditQuoting.EditAccountBalanceDetailReportNeed")
+    public static let auditQuotingEditAccountingReformElectronicFileProvision = Permission("OpportunityContext.AuditQuoting.EditAccountingReformElectronicFileProvision")
+    public static let auditQuotingEditAccountingType = Permission("OpportunityContext.AuditQuoting.EditAccountingType")
+    public static let auditQuotingEditBalanceSheetNeed = Permission("OpportunityContext.AuditQuoting.EditBalanceSheetNeed")
+    public static let auditQuotingEditBranchCount = Permission("OpportunityContext.AuditQuoting.EditBranchCount")
+    public static let auditQuotingEditBusinessTaxFilingMethod = Permission("OpportunityContext.AuditQuoting.EditBusinessTaxFilingMethod")
+    public static let auditQuotingEditCommonBankMonthlyRecordCount = Permission("OpportunityContext.AuditQuoting.EditCommonBankMonthlyRecordCount")
+    public static let auditQuotingEditCustomizedReporting = Permission("OpportunityContext.AuditQuoting.EditCustomizedReporting")
+    public static let auditQuotingEditDomesticTransferCount = Permission("OpportunityContext.AuditQuoting.EditDomesticTransferCount")
+    public static let auditQuotingEditEstimatedEvidenceCount = Permission("OpportunityContext.AuditQuoting.EditEstimatedEvidenceCount")
+    public static let auditQuotingEditEstimatedHeadcountOfWithholding = Permission("OpportunityContext.AuditQuoting.EditEstimatedHeadcountOfWithholding")
+    public static let auditQuotingEditEstimatedRevenue = Permission("OpportunityContext.AuditQuoting.EditEstimatedRevenue")
+    public static let auditQuotingEditIncomeStatementNeed = Permission("OpportunityContext.AuditQuoting.EditIncomeStatementNeed")
+    public static let auditQuotingEditIndustrialType = Permission("OpportunityContext.AuditQuoting.EditIndustrialType")
+    public static let auditQuotingEditInternationalTransferCount = Permission("OpportunityContext.AuditQuoting.EditInternationalTransferCount")
+    public static let auditQuotingEditLastYearRevenue = Permission("OpportunityContext.AuditQuoting.EditLastYearRevenue")
+    public static let auditQuotingEditPaidInCapital = Permission("OpportunityContext.AuditQuoting.EditPaidInCapital")
+    public static let auditQuotingEditPayrollHeadcount = Permission("OpportunityContext.AuditQuoting.EditPayrollHeadcount")
+    public static let auditQuotingEditPayrollTransferCount = Permission("OpportunityContext.AuditQuoting.EditPayrollTransferCount")
+    public static let auditQuotingEditProfitseekingEnterpriseIncomeTaxFilingMethod = Permission("OpportunityContext.AuditQuoting.EditProfitseekingEnterpriseIncomeTaxFilingMethod")
+    public static let auditQuotingEditRegisteredCapital = Permission("OpportunityContext.AuditQuoting.EditRegisteredCapital")
+    public static let auditQuotingEditSalesEinvoiceUsage = Permission("OpportunityContext.AuditQuoting.EditSalesEinvoiceUsage")
+    public static let auditQuotingEditServiceItemEndDate = Permission("OpportunityContext.AuditQuoting.EditServiceItemEndDate")
+    public static let auditQuotingEditServiceItemSelection = Permission("OpportunityContext.AuditQuoting.EditServiceItemSelection")
+    public static let auditQuotingEditServiceItemStartDate = Permission("OpportunityContext.AuditQuoting.EditServiceItemStartDate")
+    public static let auditQuotingEditTotalAssets = Permission("OpportunityContext.AuditQuoting.EditTotalAssets")
+    public static let auditQuotingRecordPastCostAnalysisRequirement = Permission("OpportunityContext.AuditQuoting.RecordPastCostAnalysisRequirement")
+    public static let auditQuotingRecordPredecessorAuditorInfo = Permission("OpportunityContext.AuditQuoting.RecordPredecessorAuditorInfo")
+    public static let auditQuotingRemoveQuotingProof = Permission("OpportunityContext.AuditQuoting.RemoveQuotingProof")
+    public static let auditQuotingRemoveServiceItems = Permission("OpportunityContext.AuditQuoting.RemoveServiceItems")
+    public static let auditQuotingSelectAccountingWorkItems = Permission("OpportunityContext.AuditQuoting.SelectAccountingWorkItems")
+    public static let auditQuotingSelectCashierOperationWorkItems = Permission("OpportunityContext.AuditQuoting.SelectCashierOperationWorkItems")
+    public static let auditQuotingSelectPayrollSupportOperationWorkItems = Permission("OpportunityContext.AuditQuoting.SelectPayrollSupportOperationWorkItems")
+    public static let auditQuotingUploadQuotingProof = Permission("OpportunityContext.AuditQuoting.UploadQuotingProof")
+}
+
+// MARK: - QuotingCaseGrouping (28)
+extension Permission {
+    public static let quotingCaseGroupingAddCollaborators = Permission("OpportunityContext.QuotingCaseGrouping.AddCollaborators")
+    public static let quotingCaseGroupingAddContact = Permission("OpportunityContext.QuotingCaseGrouping.AddContact")
+    public static let quotingCaseGroupingAddQuotingBundle = Permission("OpportunityContext.QuotingCaseGrouping.AddQuotingBundle")
+    public static let quotingCaseGroupingBackfillQuotation = Permission("OpportunityContext.QuotingCaseGrouping.BackfillQuotation")
+    public static let quotingCaseGroupingEditClientSource = Permission("OpportunityContext.QuotingCaseGrouping.EditClientSource")
+    public static let quotingCaseGroupingEditContactCommunicationMethods = Permission("OpportunityContext.QuotingCaseGrouping.EditContactCommunicationMethods")
+    public static let quotingCaseGroupingEditContactDisplayName = Permission("OpportunityContext.QuotingCaseGrouping.EditContactDisplayName")
+    public static let quotingCaseGroupingEditContactGender = Permission("OpportunityContext.QuotingCaseGrouping.EditContactGender")
+    public static let quotingCaseGroupingEditContactRelationship = Permission("OpportunityContext.QuotingCaseGrouping.EditContactRelationship")
+    public static let quotingCaseGroupingEditQuotingCaseBusinessId = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingCaseBusinessId")
+    public static let quotingCaseGroupingEditQuotingCaseCompanyName = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingCaseCompanyName")
+    public static let quotingCaseGroupingEditQuotingCaseEstablishmentApprovalDate = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingCaseEstablishmentApprovalDate")
+    public static let quotingCaseGroupingEditQuotingCaseName = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingCaseName")
+    public static let quotingCaseGroupingEditQuotingCaseOrganizationType = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingCaseOrganizationType")
+    public static let quotingCaseGroupingEditQuotingFirm = Permission("OpportunityContext.QuotingCaseGrouping.EditQuotingFirm")
+    public static let quotingCaseGroupingOpenQuotingCaseGrouping = Permission("OpportunityContext.QuotingCaseGrouping.OpenQuotingCaseGrouping")
+    public static let quotingCaseGroupingPriceServiceItems = Permission("OpportunityContext.QuotingCaseGrouping.PriceServiceItems")
+    public static let quotingCaseGroupingRemoveBackfilledQuotation = Permission("OpportunityContext.QuotingCaseGrouping.RemoveBackfilledQuotation")
+    public static let quotingCaseGroupingRemoveCollaborator = Permission("OpportunityContext.QuotingCaseGrouping.RemoveCollaborator")
+    public static let quotingCaseGroupingRemoveContact = Permission("OpportunityContext.QuotingCaseGrouping.RemoveContact")
+    public static let quotingCaseGroupingRemoveQuotingBundle = Permission("OpportunityContext.QuotingCaseGrouping.RemoveQuotingBundle")
+    public static let quotingCaseGroupingRemoveQuotingCase = Permission("OpportunityContext.QuotingCaseGrouping.RemoveQuotingCase")
+    public static let quotingCaseGroupingRemoveReplyForm = Permission("OpportunityContext.QuotingCaseGrouping.RemoveReplyForm")
+    public static let quotingCaseGroupingRenameQuotingBundle = Permission("OpportunityContext.QuotingCaseGrouping.RenameQuotingBundle")
+    public static let quotingCaseGroupingReorderQuotingBundles = Permission("OpportunityContext.QuotingCaseGrouping.ReorderQuotingBundles")
+    public static let quotingCaseGroupingReorderQuotingCases = Permission("OpportunityContext.QuotingCaseGrouping.ReorderQuotingCases")
+    public static let quotingCaseGroupingSetPrimaryQuotingCase = Permission("OpportunityContext.QuotingCaseGrouping.SetPrimaryQuotingCase")
+    public static let quotingCaseGroupingUploadReplyForm = Permission("OpportunityContext.QuotingCaseGrouping.UploadReplyForm")
+}
+
+// MARK: - Quotation (14)
+extension Permission {
+    public static let quotationAddContractNoteByUser = Permission("OpportunityContext.Quotation.AddContractNoteByUser")
+    public static let quotationEditContractNote = Permission("OpportunityContext.Quotation.EditContractNote")
+    public static let quotationEditFontSize = Permission("OpportunityContext.Quotation.EditFontSize")
+    public static let quotationEditLetterContent = Permission("OpportunityContext.Quotation.EditLetterContent")
+    public static let quotationEditLetterFrom = Permission("OpportunityContext.Quotation.EditLetterFrom")
+    public static let quotationEditLetterTitle = Permission("OpportunityContext.Quotation.EditLetterTitle")
+    public static let quotationEditLetterTo = Permission("OpportunityContext.Quotation.EditLetterTo")
+    public static let quotationEditPaymentItemSupplementaryNoteContent = Permission("OpportunityContext.Quotation.EditPaymentItemSupplementaryNoteContent")
+    public static let quotationRemoveContractNoteByUser = Permission("OpportunityContext.Quotation.RemoveContractNoteByUser")
+    public static let quotationRenamePaymentItem = Permission("OpportunityContext.Quotation.RenamePaymentItem")
+    public static let quotationReorderContractNotes = Permission("OpportunityContext.Quotation.ReorderContractNotes")
+    public static let quotationReorderPaymentItems = Permission("OpportunityContext.Quotation.ReorderPaymentItems")
+    public static let quotationResetPaymentItemSupplementaryNoteContent = Permission("OpportunityContext.Quotation.ResetPaymentItemSupplementaryNoteContent")
+    public static let quotationSetPaymentItemSupplementaryNoteVisibility = Permission("OpportunityContext.Quotation.SetPaymentItemSupplementaryNoteVisibility")
+}
+
+// MARK: - CompanyRegistrationQuoting (22)
+extension Permission {
+    public static let companyRegistrationQuotingAddAssistanceChairmanConvenienceSeal = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceChairmanConvenienceSeal")
+    public static let companyRegistrationQuotingAddAssistanceChairmanSeal = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceChairmanSeal")
+    public static let companyRegistrationQuotingAddAssistanceCompanyConvenienceSeal = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceCompanyConvenienceSeal")
+    public static let companyRegistrationQuotingAddAssistanceCompanySeal = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceCompanySeal")
+    public static let companyRegistrationQuotingAddAssistanceInvoiceSeal = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceInvoiceSeal")
+    public static let companyRegistrationQuotingAddAssistanceLaborAndHealthInsuranceInsuredUnitSetting = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceLaborAndHealthInsuranceInsuredUnitSetting")
+    public static let companyRegistrationQuotingAddAssistanceWithCompanyCertificationApplication = Permission("OpportunityContext.CompanyRegistrationQuoting.AddAssistanceWithCompanyCertificationApplication")
+    public static let companyRegistrationQuotingAddCompanyRegistration = Permission("OpportunityContext.CompanyRegistrationQuoting.AddCompanyRegistration")
+    public static let companyRegistrationQuotingAddOwnerOccupiedResidencePartForBusinessApplication = Permission("OpportunityContext.CompanyRegistrationQuoting.AddOwnerOccupiedResidencePartForBusinessApplication")
+    public static let companyRegistrationQuotingConfigureEconomicMinistryRegistrationCharged = Permission("OpportunityContext.CompanyRegistrationQuoting.ConfigureEconomicMinistryRegistrationCharged")
+    public static let companyRegistrationQuotingConfigureEconomicMinistryRegistrationNoCharge = Permission("OpportunityContext.CompanyRegistrationQuoting.ConfigureEconomicMinistryRegistrationNoCharge")
+    public static let companyRegistrationQuotingEditChairmanConvenienceSealCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditChairmanConvenienceSealCount")
+    public static let companyRegistrationQuotingEditChairmanSealCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditChairmanSealCount")
+    public static let companyRegistrationQuotingEditCompanyConvenienceSealCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditCompanyConvenienceSealCount")
+    public static let companyRegistrationQuotingEditCompanySealCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditCompanySealCount")
+    public static let companyRegistrationQuotingEditInvoiceSealCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditInvoiceSealCount")
+    public static let companyRegistrationQuotingEditIsFranchise = Permission("OpportunityContext.CompanyRegistrationQuoting.EditIsFranchise")
+    public static let companyRegistrationQuotingEditServiceItemSelection = Permission("OpportunityContext.CompanyRegistrationQuoting.EditServiceItemSelection")
+    public static let companyRegistrationQuotingEditServiceItemStartDate = Permission("OpportunityContext.CompanyRegistrationQuoting.EditServiceItemStartDate")
+    public static let companyRegistrationQuotingEditShareholderCount = Permission("OpportunityContext.CompanyRegistrationQuoting.EditShareholderCount")
+    public static let companyRegistrationQuotingRemoveServiceItems = Permission("OpportunityContext.CompanyRegistrationQuoting.RemoveServiceItems")
+    public static let companyRegistrationQuotingSelectCompanyRegistrationWorkItems = Permission("OpportunityContext.CompanyRegistrationQuoting.SelectCompanyRegistrationWorkItems")
+}
+
+// MARK: - Workflow (9)
+extension Permission {
+    public static let workflowAddQuotingCase = Permission("OpportunityContext.Workflow.AddQuotingCase")
+    public static let workflowArchiveQuotingCaseGrouping = Permission("OpportunityContext.Workflow.ArchiveQuotingCaseGrouping")
+    public static let workflowCancelQuotingCaseGroupingDealClose = Permission("OpportunityContext.Workflow.CancelQuotingCaseGroupingDealClose")
+    public static let workflowCancelQuotingCaseGroupingHandOver = Permission("OpportunityContext.Workflow.CancelQuotingCaseGroupingHandOver")
+    public static let workflowCloseQuotingCasesDeal = Permission("OpportunityContext.Workflow.CloseQuotingCasesDeal")
+    public static let workflowCreateQuotingCaseGrouping = Permission("OpportunityContext.Workflow.CreateQuotingCaseGrouping")
+    public static let workflowDeliverQuotingCase = Permission("OpportunityContext.Workflow.DeliverQuotingCase")
+    public static let workflowHandOverQuotingCases = Permission("OpportunityContext.Workflow.HandOverQuotingCases")
+    public static let workflowUnarchiveQuotingCaseGrouping = Permission("OpportunityContext.Workflow.UnarchiveQuotingCaseGrouping")
+}
+
+// MARK: - Query (31)
+extension Permission {
+    public static let queryGetAccountingSetup = Permission("OpportunityContext.Query.GetAccountingSetup")
+    public static let queryGetAgreementTerms = Permission("OpportunityContext.Query.GetAgreementTerms")
+    public static let queryGetBackfilledQuotations = Permission("OpportunityContext.Query.GetBackfilledQuotations")
+    public static let queryGetBusinessClientAssistance = Permission("OpportunityContext.Query.GetBusinessClientAssistance")
+    public static let queryGetClientSource = Permission("OpportunityContext.Query.GetClientSource")
+    public static let queryGetContacts = Permission("OpportunityContext.Query.GetContacts")
+    public static let queryGetContractHeader = Permission("OpportunityContext.Query.GetContractHeader")
+    public static let queryGetContractNotes = Permission("OpportunityContext.Query.GetContractNotes")
+    public static let queryGetCustomerInfo = Permission("OpportunityContext.Query.GetCustomerInfo")
+    public static let queryGetEvidenceInfo = Permission("OpportunityContext.Query.GetEvidenceInfo")
+    public static let queryGetLetter = Permission("OpportunityContext.Query.GetLetter")
+    public static let queryGetOperationInfo = Permission("OpportunityContext.Query.GetOperationInfo")
+    public static let queryGetPaymentSummary = Permission("OpportunityContext.Query.GetPaymentSummary")
+    public static let queryGetPredecessorServiceInfo = Permission("OpportunityContext.Query.GetPredecessorServiceInfo")
+    public static let queryGetPurpose = Permission("OpportunityContext.Query.GetPurpose")
+    public static let queryGetQuotationPdfDownload = Permission("OpportunityContext.Query.GetQuotationPdfDownload")
+    public static let queryGetQuotationPdfPreview = Permission("OpportunityContext.Query.GetQuotationPdfPreview")
+    public static let queryGetQuotingBundles = Permission("OpportunityContext.Query.GetQuotingBundles")
+    public static let queryGetQuotingCaseGroupingAggregateRootIds = Permission("OpportunityContext.Query.GetQuotingCaseGroupingAggregateRootIds")
+    public static let queryGetQuotingCaseGroupingSummaries = Permission("OpportunityContext.Query.GetQuotingCaseGroupingSummaries")
+    public static let queryGetQuotingCaseGroupingViewMode = Permission("OpportunityContext.Query.GetQuotingCaseGroupingViewMode")
+    public static let queryGetQuotingCaseViewMode = Permission("OpportunityContext.Query.GetQuotingCaseViewMode")
+    public static let queryGetQuotingCases = Permission("OpportunityContext.Query.GetQuotingCases")
+    public static let queryGetQuotingFirm = Permission("OpportunityContext.Query.GetQuotingFirm")
+    public static let queryGetQuotingProofs = Permission("OpportunityContext.Query.GetQuotingProofs")
+    public static let queryGetReplyForms = Permission("OpportunityContext.Query.GetReplyForms")
+    public static let queryGetRightsAndObligations = Permission("OpportunityContext.Query.GetRightsAndObligations")
+    public static let queryGetServiceItemDetail = Permission("OpportunityContext.Query.GetServiceItemDetail")
+    public static let queryGetServiceItemsByQuotingBundleId = Permission("OpportunityContext.Query.GetServiceItemsByQuotingBundleId")
+    public static let queryGetServiceScope = Permission("OpportunityContext.Query.GetServiceScope")
+    public static let queryGetTemplateVariables = Permission("OpportunityContext.Query.GetTemplateVariables")
+}
+
+// MARK: - File (2)
+extension Permission {
+    public static let fileDownloadFile = Permission("OpportunityContext.File.DownloadFile")
+    public static let fileUploadEmbeddedImage = Permission("OpportunityContext.File.UploadEmbeddedImage")
+}
+
+// MARK: - All
+extension Permission {
+    public static let all: [Permission] = [
+        .auditQuotingAddAccounting, .auditQuotingAddAccountingReform, .auditQuotingAddAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting, .auditQuotingAddAssistanceCtp, .auditQuotingAddCashierOperation, .auditQuotingAddCustomizedReporting,
+        .auditQuotingAddFinancialComplianceAudit, .auditQuotingAddPayrollSupportOperation, .auditQuotingAddTaxComplianceAudit, .auditQuotingAddTaxComplianceAuditAndUndistributedEarningsAudit, .auditQuotingConfirmNoPredecessorAuditor, .auditQuotingCustomizeServiceItem,
+        .auditQuotingDeleteCustomizedReporting, .auditQuotingEditAccountBalanceDetailReportNeed, .auditQuotingEditAccountingReformElectronicFileProvision, .auditQuotingEditAccountingType, .auditQuotingEditBalanceSheetNeed, .auditQuotingEditBranchCount,
+        .auditQuotingEditBusinessTaxFilingMethod, .auditQuotingEditCommonBankMonthlyRecordCount, .auditQuotingEditCustomizedReporting, .auditQuotingEditDomesticTransferCount, .auditQuotingEditEstimatedEvidenceCount, .auditQuotingEditEstimatedHeadcountOfWithholding,
+        .auditQuotingEditEstimatedRevenue, .auditQuotingEditIncomeStatementNeed, .auditQuotingEditIndustrialType, .auditQuotingEditInternationalTransferCount, .auditQuotingEditLastYearRevenue, .auditQuotingEditPaidInCapital,
+        .auditQuotingEditPayrollHeadcount, .auditQuotingEditPayrollTransferCount, .auditQuotingEditProfitseekingEnterpriseIncomeTaxFilingMethod, .auditQuotingEditRegisteredCapital, .auditQuotingEditSalesEinvoiceUsage, .auditQuotingEditServiceItemEndDate,
+        .auditQuotingEditServiceItemSelection, .auditQuotingEditServiceItemStartDate, .auditQuotingEditTotalAssets, .auditQuotingRecordPastCostAnalysisRequirement, .auditQuotingRecordPredecessorAuditorInfo, .auditQuotingRemoveQuotingProof,
+        .auditQuotingRemoveServiceItems, .auditQuotingSelectAccountingWorkItems, .auditQuotingSelectCashierOperationWorkItems, .auditQuotingSelectPayrollSupportOperationWorkItems, .auditQuotingUploadQuotingProof, .quotingCaseGroupingAddCollaborators,
+        .quotingCaseGroupingAddContact, .quotingCaseGroupingAddQuotingBundle, .quotingCaseGroupingBackfillQuotation, .quotingCaseGroupingEditClientSource, .quotingCaseGroupingEditContactCommunicationMethods, .quotingCaseGroupingEditContactDisplayName,
+        .quotingCaseGroupingEditContactGender, .quotingCaseGroupingEditContactRelationship, .quotingCaseGroupingEditQuotingCaseBusinessId, .quotingCaseGroupingEditQuotingCaseCompanyName, .quotingCaseGroupingEditQuotingCaseEstablishmentApprovalDate, .quotingCaseGroupingEditQuotingCaseName,
+        .quotingCaseGroupingEditQuotingCaseOrganizationType, .quotingCaseGroupingEditQuotingFirm, .quotingCaseGroupingOpenQuotingCaseGrouping, .quotingCaseGroupingPriceServiceItems, .quotingCaseGroupingRemoveBackfilledQuotation, .quotingCaseGroupingRemoveCollaborator,
+        .quotingCaseGroupingRemoveContact, .quotingCaseGroupingRemoveQuotingBundle, .quotingCaseGroupingRemoveQuotingCase, .quotingCaseGroupingRemoveReplyForm, .quotingCaseGroupingRenameQuotingBundle, .quotingCaseGroupingReorderQuotingBundles,
+        .quotingCaseGroupingReorderQuotingCases, .quotingCaseGroupingSetPrimaryQuotingCase, .quotingCaseGroupingUploadReplyForm, .quotationAddContractNoteByUser, .quotationEditContractNote, .quotationEditFontSize,
+        .quotationEditLetterContent, .quotationEditLetterFrom, .quotationEditLetterTitle, .quotationEditLetterTo, .quotationEditPaymentItemSupplementaryNoteContent, .quotationRemoveContractNoteByUser,
+        .quotationRenamePaymentItem, .quotationReorderContractNotes, .quotationReorderPaymentItems, .quotationResetPaymentItemSupplementaryNoteContent, .quotationSetPaymentItemSupplementaryNoteVisibility, .companyRegistrationQuotingAddAssistanceChairmanConvenienceSeal,
+        .companyRegistrationQuotingAddAssistanceChairmanSeal, .companyRegistrationQuotingAddAssistanceCompanyConvenienceSeal, .companyRegistrationQuotingAddAssistanceCompanySeal, .companyRegistrationQuotingAddAssistanceInvoiceSeal, .companyRegistrationQuotingAddAssistanceLaborAndHealthInsuranceInsuredUnitSetting, .companyRegistrationQuotingAddAssistanceWithCompanyCertificationApplication,
+        .companyRegistrationQuotingAddCompanyRegistration, .companyRegistrationQuotingAddOwnerOccupiedResidencePartForBusinessApplication, .companyRegistrationQuotingConfigureEconomicMinistryRegistrationCharged, .companyRegistrationQuotingConfigureEconomicMinistryRegistrationNoCharge, .companyRegistrationQuotingEditChairmanConvenienceSealCount, .companyRegistrationQuotingEditChairmanSealCount,
+        .companyRegistrationQuotingEditCompanyConvenienceSealCount, .companyRegistrationQuotingEditCompanySealCount, .companyRegistrationQuotingEditInvoiceSealCount, .companyRegistrationQuotingEditIsFranchise, .companyRegistrationQuotingEditServiceItemSelection, .companyRegistrationQuotingEditServiceItemStartDate,
+        .companyRegistrationQuotingEditShareholderCount, .companyRegistrationQuotingRemoveServiceItems, .companyRegistrationQuotingSelectCompanyRegistrationWorkItems, .workflowAddQuotingCase, .workflowArchiveQuotingCaseGrouping, .workflowCancelQuotingCaseGroupingDealClose,
+        .workflowCancelQuotingCaseGroupingHandOver, .workflowCloseQuotingCasesDeal, .workflowCreateQuotingCaseGrouping, .workflowDeliverQuotingCase, .workflowHandOverQuotingCases, .workflowUnarchiveQuotingCaseGrouping,
+        .queryGetAccountingSetup, .queryGetAgreementTerms, .queryGetBackfilledQuotations, .queryGetBusinessClientAssistance, .queryGetClientSource, .queryGetContacts,
+        .queryGetContractHeader, .queryGetContractNotes, .queryGetCustomerInfo, .queryGetEvidenceInfo, .queryGetLetter, .queryGetOperationInfo,
+        .queryGetPaymentSummary, .queryGetPredecessorServiceInfo, .queryGetPurpose, .queryGetQuotationPdfDownload, .queryGetQuotationPdfPreview, .queryGetQuotingBundles,
+        .queryGetQuotingCaseGroupingAggregateRootIds, .queryGetQuotingCaseGroupingSummaries, .queryGetQuotingCaseGroupingViewMode, .queryGetQuotingCaseViewMode, .queryGetQuotingCases, .queryGetQuotingFirm,
+        .queryGetQuotingProofs, .queryGetReplyForms, .queryGetRightsAndObligations, .queryGetServiceItemDetail, .queryGetServiceItemsByQuotingBundleId, .queryGetServiceScope,
+        .queryGetTemplateVariables, .fileDownloadFile, .fileUploadEmbeddedImage,
+    ]
+}

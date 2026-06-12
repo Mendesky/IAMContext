@@ -13,6 +13,11 @@ let package = Package(
         .executable(name: "EnrollStaffs", targets: ["EnrollStaffs"]),
         .executable(name: "RevokeAllPrivileges", targets: ["RevokeAllPrivileges"]),
         .library(name: "IAMContextShared", targets: ["IAMContextShared"]),
+        // permission codegen plugins（給各 context 消費；原 PermissionKit）：
+        // PermissionGenPlugin：1 份 *permissions.yaml → Permission.swift + PermissionRules.swift（執法用，OC 採用中）
+        // PermissionCatalogPlugin：多份 yaml → 一份 PermissionCatalog.swift（聚合，IAMPermissionCatalog target 用）
+        .plugin(name: "PermissionGenPlugin", targets: ["PermissionGenPlugin"]),
+        .plugin(name: "PermissionCatalogPlugin", targets: ["PermissionCatalogPlugin"]),
     ],
     dependencies: [
         .package(url: "https://github.com/gradyzhuo/swift-ddd-kit.git", from: "0.3.0"),
@@ -26,6 +31,10 @@ let package = Package(
         .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", from: "2.0.0"),
         .package(url: "https://github.com/grpc/grpc-swift-extras.git", from: "2.1.0"),
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.33.3"),
+        // permission codegen（原獨立 PermissionKit，2026-06-12 併入本 package——user 決策：
+        // 現階段 codegen 是小功能、IAM 版本與其綁定，變大再考慮拆分）所需：
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.1.3"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
     ],
     targets: [
         .target(
@@ -99,6 +108,51 @@ let package = Package(
         ),
         .target(
             name: "IAMContextShared"
+        ),
+        // 全 context 權限的聚合 catalog：PermissionCatalogPlugin 在 build 時讀本 target 內所有
+        // *permissions.yaml（各 context SSOT 的手動複製快照，IAM 自身無 catalog）→ 產 PermissionCatalog.swift。
+        // 供未來 role 設計 / 授權 UI 的權限選單（universe）；yaml 同步機制留待部署期定案。
+        .target(
+            name: "IAMPermissionCatalog",
+            plugins: [
+                .plugin(name: "PermissionCatalogPlugin"),
+            ]
+        ),
+        // ── permission codegen（原獨立 PermissionKit，併入；詳見 docs/permission-codegen/）──
+        .target(
+            name: "PermissionGenerator",
+            dependencies: [
+                .product(name: "Yams", package: "Yams"),
+            ]
+        ),
+        .executableTarget(
+            name: "permission-gen",
+            dependencies: [
+                "PermissionGenerator",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
+        ),
+        .executableTarget(
+            name: "permission-catalog-gen",
+            dependencies: [
+                "PermissionGenerator",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
+        ),
+        .plugin(
+            name: "PermissionGenPlugin",
+            capability: .buildTool(),
+            dependencies: ["permission-gen"]
+        ),
+        .plugin(
+            name: "PermissionCatalogPlugin",
+            capability: .buildTool(),
+            dependencies: ["permission-catalog-gen"]
+        ),
+        .testTarget(
+            name: "PermissionGeneratorTests",
+            dependencies: ["PermissionGenerator"],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "IAMContextTests",
