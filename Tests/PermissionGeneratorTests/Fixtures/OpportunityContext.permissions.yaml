@@ -1,0 +1,924 @@
+# AUTO-DERIVED fixture from OpportunityContext openapi (read-only) — see scripts/oc_to_yaml.py.
+# OC's 153 permissions as a SPLIT (Option B) permission document: catalog + rules (here 1:1).
+context: OpportunityContext
+serverPrefix: /opportunity-context
+permissions:
+  - slot: AuditQuoting
+    operationId: editAccountingType
+  - slot: Query
+    operationId: getQuotingProofs
+  - slot: Query
+    operationId: getPredecessorServiceInfo
+  - slot: Query
+    operationId: getOperationInfo
+  - slot: Query
+    operationId: getEvidenceInfo
+  - slot: AuditQuoting
+    operationId: uploadQuotingProof
+  - slot: AuditQuoting
+    operationId: removeQuotingProof
+  - slot: AuditQuoting
+    operationId: recordPastCostAnalysisRequirement
+  - slot: AuditQuoting
+    operationId: recordPredecessorAuditorInfo
+  - slot: AuditQuoting
+    operationId: confirmNoPredecessorAuditor
+  - slot: AuditQuoting
+    operationId: editEstimatedEvidenceCount
+  - slot: AuditQuoting
+    operationId: editSalesEinvoiceUsage
+  - slot: AuditQuoting
+    operationId: editTotalAssets
+  - slot: AuditQuoting
+    operationId: editLastYearRevenue
+  - slot: AuditQuoting
+    operationId: editEstimatedRevenue
+  - slot: AuditQuoting
+    operationId: editEstimatedHeadcountOfWithholding
+  - slot: AuditQuoting
+    operationId: editPaidInCapital
+  - slot: AuditQuoting
+    operationId: editRegisteredCapital
+  - slot: AuditQuoting
+    operationId: editBranchCount
+  - slot: AuditQuoting
+    operationId: editIndustrialType
+  - slot: AuditQuoting
+    operationId: addAccounting
+  - slot: AuditQuoting
+    operationId: addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
+  - slot: AuditQuoting
+    operationId: addAssistanceCtp
+  - slot: AuditQuoting
+    operationId: addPayrollSupportOperation
+  - slot: AuditQuoting
+    operationId: addTaxComplianceAudit
+  - slot: AuditQuoting
+    operationId: addTaxComplianceAuditAndUndistributedEarningsAudit
+  - slot: AuditQuoting
+    operationId: addCashierOperation
+  - slot: AuditQuoting
+    operationId: addFinancialComplianceAudit
+  - slot: AuditQuoting
+    operationId: addAccountingReform
+  - slot: AuditQuoting
+    operationId: customizeServiceItem
+  - slot: AuditQuoting
+    operationId: editServiceItemStartDate
+  - slot: AuditQuoting
+    operationId: editServiceItemEndDate
+  - slot: AuditQuoting
+    operationId: editServiceItemSelection
+  - slot: AuditQuoting
+    operationId: editAccountBalanceDetailReportNeed
+  - slot: AuditQuoting
+    operationId: editBalanceSheetNeed
+  - slot: AuditQuoting
+    operationId: editIncomeStatementNeed
+  - slot: AuditQuoting
+    operationId: editAccountingReformElectronicFileProvision
+  - slot: AuditQuoting
+    operationId: editPayrollHeadcount
+  - slot: AuditQuoting
+    operationId: editDomesticTransferCount
+  - slot: AuditQuoting
+    operationId: editInternationalTransferCount
+  - slot: AuditQuoting
+    operationId: editPayrollTransferCount
+  - slot: AuditQuoting
+    operationId: editCommonBankMonthlyRecordCount
+  - slot: AuditQuoting
+    operationId: editProfitseekingEnterpriseIncomeTaxFilingMethod
+  - slot: AuditQuoting
+    operationId: addCustomizedReporting
+  - slot: AuditQuoting
+    operationId: editCustomizedReporting
+  - slot: AuditQuoting
+    operationId: deleteCustomizedReporting
+  - slot: AuditQuoting
+    operationId: editBusinessTaxFilingMethod
+  - slot: AuditQuoting
+    operationId: selectAccountingWorkItems
+  - slot: AuditQuoting
+    operationId: selectCashierOperationWorkItems
+  - slot: AuditQuoting
+    operationId: selectPayrollSupportOperationWorkItems
+  - slot: AuditQuoting
+    operationId: removeServiceItems
+  - slot: QuotingCaseGrouping
+    operationId: addQuotingBundle
+  - slot: QuotingCaseGrouping
+    operationId: renameQuotingBundle
+  - slot: QuotingCaseGrouping
+    operationId: reorderQuotingBundles
+  - slot: QuotingCaseGrouping
+    operationId: reorderQuotingCases
+  - slot: QuotingCaseGrouping
+    operationId: removeQuotingBundle
+  - slot: Query
+    operationId: getContacts
+  - slot: QuotingCaseGrouping
+    operationId: addContact
+  - slot: QuotingCaseGrouping
+    operationId: removeContact
+  - slot: QuotingCaseGrouping
+    operationId: editContactDisplayName
+  - slot: QuotingCaseGrouping
+    operationId: editContactGender
+  - slot: QuotingCaseGrouping
+    operationId: editContactRelationship
+  - slot: QuotingCaseGrouping
+    operationId: editContactCommunicationMethods
+  - slot: QuotingCaseGrouping
+    operationId: removeQuotingCase
+  - slot: QuotingCaseGrouping
+    operationId: setPrimaryQuotingCase
+  - slot: QuotingCaseGrouping
+    operationId: addCollaborators
+  - slot: QuotingCaseGrouping
+    operationId: removeCollaborator
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseBusinessId
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseName
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseCompanyName
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseOrganizationType
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseEstablishmentApprovalDate
+  - slot: Query
+    operationId: getQuotingFirm
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingFirm
+  - slot: Query
+    operationId: getContractHeader
+  - slot: Query
+    operationId: getClientSource
+  - slot: QuotingCaseGrouping
+    operationId: editClientSource
+  - slot: Query
+    operationId: getQuotingBundles
+  - slot: QuotingCaseGrouping
+    operationId: uploadReplyForm
+  - slot: Query
+    operationId: getReplyForms
+  - slot: QuotingCaseGrouping
+    operationId: removeReplyForm
+  - slot: QuotingCaseGrouping
+    operationId: backfillQuotation
+  - slot: Query
+    operationId: getBackfilledQuotations
+  - slot: QuotingCaseGrouping
+    operationId: removeBackfilledQuotation
+  - slot: QuotingCaseGrouping
+    operationId: openQuotingCaseGrouping
+  - slot: QuotingCaseGrouping
+    operationId: priceServiceItems
+  - slot: Quotation
+    operationId: editLetterFrom
+  - slot: Quotation
+    operationId: editLetterTo
+  - slot: Quotation
+    operationId: editLetterContent
+  - slot: Quotation
+    operationId: editLetterTitle
+  - slot: Quotation
+    operationId: editFontSize
+  - slot: Quotation
+    operationId: editPaymentItemSupplementaryNoteContent
+  - slot: Quotation
+    operationId: resetPaymentItemSupplementaryNoteContent
+  - slot: Quotation
+    operationId: setPaymentItemSupplementaryNoteVisibility
+  - slot: Query
+    operationId: getLetter
+  - slot: Query
+    operationId: getPurpose
+  - slot: Query
+    operationId: getRightsAndObligations
+  - slot: Query
+    operationId: getAgreementTerms
+  - slot: Query
+    operationId: getContractNotes
+  - slot: Quotation
+    operationId: addContractNoteByUser
+  - slot: Quotation
+    operationId: reorderContractNotes
+  - slot: Quotation
+    operationId: editContractNote
+  - slot: Quotation
+    operationId: removeContractNoteByUser
+  - slot: Quotation
+    operationId: reorderPaymentItems
+  - slot: Quotation
+    operationId: renamePaymentItem
+  - slot: CompanyRegistrationQuoting
+    operationId: addCompanyRegistration
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceCompanySeal
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceChairmanSeal
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceCompanyConvenienceSeal
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceChairmanConvenienceSeal
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceInvoiceSeal
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceWithCompanyCertificationApplication
+  - slot: CompanyRegistrationQuoting
+    operationId: addOwnerOccupiedResidencePartForBusinessApplication
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceLaborAndHealthInsuranceInsuredUnitSetting
+  - slot: CompanyRegistrationQuoting
+    operationId: editCompanySealCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editChairmanSealCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editCompanyConvenienceSealCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editChairmanConvenienceSealCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editInvoiceSealCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editShareholderCount
+  - slot: CompanyRegistrationQuoting
+    operationId: editServiceItemStartDate
+  - slot: CompanyRegistrationQuoting
+    operationId: editIsFranchise
+  - slot: CompanyRegistrationQuoting
+    operationId: configureEconomicMinistryRegistrationNoCharge
+  - slot: CompanyRegistrationQuoting
+    operationId: configureEconomicMinistryRegistrationCharged
+  - slot: CompanyRegistrationQuoting
+    operationId: selectCompanyRegistrationWorkItems
+  - slot: CompanyRegistrationQuoting
+    operationId: editServiceItemSelection
+  - slot: CompanyRegistrationQuoting
+    operationId: removeServiceItems
+  - slot: Workflow
+    operationId: createQuotingCaseGrouping
+  - slot: Query
+    operationId: getServiceItemsByQuotingBundleId
+  - slot: Query
+    operationId: getServiceItemDetail
+  - slot: Query
+    operationId: getAccountingSetup
+  - slot: Query
+    operationId: getCustomerInfo
+  - slot: Query
+    operationId: getTemplateVariables
+  - slot: Query
+    operationId: getQuotingCases
+  - slot: Workflow
+    operationId: addQuotingCase
+  - slot: Query
+    operationId: getQuotingCaseGroupingAggregateRootIds
+  - slot: Workflow
+    operationId: closeQuotingCasesDeal
+  - slot: Workflow
+    operationId: deliverQuotingCase
+  - slot: Workflow
+    operationId: cancelQuotingCaseGroupingDealClose
+  - slot: Workflow
+    operationId: handOverQuotingCases
+  - slot: Workflow
+    operationId: cancelQuotingCaseGroupingHandOver
+  - slot: Workflow
+    operationId: archiveQuotingCaseGrouping
+  - slot: Workflow
+    operationId: unarchiveQuotingCaseGrouping
+  - slot: Query
+    operationId: getServiceScope
+  - slot: Query
+    operationId: getQuotationPdfPreview
+  - slot: Query
+    operationId: getQuotationPdfDownload
+  - slot: Query
+    operationId: getPaymentSummary
+  - slot: File
+    operationId: downloadFile
+  - slot: Query
+    operationId: getBusinessClientAssistance
+  - slot: Query
+    operationId: getQuotingCaseGroupingViewMode
+  - slot: Query
+    operationId: getQuotingCaseViewMode
+  - slot: Query
+    operationId: getQuotingCaseGroupingSummaries
+  - slot: File
+    operationId: uploadEmbeddedImage
+rules:
+  - method: patch
+    path: /audit-quotings/{quotingId}/accounting-type
+    requires:
+      - AuditQuoting.editAccountingType
+  - method: get
+    path: /audit-quotings/{quotingId}/quoting-proof-list
+    requires:
+      - Query.getQuotingProofs
+  - method: get
+    path: /audit-quotings/{quotingId}/predecessor-service-info
+    requires:
+      - Query.getPredecessorServiceInfo
+  - method: get
+    path: /audit-quotings/{quotingId}/operation-info
+    requires:
+      - Query.getOperationInfo
+  - method: get
+    path: /audit-quotings/{quotingId}/evidence-info
+    requires:
+      - Query.getEvidenceInfo
+  - method: post
+    path: /audit-quotings/{quotingId}/quoting-proofs
+    requires:
+      - AuditQuoting.uploadQuotingProof
+  - method: delete
+    path: /audit-quotings/{quotingId}/quoting-proofs/{documentId}
+    requires:
+      - AuditQuoting.removeQuotingProof
+  - method: patch
+    path: /audit-quotings/{quotingId}/past-cost-analysis-requirement
+    requires:
+      - AuditQuoting.recordPastCostAnalysisRequirement
+  - method: patch
+    path: /audit-quotings/{quotingId}/predecessor-auditor
+    requires:
+      - AuditQuoting.recordPredecessorAuditorInfo
+  - method: delete
+    path: /audit-quotings/{quotingId}/predecessor-auditor
+    requires:
+      - AuditQuoting.confirmNoPredecessorAuditor
+  - method: patch
+    path: /audit-quotings/{quotingId}/estimated-evidence-count
+    requires:
+      - AuditQuoting.editEstimatedEvidenceCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/sales-einvoice-usage
+    requires:
+      - AuditQuoting.editSalesEinvoiceUsage
+  - method: patch
+    path: /audit-quotings/{quotingId}/total-assets
+    requires:
+      - AuditQuoting.editTotalAssets
+  - method: patch
+    path: /audit-quotings/{quotingId}/last-year-revenue
+    requires:
+      - AuditQuoting.editLastYearRevenue
+  - method: patch
+    path: /audit-quotings/{quotingId}/estimated-revenue
+    requires:
+      - AuditQuoting.editEstimatedRevenue
+  - method: patch
+    path: /audit-quotings/{quotingId}/estimated-headcount-of-withholding
+    requires:
+      - AuditQuoting.editEstimatedHeadcountOfWithholding
+  - method: patch
+    path: /audit-quotings/{quotingId}/paid-in-capital
+    requires:
+      - AuditQuoting.editPaidInCapital
+  - method: patch
+    path: /audit-quotings/{quotingId}/registered-capital
+    requires:
+      - AuditQuoting.editRegisteredCapital
+  - method: patch
+    path: /audit-quotings/{quotingId}/branch-count
+    requires:
+      - AuditQuoting.editBranchCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/industrial-type
+    requires:
+      - AuditQuoting.editIndustrialType
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/accounting
+    requires:
+      - AuditQuoting.addAccounting
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/assistance-annual-supplementary-premium-deduction-details-reporting
+    requires:
+      - AuditQuoting.addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/assistance-ctp
+    requires:
+      - AuditQuoting.addAssistanceCtp
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/payroll-support-operation
+    requires:
+      - AuditQuoting.addPayrollSupportOperation
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/tax-compliance-audit
+    requires:
+      - AuditQuoting.addTaxComplianceAudit
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/tax-compliance-audit-and-undistributed-earnings-audit
+    requires:
+      - AuditQuoting.addTaxComplianceAuditAndUndistributedEarningsAudit
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/cashier-operation
+    requires:
+      - AuditQuoting.addCashierOperation
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/financial-compliance-audit
+    requires:
+      - AuditQuoting.addFinancialComplianceAudit
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/accounting-reform
+    requires:
+      - AuditQuoting.addAccountingReform
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/customize
+    requires:
+      - AuditQuoting.customizeServiceItem
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/start-date
+    requires:
+      - AuditQuoting.editServiceItemStartDate
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/end-date
+    requires:
+      - AuditQuoting.editServiceItemEndDate
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/selection
+    requires:
+      - AuditQuoting.editServiceItemSelection
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/account-balance-detail-report-need
+    requires:
+      - AuditQuoting.editAccountBalanceDetailReportNeed
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/balance-sheet-need
+    requires:
+      - AuditQuoting.editBalanceSheetNeed
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/income-statement-need
+    requires:
+      - AuditQuoting.editIncomeStatementNeed
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/accounting-reform-electronic-file-provision
+    requires:
+      - AuditQuoting.editAccountingReformElectronicFileProvision
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-headcount
+    requires:
+      - AuditQuoting.editPayrollHeadcount
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/domestic-transfer-count
+    requires:
+      - AuditQuoting.editDomesticTransferCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/international-transfer-count
+    requires:
+      - AuditQuoting.editInternationalTransferCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-transfer-count
+    requires:
+      - AuditQuoting.editPayrollTransferCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/common-bank-monthly-record-count
+    requires:
+      - AuditQuoting.editCommonBankMonthlyRecordCount
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/profitseeking-enterprise-income-tax-filing-method
+    requires:
+      - AuditQuoting.editProfitseekingEnterpriseIncomeTaxFilingMethod
+  - method: post
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings
+    requires:
+      - AuditQuoting.addCustomizedReporting
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings/{customizedReportingId}
+    requires:
+      - AuditQuoting.editCustomizedReporting
+  - method: delete
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings/{customizedReportingId}
+    requires:
+      - AuditQuoting.deleteCustomizedReporting
+  - method: patch
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/business-tax-filing-method
+    requires:
+      - AuditQuoting.editBusinessTaxFilingMethod
+  - method: put
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/accounting-work-items
+    requires:
+      - AuditQuoting.selectAccountingWorkItems
+  - method: put
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/cashier-operation-work-items
+    requires:
+      - AuditQuoting.selectCashierOperationWorkItems
+  - method: put
+    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-support-operation-work-items
+    requires:
+      - AuditQuoting.selectPayrollSupportOperationWorkItems
+  - method: delete
+    path: /audit-quotings/{quotingId}/service-items
+    requires:
+      - AuditQuoting.removeServiceItems
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles
+    requires:
+      - QuotingCaseGrouping.addQuotingBundle
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/name
+    requires:
+      - QuotingCaseGrouping.renameQuotingBundle
+  - method: put
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/quoting-bundles/order
+    requires:
+      - QuotingCaseGrouping.reorderQuotingBundles
+  - method: put
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/order
+    requires:
+      - QuotingCaseGrouping.reorderQuotingCases
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}
+    requires:
+      - QuotingCaseGrouping.removeQuotingBundle
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts
+    requires:
+      - Query.getContacts
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts
+    requires:
+      - QuotingCaseGrouping.addContact
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}
+    requires:
+      - QuotingCaseGrouping.removeContact
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/display-name
+    requires:
+      - QuotingCaseGrouping.editContactDisplayName
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/gender
+    requires:
+      - QuotingCaseGrouping.editContactGender
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/relationship
+    requires:
+      - QuotingCaseGrouping.editContactRelationship
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/communication-methods
+    requires:
+      - QuotingCaseGrouping.editContactCommunicationMethods
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}
+    requires:
+      - QuotingCaseGrouping.removeQuotingCase
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/primary
+    requires:
+      - QuotingCaseGrouping.setPrimaryQuotingCase
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators
+    requires:
+      - QuotingCaseGrouping.addCollaborators
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators/{collaboratorId}
+    requires:
+      - QuotingCaseGrouping.removeCollaborator
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/business-id
+    requires:
+      - QuotingCaseGrouping.editQuotingCaseBusinessId
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/name
+    requires:
+      - QuotingCaseGrouping.editQuotingCaseName
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/company-name
+    requires:
+      - QuotingCaseGrouping.editQuotingCaseCompanyName
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/organization-type
+    requires:
+      - QuotingCaseGrouping.editQuotingCaseOrganizationType
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/establishment-approval-date
+    requires:
+      - QuotingCaseGrouping.editQuotingCaseEstablishmentApprovalDate
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-firm
+    requires:
+      - Query.getQuotingFirm
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-firm
+    requires:
+      - QuotingCaseGrouping.editQuotingFirm
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/contract-header
+    requires:
+      - Query.getContractHeader
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/client-source
+    requires:
+      - Query.getClientSource
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/client-source
+    requires:
+      - QuotingCaseGrouping.editClientSource
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/quoting-bundles
+    requires:
+      - Query.getQuotingBundles
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms
+    requires:
+      - QuotingCaseGrouping.uploadReplyForm
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms
+    requires:
+      - Query.getReplyForms
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms/{documentId}
+    requires:
+      - QuotingCaseGrouping.removeReplyForm
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations
+    requires:
+      - QuotingCaseGrouping.backfillQuotation
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations
+    requires:
+      - Query.getBackfilledQuotations
+  - method: delete
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations/{backfilledQuotationId}
+    requires:
+      - QuotingCaseGrouping.removeBackfilledQuotation
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/opened
+    requires:
+      - QuotingCaseGrouping.openQuotingCaseGrouping
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/service-items/prices
+    requires:
+      - QuotingCaseGrouping.priceServiceItems
+  - method: patch
+    path: /quotations/{quotationId}/letters/{quotingCaseId}/from
+    requires:
+      - Quotation.editLetterFrom
+  - method: patch
+    path: /quotations/{quotationId}/letters/{quotingCaseId}/to
+    requires:
+      - Quotation.editLetterTo
+  - method: patch
+    path: /quotations/{quotationId}/letters/{quotingCaseId}/content
+    requires:
+      - Quotation.editLetterContent
+  - method: patch
+    path: /quotations/{quotationId}/letters/{quotingCaseId}/title
+    requires:
+      - Quotation.editLetterTitle
+  - method: patch
+    path: /quotations/{quotationId}/font-size
+    requires:
+      - Quotation.editFontSize
+  - method: patch
+    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/content
+    requires:
+      - Quotation.editPaymentItemSupplementaryNoteContent
+  - method: delete
+    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/content
+    requires:
+      - Quotation.resetPaymentItemSupplementaryNoteContent
+  - method: patch
+    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/visibility
+    requires:
+      - Quotation.setPaymentItemSupplementaryNoteVisibility
+  - method: get
+    path: /quotations/{quotationId}/letters
+    requires:
+      - Query.getLetter
+  - method: get
+    path: /quotations/{quotationId}/purpose
+    requires:
+      - Query.getPurpose
+  - method: get
+    path: /quotations/{quotationId}/rights-and-obligations
+    requires:
+      - Query.getRightsAndObligations
+  - method: get
+    path: /quotations/{quotationId}/agreement-terms
+    requires:
+      - Query.getAgreementTerms
+  - method: get
+    path: /quotations/{quotationId}/contract-notes
+    requires:
+      - Query.getContractNotes
+  - method: post
+    path: /quotations/{quotationId}/contract-notes
+    requires:
+      - Quotation.addContractNoteByUser
+  - method: put
+    path: /quotations/{quotationId}/contract-notes/order
+    requires:
+      - Quotation.reorderContractNotes
+  - method: patch
+    path: /quotations/{quotationId}/contract-notes/{noteId}
+    requires:
+      - Quotation.editContractNote
+  - method: delete
+    path: /quotations/{quotationId}/contract-notes/{noteId}
+    requires:
+      - Quotation.removeContractNoteByUser
+  - method: put
+    path: /quotations/{quotationId}/payment-items/order
+    requires:
+      - Quotation.reorderPaymentItems
+  - method: patch
+    path: /quotations/{quotationId}/payment-items/{paymentItemId}/name
+    requires:
+      - Quotation.renamePaymentItem
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/company-registration
+    requires:
+      - CompanyRegistrationQuoting.addCompanyRegistration
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-company-seal
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceCompanySeal
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-chairman-seal
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceChairmanSeal
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-company-convenience-seal
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceCompanyConvenienceSeal
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-chairman-convenience-seal
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceChairmanConvenienceSeal
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-invoice-seal
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceInvoiceSeal
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-with-company-certification-application
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceWithCompanyCertificationApplication
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/owner-occupied-residence-part-for-business-application
+    requires:
+      - CompanyRegistrationQuoting.addOwnerOccupiedResidencePartForBusinessApplication
+  - method: post
+    path: /company-registration-quotings/{quotingId}/service-items/assistance-labor-and-health-insurance-insured-unit-setting
+    requires:
+      - CompanyRegistrationQuoting.addAssistanceLaborAndHealthInsuranceInsuredUnitSetting
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/company-seal-count
+    requires:
+      - CompanyRegistrationQuoting.editCompanySealCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/chairman-seal-count
+    requires:
+      - CompanyRegistrationQuoting.editChairmanSealCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/company-convenience-seal-count
+    requires:
+      - CompanyRegistrationQuoting.editCompanyConvenienceSealCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/chairman-convenience-seal-count
+    requires:
+      - CompanyRegistrationQuoting.editChairmanConvenienceSealCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/invoice-seal-count
+    requires:
+      - CompanyRegistrationQuoting.editInvoiceSealCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/shareholder-count
+    requires:
+      - CompanyRegistrationQuoting.editShareholderCount
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/start-date
+    requires:
+      - CompanyRegistrationQuoting.editServiceItemStartDate
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/is-franchise
+    requires:
+      - CompanyRegistrationQuoting.editIsFranchise
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/economic-ministry-registration-no-charge
+    requires:
+      - CompanyRegistrationQuoting.configureEconomicMinistryRegistrationNoCharge
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/economic-ministry-registration-charged
+    requires:
+      - CompanyRegistrationQuoting.configureEconomicMinistryRegistrationCharged
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/work-items
+    requires:
+      - CompanyRegistrationQuoting.selectCompanyRegistrationWorkItems
+  - method: patch
+    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/selection
+    requires:
+      - CompanyRegistrationQuoting.editServiceItemSelection
+  - method: delete
+    path: /company-registration-quotings/{quotingId}/service-items
+    requires:
+      - CompanyRegistrationQuoting.removeServiceItems
+  - method: post
+    path: /quoting-case-groupings
+    requires:
+      - Workflow.createQuotingCaseGrouping
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/service-items
+    requires:
+      - Query.getServiceItemsByQuotingBundleId
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/service-items/{serviceItemId}
+    requires:
+      - Query.getServiceItemDetail
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/accounting-setup
+    requires:
+      - Query.getAccountingSetup
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/customer-info
+    requires:
+      - Query.getCustomerInfo
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/template-variables
+    requires:
+      - Query.getTemplateVariables
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases
+    requires:
+      - Query.getQuotingCases
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases
+    requires:
+      - Workflow.addQuotingCase
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/aggregate-root-ids
+    requires:
+      - Query.getQuotingCaseGroupingAggregateRootIds
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/deal-closed
+    requires:
+      - Workflow.closeQuotingCasesDeal
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/delivery
+    requires:
+      - Workflow.deliverQuotingCase
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/deal-close-canceled
+    requires:
+      - Workflow.cancelQuotingCaseGroupingDealClose
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/hand-over
+    requires:
+      - Workflow.handOverQuotingCases
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/hand-over-canceled
+    requires:
+      - Workflow.cancelQuotingCaseGroupingHandOver
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/archive
+    requires:
+      - Workflow.archiveQuotingCaseGrouping
+  - method: post
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/unarchive
+    requires:
+      - Workflow.unarchiveQuotingCaseGrouping
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/service-scope
+    requires:
+      - Query.getServiceScope
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quotation/preview
+    requires:
+      - Query.getQuotationPdfPreview
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quotation/pdf
+    requires:
+      - Query.getQuotationPdfDownload
+  - method: get
+    path: /quotations/{quotationId}/payment-summary
+    requires:
+      - Query.getPaymentSummary
+  - method: get
+    path: /files/{documentId}
+    requires:
+      - File.downloadFile
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/business-client-assistance
+    requires:
+      - Query.getBusinessClientAssistance
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/view-mode
+    requires:
+      - Query.getQuotingCaseGroupingViewMode
+  - method: get
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/view-mode
+    requires:
+      - Query.getQuotingCaseViewMode
+  - method: get
+    path: /case-groupings/summaries
+    requires:
+      - Query.getQuotingCaseGroupingSummaries
+  - method: post
+    path: /images
+    requires:
+      - File.uploadEmbeddedImage

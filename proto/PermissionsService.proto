@@ -1,0 +1,16 @@
+// proto/PermissionsService.proto
+syntax = "proto3";
+
+package IAMContext;
+
+service PermissionsService {
+  rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse);
+}
+
+message GetPermissionsRequest {
+  string user_id = 1;
+}
+
+message GetPermissionsResponse {
+  repeated string permissions = 1;
+}

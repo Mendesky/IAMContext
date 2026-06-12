@@ -1,0 +1,103 @@
+import DDDKit
+import Foundation
+import GRPCCore
+import GRPCNIOTransportHTTP2Posix
+import GRPCServiceLifecycle
+import Hummingbird
+import KurrentDB
+import Logging
+import OpenAPIHummingbird
+import ServiceLifecycle
+import EmployeeAccessAggregate
+
+import IAMContextShared
+
+import struct EmployeeAccessAggregate.ApiHandler
+
+
+@main
+@MainActor
+struct IAMContextServer {
+    static let logger = Logger(label: "IAMContext")
+
+    static func main() async throws {
+        let router = Router()
+        // TODO: add middleware (CORS / auth / logging) as needed for your project.
+
+        let esdbSettings = ProcessInfo.processInfo.environment["ESDB_URL"]
+            ?? "kurrent://admin:changeit@localhost:2113?tls=false"
+        let settings: ClientSettings = try esdbSettings.parse()
+        let kdbClient = KurrentDBClient(settings: settings)
+
+        let serverURL = URL(string: "/")!
+
+        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient)
+            .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
+
+        // TODO(Phase 1.m v2): projection subscription wiring
+        //   - Stream naming: Genesis projection JS uses `$ce-<SourceCategoryPrefix><Aggregate>`
+        //     (e.g. `$ce-IAMUserAccessProfile`，非 `$ce-UserAccessProfile`)，
+        //     prefix 由 ReadModelRenderer 從 contextName 衍生（IAMContext → "IAM"，OpportunityContext → "OC"）。
+        //     詳見 docs/decisions.md Phase 1.g ratification 的 SourceCategoryPrefix 規則。
+        //   - Create KurrentDB persistent subscription per stream
+        //   - Setup EventBus + EventMappers per source aggregate
+        //   - Dispatch RecordedEvent via mappers → eventBus → projectors
+        //   - Until subscription is wired, read endpoints return empty/notFound
+        //     (projection state stays empty without event ingestion).
+        //   See OC `OCServer.swift` for production-level pattern with retry/nack.
+
+        let portString = ProcessInfo.processInfo.environment["PORT"] ?? "8080"
+        let port = Int(portString) ?? 8080
+        let app = Application(
+            router: router,
+            configuration: .init(address: .hostname("0.0.0.0", port: port))
+        )
+
+        // Context-to-context entry point (mirrors IdentityContext: HTTP for frontend/external,
+        // gRPC for inter-context calls — Identity pairs 24200/24201, IAM pairs PORT/GRPC_PORT).
+        let grpcPortString = ProcessInfo.processInfo.environment["GRPC_PORT"] ?? "24203"
+        let grpcPort = Int(grpcPortString) ?? 24203
+
+        // gRPC auth (code review 2026-06-12，user 決策：Bearer token). 24203（PermissionsService）是 IAM 對下游
+        // 授權的權威來源，無守門時任何能連到 port 的呼叫者都能查任一 user 的權限視圖。**Fail-closed**：
+        //   - IAM_GRPC_AUTH_TOKEN=<token>  → 啟用 bearer-token 守門（呼叫端 metadata 須帶 authorization）。
+        //   - IAM_GRPC_AUTH_DISABLED=1     → 明確關閉（僅限本機/可信內網開發），會印 SECURITY WARNING。
+        //   - 兩者皆未設                    → 拒絕啟動（不讓權威服務在無驗證下意外上線）。
+        // 注意：傳輸為 plaintext，token 在不可信網段可被嗅探；跨網段需另加 TLS。
+        let env = ProcessInfo.processInfo.environment
+        let grpcAuthToken = env["IAM_GRPC_AUTH_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
+        let grpcAuthDisabled = env["IAM_GRPC_AUTH_DISABLED"] == "1"
+        var grpcInterceptors: [any ServerInterceptor] = []
+        if let grpcAuthToken {
+            grpcInterceptors.append(BearerTokenServerInterceptor(expectedToken: grpcAuthToken))
+            logger.info("gRPC auth: ENABLED (bearer token)")
+        } else if grpcAuthDisabled {
+            logger.warning("⚠️ SECURITY: gRPC auth DISABLED (IAM_GRPC_AUTH_DISABLED=1) — 24203 對任何能連到的呼叫者開放，僅限本機/可信內網開發使用")
+        } else {
+            logger.critical("gRPC auth not configured: set IAM_GRPC_AUTH_TOKEN=<token> (or IAM_GRPC_AUTH_DISABLED=1 for local dev). Refusing to start an unauthenticated permission authority on \(grpcPort).")
+            throw IAMContextServerError.grpcAuthNotConfigured
+        }
+
+        let grpcServer = GRPCServer(transport: .http2NIOPosix(
+            address: .ipv4(host: "0.0.0.0", port: grpcPort),
+            transportSecurity: .plaintext
+          ), services: [
+            PermissionsService(kdbClient: kdbClient)
+          ], interceptors: grpcInterceptors)
+
+        logger.info("starting IAMContextServer on 0.0.0.0:\(port) (HTTP) / 0.0.0.0:\(grpcPort) (gRPC)")
+        let serviceGroup = ServiceGroup(services: [app, grpcServer], logger: logger)
+        try await serviceGroup.run()
+    }
+}
+
+enum IAMContextServerError: Error, CustomStringConvertible {
+    case grpcAuthNotConfigured
+
+    var description: String {
+        switch self {
+        case .grpcAuthNotConfigured:
+            return "gRPC auth not configured (set IAM_GRPC_AUTH_TOKEN, or IAM_GRPC_AUTH_DISABLED=1 for local dev)"
+        }
+    }
+}

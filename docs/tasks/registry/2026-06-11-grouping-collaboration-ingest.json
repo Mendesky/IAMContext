@@ -1,0 +1,43 @@
+{
+  "id": "2026-06-11-grouping-collaboration-ingest",
+  "file": "docs/tasks/2026-06-11-grouping-collaboration-ingest.md",
+  "title": "I1：GroupingCollaboration 投影儲存 + 三支冪等 gRPC 寫入 API",
+  "status": "superseded",
+  "created": "2026-06-11",
+  "depends_on": [],
+  "supersedes": [],
+  "discussion": "docs/discussions/2026-06-11-grouping-collaboration-in-iam.md",
+  "preconditions": [
+    "file:Sources/IAMContextServer/PermissionsService.swift",
+    "file:Sources/IAMContextServer/IAMContextServer.swift",
+    "file:proto/PermissionsService.proto",
+    "file:Sources/EmployeeAccessAggregate/event.yaml",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Port/Out/EmployeeAccessRepository.swift"
+  ],
+  "verification": [
+    "swift build",
+    "swift test --filter GroupingCollaboration",
+    "grep -n GroupingCollaborationService Sources/IAMContextServer/IAMContextServer.swift",
+    "grep -n 'service GroupingCollaborationService' proto/GroupingCollaborationService.proto"
+  ],
+  "tags": [
+    "feature"
+  ],
+  "status_history": [
+    {
+      "status": "draft",
+      "at": "2026-06-11T17:10:00+08:00",
+      "note": "write-spec 初稿（決策來源：grouping-collaboration-in-iam 討論；OC listener 為對接方）"
+    },
+    {
+      "status": "ready",
+      "at": "2026-06-11T17:40:00+08:00",
+      "note": "audit：機械規則 PASS；Codex 外審 4 發現——採納 3（高：ModelGeneratorPlugin 缺 projection-model.yaml 即 throw、DDDKit AggregateRoot 需 deletedEvent 綁定 DeletedEventType；中：冪等 no-op 不可對 KDB 做空 append→events.isEmpty 直接 ack）；駁回 1（低：建議加 line 號錨點——違反家規 audit-spec 規則1，spec 一律語意錨點）"
+    },
+    {
+      "status": "superseded",
+      "at": "2026-06-11T18:30:00+08:00",
+      "note": "user 與夥伴定案：role→permission 控管回到 OC，IAM 不持有共編投影——OC read model 直接吐出 user 對 grouping 的權限；執法維持兩段 middleware（E1/E2 不受影響）"
+    }
+  ]
+}
