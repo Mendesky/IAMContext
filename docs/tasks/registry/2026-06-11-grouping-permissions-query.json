@@ -1,0 +1,42 @@
+{
+  "id": "2026-06-11-grouping-permissions-query",
+  "file": "docs/tasks/2026-06-11-grouping-permissions-query.md",
+  "title": "I2：role→permission mapping 記載 + grouping 有效權限查詢 API",
+  "status": "superseded",
+  "created": "2026-06-11",
+  "depends_on": [
+    "2026-06-11-grouping-collaboration-ingest"
+  ],
+  "supersedes": [],
+  "discussion": "docs/discussions/2026-06-11-grouping-collaboration-in-iam.md",
+  "preconditions": [
+    "file:Sources/EmployeeAccessAggregate/Adapter/GetPermissions/GetPermissionsApplicationService.swift",
+    "file:Sources/GroupingCollaborationAggregate/Usecase/Port/Out/GroupingCollaborationRepository.swift"
+  ],
+  "verification": [
+    "grep -n GroupingCollaborationAggregate Package.swift",
+    "swift build",
+    "swift test --filter GetGroupingPermissionsUnitTests",
+    "grep -n grouping-collaborations Sources/GroupingCollaborationAggregate/openapi.yaml"
+  ],
+  "tags": [
+    "feature"
+  ],
+  "status_history": [
+    {
+      "status": "draft",
+      "at": "2026-06-11T17:20:00+08:00",
+      "note": "write-spec 初稿"
+    },
+    {
+      "status": "ready",
+      "at": "2026-06-11T17:45:00+08:00",
+      "note": "audit：機械規則 PASS；Codex 外審 6 發現——採納 5（高：缺 I1 落地的機器 preflight；中：GetPermissionsApplicationService 簽名是 execute(input:) 非 execute(userId)、aggregate target 只該加 OpenAPIRuntime+plugin（OpenAPIHummingbird 屬 server）、Agent filter 改純計算 UnitTests 避免 KDB 依賴；低：resource 驗收 grep 改比對 .copy 宣告）；駁回 1（低：line 號錨點建議——違反家規）。OC 交付 mapping 前可用 E1 分類導出初版"
+    },
+    {
+      "status": "superseded",
+      "at": "2026-06-11T18:30:00+08:00",
+      "note": "同上：查詢由 OC read model 回答，IAM 不提供查詢 API、不記載 mapping；計算公式留作 OC 端參考"
+    }
+  ]
+}
