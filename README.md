@@ -30,23 +30,23 @@ swift test    # 需要 localhost KurrentDB（整合測試）
 ## Run
 
 ```bash
-# 本機開發（明確關閉 gRPC auth）
-PORT=24202 IAM_GRPC_AUTH_DISABLED=1 swift run IAMContextServer
+# 本機開發（明確關閉 gRPC auth；PORT 預設已是 24202，可不設）
+IAM_GRPC_AUTH_DISABLED=1 swift run IAMContextServer
 
 # 啟用 gRPC auth（部署/整合）：呼叫端（OC）須帶相同 token
-PORT=24202 IAM_GRPC_AUTH_TOKEN=<shared-token> swift run IAMContextServer
+IAM_GRPC_AUTH_TOKEN=<shared-token> swift run IAMContextServer
 ```
 
 注意：
 
-- **必須指名 `IAMContextServer`**——package 內有三個 executable（`IAMContextServer` / `EnrollStaffs` / `RevokeAllPrivileges`），裸 `swift run` 會報錯。
-- **`PORT=24202` 是專案約定**（code fallback 是 8080，本機常被 OrbStack 等佔用）。
+- **必須指名 `IAMContextServer`**——package 內還有 codegen CLI executable（`permission-gen` / `permission-catalog-gen`），裸 `swift run` 會報錯。
+- **`PORT` 預設＝專案約定 `24202`**（前端打 API 也是 24202；原 scaffold 預設 8080 常被 OrbStack 佔用，已改）。要覆寫才設 `PORT=`。
 - **gRPC auth 是 fail-closed**（code review 2026-06-12）：`IAM_GRPC_AUTH_TOKEN` 與 `IAM_GRPC_AUTH_DISABLED` 兩者皆未設 → **拒絕啟動**（不讓權威服務在無驗證下意外上線）。本機開發請帶 `IAM_GRPC_AUTH_DISABLED=1`。
 - 同一個 process 以 ServiceGroup 同時起 **HTTP + gRPC**：
 
 | 服務 | env | 預設 | 約定 |
 |------|-----|------|------|
-| HTTP API | `PORT` | 8080 | **24202** |
+| HTTP API（前端打這個） | `PORT` | **24202** | 24202（不用覆寫） |
 | gRPC `PermissionsService`（跨 context 取權限） | `GRPC_PORT` | **24203** | 24203（不用覆寫；對照 IdentityContext 24200/24201 配對） |
 | gRPC bearer token | `IAM_GRPC_AUTH_TOKEN` | —（fail-closed） | 設定即啟用守門；呼叫端 metadata 須帶 `authorization: Bearer <token>` |
 | gRPC auth 關閉開關 | `IAM_GRPC_AUTH_DISABLED` | — | `=1` 明確關閉（僅限本機/可信內網，會印 SECURITY WARNING） |
