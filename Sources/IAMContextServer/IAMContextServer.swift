@@ -46,8 +46,10 @@ struct IAMContextServer {
         //     (projection state stays empty without event ingestion).
         //   See OC `OCServer.swift` for production-level pattern with retry/nack.
 
-        let portString = ProcessInfo.processInfo.environment["PORT"] ?? "8080"
-        let port = Int(portString) ?? 8080
+        // HTTP API port. 預設＝專案約定 24202（與 gRPC 預設 24203 各自對齊自己的約定 port，互不衝突）。
+        // 原 scaffold 預設 8080 常被 OrbStack 佔用，已改。
+        let portString = ProcessInfo.processInfo.environment["PORT"] ?? "24202"
+        let port = Int(portString) ?? 24202
         let app = Application(
             router: router,
             configuration: .init(address: .hostname("0.0.0.0", port: port))
