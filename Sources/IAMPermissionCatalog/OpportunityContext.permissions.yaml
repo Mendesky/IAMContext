@@ -139,6 +139,8 @@ permissions:
   - slot: QuotingCaseGrouping
     operationId: removeCollaborator
   - slot: QuotingCaseGrouping
+    operationId: changeCollaboratorRole
+  - slot: QuotingCaseGrouping
     operationId: editQuotingCaseBusinessId
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseName
@@ -579,6 +581,10 @@ rules:
     path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators/{collaboratorId}
     requires:
       - QuotingCaseGrouping.removeCollaborator
+  - method: patch
+    path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators/{collaboratorId}/role
+    requires:
+      - QuotingCaseGrouping.changeCollaboratorRole
   - method: patch
     path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/business-id
     requires:

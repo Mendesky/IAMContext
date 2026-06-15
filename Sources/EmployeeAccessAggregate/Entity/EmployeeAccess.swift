@@ -23,13 +23,14 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     }
 
     // ── COPIED SNAPSHOT — 驗證用，非長期方案（human-authorized 2026-06-09）──
-    // 從 OpportunityContext 的權威清單手動 copy 一份（153 條），用來快速驗證 enroll → GetPermissions →
+    // 從 OpportunityContext 的權威清單手動 copy 一份（154 條），用來快速驗證 enroll → GetPermissions →
     // OC PermissionMiddleware 的跨 context 執法 loop 是否打通。這是「快速驗證」的暫時手段，已知缺點 = drift
     // （OC 改了不會自動同步）。正式同步機制（OC 發布 catalog / IAM ingest）後續另議，屆時移除本區塊。
-    //   來源：OpportunityContext/Sources/OCShared/Permission.swift（auto-gen from openapi.yaml）
-    //   版本：sha256 8340db1406a2c8dbe95585b0dac5176f5d69b2e3a9abfd5e62e508ac2b8b7e7f（2026-06-09）
-    //   組成：AuditQuoting 47 + QuotingCaseGrouping 28 + Quotation 14 + CompanyRegistrationQuoting 22
-    //         + Workflow 9 + Query 31 + File 2 = 153
+    //   來源：OpportunityContext/Sources/OCServer/OpportunityContext.permissions.yaml（SSOT；與 IAMPermissionCatalog 內複製品同步）
+    //   版本：sha256 f7dd5e7018d66204db5758d73415969d9b5b60366fa14bfe048217c9909a92f0（2026-06-15 同步）
+    //   組成：AuditQuoting 47 + QuotingCaseGrouping 29 + Quotation 14 + CompanyRegistrationQuoting 22
+    //         + Workflow 9 + Query 31 + File 2 = 154
+    //   2026-06-15 新增：QuotingCaseGrouping.ChangeCollaboratorRole（OC 的 changeCollaboratorRole）
     package static let allPermissions: Set<String> = [
         // AuditQuoting (47)
         "OpportunityContext.AuditQuoting.AddAccounting",
@@ -79,11 +80,12 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
         "OpportunityContext.AuditQuoting.SelectCashierOperationWorkItems",
         "OpportunityContext.AuditQuoting.SelectPayrollSupportOperationWorkItems",
         "OpportunityContext.AuditQuoting.UploadQuotingProof",
-        // QuotingCaseGrouping (28)
+        // QuotingCaseGrouping (29)
         "OpportunityContext.QuotingCaseGrouping.AddCollaborators",
         "OpportunityContext.QuotingCaseGrouping.AddContact",
         "OpportunityContext.QuotingCaseGrouping.AddQuotingBundle",
         "OpportunityContext.QuotingCaseGrouping.BackfillQuotation",
+        "OpportunityContext.QuotingCaseGrouping.ChangeCollaboratorRole",
         "OpportunityContext.QuotingCaseGrouping.EditClientSource",
         "OpportunityContext.QuotingCaseGrouping.EditContactCommunicationMethods",
         "OpportunityContext.QuotingCaseGrouping.EditContactDisplayName",
