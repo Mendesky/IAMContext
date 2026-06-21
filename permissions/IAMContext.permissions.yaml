@@ -1,12 +1,13 @@
 # ⚠️ 格式範例（FORMAT SAMPLE）— 不是 IAM 的生產 catalog。
 # IAM 本身不持有 catalog（grant/revoke 為 admin-only、不走 context-permission 把關）；
-# 這份只示範 PermissionKit 的 split 格式（單一 aggregate context、serverPrefix ""、全 1:1）。
+# 這份只示範 PermissionKit 的 split 兩檔格式（catalog 一檔、rules 一檔；單一 aggregate context、serverPrefix ""、全 1:1）。
+# 這是 catalog 檔（context + serverPrefix + permissions）；rules 在隔壁 IAMContext.rules.yaml。
 # 權威格式 reference 已內嵌在 /permission-doc skill。
-# 驗證：swift run permission-gen --output-dir <dir> permissions/IAMContext.permissions.yaml
+# 驗證：swift run permission-gen --permissions permissions/IAMContext.permissions.yaml --rules permissions/IAMContext.rules.yaml --output-dir <dir>
 context: IAMContext
 serverPrefix: ""
 
-# ① catalog：有哪些權限
+# catalog：有哪些權限（rawValue = IAMContext.<slot>.<Pascal(operationId)>）
 permissions:
   - slot: EmployeeAccess
     operationId: createUserAccessProfile
@@ -32,38 +33,3 @@ permissions:
   - slot: Query
     operationId: getPermissions
     description: 查詢使用者權限
-
-# ② rules：哪條 route 要哪些權限（requires 用 <slot>.<operationId> 參照 catalog）
-rules:
-  - method: post
-    path: /employee-access/{employeeAccessId}/create-user-access-profile
-    requires:
-      - EmployeeAccess.createUserAccessProfile
-  - method: post
-    path: /employee-access/{employeeAccessId}/grant-privilege
-    requires:
-      - EmployeeAccess.grantPrivilege
-  - method: post
-    path: /employee-access/{employeeAccessId}/revoke-privilege
-    requires:
-      - EmployeeAccess.revokePrivilege
-  - method: post
-    path: /employee-access/{employeeAccessId}/assign-roles
-    requires:
-      - EmployeeAccess.assignRoles
-  - method: post
-    path: /employee-access/{employeeAccessId}/revoke-roles
-    requires:
-      - EmployeeAccess.revokeRoles
-  - method: post
-    path: /employee-access/{employeeAccessId}/promote-user
-    requires:
-      - EmployeeAccess.promoteUser
-  - method: post
-    path: /employee-access/{employeeAccessId}/transfer-department
-    requires:
-      - EmployeeAccess.transferDepartment
-  - method: get
-    path: /employee-access/permissions/{userId}
-    requires:
-      - Query.getPermissions
