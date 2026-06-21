@@ -18,7 +18,14 @@ let package = Package(
         .plugin(name: "PermissionCatalogPlugin", targets: ["PermissionCatalogPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/gradyzhuo/swift-ddd-kit.git", from: "0.3.0"),
+        // Range widened to admit DDDKit 1.x for DOWNSTREAM consumers only (e.g. EvidencePurchaseContext,
+        // which is on 1.x). Each consumer's ROOT resolution picks its own line — OC stays 0.x, EPC gets 1.x.
+        // Consumers of IAMContext only build the DDDKit-FREE codegen targets (PermissionGenPlugin →
+        // permission-gen → PermissionGenerator, closure = Yams + ArgumentParser), so IAM's domain targets
+        // are never compiled in their graph.
+        // ⚠️ IAMContext's OWN domain code does NOT yet compile against DDDKit 1.x — this repo MUST stay
+        // pinned on 0.x via the committed Package.resolved. Do NOT `swift package update` onto 1.x.
+        .package(url: "https://github.com/gradyzhuo/swift-ddd-kit.git", "0.3.0" ..< "2.0.0"),
         .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-openapi-hummingbird", from: "2.0.0"),
