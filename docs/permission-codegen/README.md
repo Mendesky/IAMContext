@@ -1,28 +1,34 @@
 # PermissionKit
 
-A SwiftPM **build-tool plugin** that turns a single permission document (YAML) into a context's
+A SwiftPM **build-tool plugin** that turns a permission document (YAML) into a context's
 `Permission.swift` (the catalog) and `PermissionRules.swift` (the endpoint→permission rules) — on
 every `swift build`. The YAML is the single source of truth; the two Swift files are generated and
 never hand-edited (mirrors how DDDKit generates domain events).
 
-## The permission document (SSOT)
+## The permission document (SSOT) — two files
 
-One YAML file per context, named `*permissions.yaml`. It is **split into two decoupled sections** —
-the catalog (what permissions exist) and the rules (which route requires which permission(s)):
+One document per context, **split across two files** — the catalog (what permissions exist) and the
+rules (which route requires which permission(s)). They have different consumers: the catalog feeds
+IAM/role design; the rules feed this context's enforcement middleware. Splitting lets rules be edited
+(re-route, change `requires`, share a permission across routes) without touching the catalog.
+
+`<Context>.permissions.yaml` — context + serverPrefix + the catalog:
 
 ```yaml
 context: OpportunityContext          # permission namespace + rules enum name
 serverPrefix: /opportunity-context   # prepended to every rule's path regex ("" for none)
 
-# ① catalog — what permissions exist
-permissions:
-  - slot: AuditQuoting               # an Aggregate name, or Workflow / Query / File
+permissions:                         # what permissions exist
+  - slot: AuditQuoting               # the module/folder that owns the handler (free string)
     operationId: editAccountingType  # PascalCased → permission's last segment
     description: 編輯帳務類型           # optional, for humans
   - slot: Workflow
     operationId: closeDeal
+```
 
-# ② rules — which route requires which permission(s), by "<slot>.<operationId>" reference
+`<Context>.rules.yaml` — the routing (refs into the catalog by `"<slot>.<operationId>"`):
+
+```yaml
 rules:
   - method: patch                    # get | post | put | patch | delete
     path: /audit-quotings/{quotingId}/accounting-type   # {param} → [^/]+ in the regex
@@ -32,6 +38,11 @@ rules:
     path: /audit-quotings/{quotingId}/final-approve
     requires: [AuditQuoting.editAccountingType, Workflow.closeDeal]
 ```
+
+The two files merge into one document before rendering, so the validation below (incl. the
+dangling-`requires` check) covers **cross-file** references unchanged. `context`/`serverPrefix` are
+authoritative in the catalog file; if the rules file repeats either, it must agree (else it fails).
+A `.rules.yaml` may carry `context:`/`serverPrefix:` for traceability but is otherwise `rules:` only.
 
 The generator derives, from the **catalog**:
 
@@ -55,6 +66,9 @@ permission not declared in `permissions:`).
 
 ## How a context adopts it
 
+> Full handoff contract (dependency-graph caveat, the IAM-grant-or-403 obligation, slot naming,
+> versioning) for another team adopting this: **[ADOPTING.md](ADOPTING.md)**. The quick version:
+
 ```swift
 // Package.swift
 dependencies: [
@@ -75,8 +89,10 @@ targets: [
 ]
 ```
 
-Drop `YourContext.permissions.yaml` into that target. `swift build` then generates and compiles
-`Permission.swift` + `PermissionRules.swift`. Use them as usual:
+Drop `YourContext.permissions.yaml` **and** `YourContext.rules.yaml` into that target. `swift build`
+then generates and compiles `Permission.swift` + `PermissionRules.swift`. (A `.permissions.yaml`
+without its sibling `.rules.yaml` is a build error — migrate a combined file with
+`swift run permission-gen --all path/to/Combined.yaml`.) Use them as usual:
 
 ```swift
 let rules = try YourContextPermissionRules.make()
@@ -132,7 +148,14 @@ separate deployment concern.
 Run the generator by hand:
 
 ```bash
-swift run permission-gen --output-dir ./out path/to/YourContext.permissions.yaml
+# codegen: merge the two files → Permission.swift + PermissionRules.swift
+swift run permission-gen \
+  --permissions path/to/YourContext.permissions.yaml \
+  --rules       path/to/YourContext.rules.yaml \
+  --output-dir  ./out
+
+# migration: split a combined document into the two-file layout (writes both files together)
+swift run permission-gen --all path/to/Combined.yaml
 ```
 
 ## Validation
