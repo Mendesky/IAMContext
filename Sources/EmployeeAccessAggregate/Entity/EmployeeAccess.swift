@@ -1,6 +1,7 @@
 import DDDKit
 import Foundation
 import IAMContextShared
+import IAMPermissionCatalog
 package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     package let id: String
     package var metadata: AggregateRootMetadata = .init()
@@ -22,178 +23,14 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
         "IAM\(Self.self)"
     }
 
-    // ── COPIED SNAPSHOT — 驗證用，非長期方案（human-authorized 2026-06-09）──
-    // 從 OpportunityContext 的權威清單手動 copy 一份（154 條），用來快速驗證 enroll → GetPermissions →
-    // OC PermissionMiddleware 的跨 context 執法 loop 是否打通。這是「快速驗證」的暫時手段，已知缺點 = drift
-    // （OC 改了不會自動同步）。正式同步機制（OC 發布 catalog / IAM ingest）後續另議，屆時移除本區塊。
-    //   來源：OpportunityContext/Sources/OCServer/OpportunityContext.permissions.yaml（SSOT；與 IAMPermissionCatalog 內複製品同步）
-    //   版本：sha256 f7dd5e7018d66204db5758d73415969d9b5b60366fa14bfe048217c9909a92f0（2026-06-15 同步）
-    //   組成：AuditQuoting 47 + QuotingCaseGrouping 29 + Quotation 14 + CompanyRegistrationQuoting 22
-    //         + Workflow 9 + Query 31 + File 2 = 154
-    //   2026-06-15 新增：QuotingCaseGrouping.ChangeCollaboratorRole（OC 的 changeCollaboratorRole）
-    package static let allPermissions: Set<String> = [
-        // AuditQuoting (47)
-        "OpportunityContext.AuditQuoting.AddAccounting",
-        "OpportunityContext.AuditQuoting.AddAccountingReform",
-        "OpportunityContext.AuditQuoting.AddAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting",
-        "OpportunityContext.AuditQuoting.AddAssistanceCtp",
-        "OpportunityContext.AuditQuoting.AddCashierOperation",
-        "OpportunityContext.AuditQuoting.AddCustomizedReporting",
-        "OpportunityContext.AuditQuoting.AddFinancialComplianceAudit",
-        "OpportunityContext.AuditQuoting.AddPayrollSupportOperation",
-        "OpportunityContext.AuditQuoting.AddTaxComplianceAudit",
-        "OpportunityContext.AuditQuoting.AddTaxComplianceAuditAndUndistributedEarningsAudit",
-        "OpportunityContext.AuditQuoting.ConfirmNoPredecessorAuditor",
-        "OpportunityContext.AuditQuoting.CustomizeServiceItem",
-        "OpportunityContext.AuditQuoting.DeleteCustomizedReporting",
-        "OpportunityContext.AuditQuoting.EditAccountBalanceDetailReportNeed",
-        "OpportunityContext.AuditQuoting.EditAccountingReformElectronicFileProvision",
-        "OpportunityContext.AuditQuoting.EditAccountingType",
-        "OpportunityContext.AuditQuoting.EditBalanceSheetNeed",
-        "OpportunityContext.AuditQuoting.EditBranchCount",
-        "OpportunityContext.AuditQuoting.EditBusinessTaxFilingMethod",
-        "OpportunityContext.AuditQuoting.EditCommonBankMonthlyRecordCount",
-        "OpportunityContext.AuditQuoting.EditCustomizedReporting",
-        "OpportunityContext.AuditQuoting.EditDomesticTransferCount",
-        "OpportunityContext.AuditQuoting.EditEstimatedEvidenceCount",
-        "OpportunityContext.AuditQuoting.EditEstimatedHeadcountOfWithholding",
-        "OpportunityContext.AuditQuoting.EditEstimatedRevenue",
-        "OpportunityContext.AuditQuoting.EditIncomeStatementNeed",
-        "OpportunityContext.AuditQuoting.EditIndustrialType",
-        "OpportunityContext.AuditQuoting.EditInternationalTransferCount",
-        "OpportunityContext.AuditQuoting.EditLastYearRevenue",
-        "OpportunityContext.AuditQuoting.EditPaidInCapital",
-        "OpportunityContext.AuditQuoting.EditPayrollHeadcount",
-        "OpportunityContext.AuditQuoting.EditPayrollTransferCount",
-        "OpportunityContext.AuditQuoting.EditProfitseekingEnterpriseIncomeTaxFilingMethod",
-        "OpportunityContext.AuditQuoting.EditRegisteredCapital",
-        "OpportunityContext.AuditQuoting.EditSalesEinvoiceUsage",
-        "OpportunityContext.AuditQuoting.EditServiceItemEndDate",
-        "OpportunityContext.AuditQuoting.EditServiceItemSelection",
-        "OpportunityContext.AuditQuoting.EditServiceItemStartDate",
-        "OpportunityContext.AuditQuoting.EditTotalAssets",
-        "OpportunityContext.AuditQuoting.RecordPastCostAnalysisRequirement",
-        "OpportunityContext.AuditQuoting.RecordPredecessorAuditorInfo",
-        "OpportunityContext.AuditQuoting.RemoveQuotingProof",
-        "OpportunityContext.AuditQuoting.RemoveServiceItems",
-        "OpportunityContext.AuditQuoting.SelectAccountingWorkItems",
-        "OpportunityContext.AuditQuoting.SelectCashierOperationWorkItems",
-        "OpportunityContext.AuditQuoting.SelectPayrollSupportOperationWorkItems",
-        "OpportunityContext.AuditQuoting.UploadQuotingProof",
-        // QuotingCaseGrouping (29)
-        "OpportunityContext.QuotingCaseGrouping.AddCollaborators",
-        "OpportunityContext.QuotingCaseGrouping.AddContact",
-        "OpportunityContext.QuotingCaseGrouping.AddQuotingBundle",
-        "OpportunityContext.QuotingCaseGrouping.BackfillQuotation",
-        "OpportunityContext.QuotingCaseGrouping.ChangeCollaboratorRole",
-        "OpportunityContext.QuotingCaseGrouping.EditClientSource",
-        "OpportunityContext.QuotingCaseGrouping.EditContactCommunicationMethods",
-        "OpportunityContext.QuotingCaseGrouping.EditContactDisplayName",
-        "OpportunityContext.QuotingCaseGrouping.EditContactGender",
-        "OpportunityContext.QuotingCaseGrouping.EditContactRelationship",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingCaseBusinessId",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingCaseCompanyName",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingCaseEstablishmentApprovalDate",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingCaseName",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingCaseOrganizationType",
-        "OpportunityContext.QuotingCaseGrouping.EditQuotingFirm",
-        "OpportunityContext.QuotingCaseGrouping.OpenQuotingCaseGrouping",
-        "OpportunityContext.QuotingCaseGrouping.PriceServiceItems",
-        "OpportunityContext.QuotingCaseGrouping.RemoveBackfilledQuotation",
-        "OpportunityContext.QuotingCaseGrouping.RemoveCollaborator",
-        "OpportunityContext.QuotingCaseGrouping.RemoveContact",
-        "OpportunityContext.QuotingCaseGrouping.RemoveQuotingBundle",
-        "OpportunityContext.QuotingCaseGrouping.RemoveQuotingCase",
-        "OpportunityContext.QuotingCaseGrouping.RemoveReplyForm",
-        "OpportunityContext.QuotingCaseGrouping.RenameQuotingBundle",
-        "OpportunityContext.QuotingCaseGrouping.ReorderQuotingBundles",
-        "OpportunityContext.QuotingCaseGrouping.ReorderQuotingCases",
-        "OpportunityContext.QuotingCaseGrouping.SetPrimaryQuotingCase",
-        "OpportunityContext.QuotingCaseGrouping.UploadReplyForm",
-        // Quotation (14)
-        "OpportunityContext.Quotation.AddContractNoteByUser",
-        "OpportunityContext.Quotation.EditContractNote",
-        "OpportunityContext.Quotation.EditFontSize",
-        "OpportunityContext.Quotation.EditLetterContent",
-        "OpportunityContext.Quotation.EditLetterFrom",
-        "OpportunityContext.Quotation.EditLetterTitle",
-        "OpportunityContext.Quotation.EditLetterTo",
-        "OpportunityContext.Quotation.EditPaymentItemSupplementaryNoteContent",
-        "OpportunityContext.Quotation.RemoveContractNoteByUser",
-        "OpportunityContext.Quotation.RenamePaymentItem",
-        "OpportunityContext.Quotation.ReorderContractNotes",
-        "OpportunityContext.Quotation.ReorderPaymentItems",
-        "OpportunityContext.Quotation.ResetPaymentItemSupplementaryNoteContent",
-        "OpportunityContext.Quotation.SetPaymentItemSupplementaryNoteVisibility",
-        // CompanyRegistrationQuoting (22)
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceChairmanConvenienceSeal",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceChairmanSeal",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceCompanyConvenienceSeal",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceCompanySeal",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceInvoiceSeal",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceLaborAndHealthInsuranceInsuredUnitSetting",
-        "OpportunityContext.CompanyRegistrationQuoting.AddAssistanceWithCompanyCertificationApplication",
-        "OpportunityContext.CompanyRegistrationQuoting.AddCompanyRegistration",
-        "OpportunityContext.CompanyRegistrationQuoting.AddOwnerOccupiedResidencePartForBusinessApplication",
-        "OpportunityContext.CompanyRegistrationQuoting.ConfigureEconomicMinistryRegistrationCharged",
-        "OpportunityContext.CompanyRegistrationQuoting.ConfigureEconomicMinistryRegistrationNoCharge",
-        "OpportunityContext.CompanyRegistrationQuoting.EditChairmanConvenienceSealCount",
-        "OpportunityContext.CompanyRegistrationQuoting.EditChairmanSealCount",
-        "OpportunityContext.CompanyRegistrationQuoting.EditCompanyConvenienceSealCount",
-        "OpportunityContext.CompanyRegistrationQuoting.EditCompanySealCount",
-        "OpportunityContext.CompanyRegistrationQuoting.EditInvoiceSealCount",
-        "OpportunityContext.CompanyRegistrationQuoting.EditIsFranchise",
-        "OpportunityContext.CompanyRegistrationQuoting.EditServiceItemSelection",
-        "OpportunityContext.CompanyRegistrationQuoting.EditServiceItemStartDate",
-        "OpportunityContext.CompanyRegistrationQuoting.EditShareholderCount",
-        "OpportunityContext.CompanyRegistrationQuoting.RemoveServiceItems",
-        "OpportunityContext.CompanyRegistrationQuoting.SelectCompanyRegistrationWorkItems",
-        // Workflow (9)
-        "OpportunityContext.Workflow.AddQuotingCase",
-        "OpportunityContext.Workflow.ArchiveQuotingCaseGrouping",
-        "OpportunityContext.Workflow.CancelQuotingCaseGroupingDealClose",
-        "OpportunityContext.Workflow.CancelQuotingCaseGroupingHandOver",
-        "OpportunityContext.Workflow.CloseQuotingCasesDeal",
-        "OpportunityContext.Workflow.CreateQuotingCaseGrouping",
-        "OpportunityContext.Workflow.DeliverQuotingCase",
-        "OpportunityContext.Workflow.HandOverQuotingCases",
-        "OpportunityContext.Workflow.UnarchiveQuotingCaseGrouping",
-        // Query (31)
-        "OpportunityContext.Query.GetAccountingSetup",
-        "OpportunityContext.Query.GetAgreementTerms",
-        "OpportunityContext.Query.GetBackfilledQuotations",
-        "OpportunityContext.Query.GetBusinessClientAssistance",
-        "OpportunityContext.Query.GetClientSource",
-        "OpportunityContext.Query.GetContacts",
-        "OpportunityContext.Query.GetContractHeader",
-        "OpportunityContext.Query.GetContractNotes",
-        "OpportunityContext.Query.GetCustomerInfo",
-        "OpportunityContext.Query.GetEvidenceInfo",
-        "OpportunityContext.Query.GetLetter",
-        "OpportunityContext.Query.GetOperationInfo",
-        "OpportunityContext.Query.GetPaymentSummary",
-        "OpportunityContext.Query.GetPredecessorServiceInfo",
-        "OpportunityContext.Query.GetPurpose",
-        "OpportunityContext.Query.GetQuotationPdfDownload",
-        "OpportunityContext.Query.GetQuotationPdfPreview",
-        "OpportunityContext.Query.GetQuotingBundles",
-        "OpportunityContext.Query.GetQuotingCaseGroupingAggregateRootIds",
-        "OpportunityContext.Query.GetQuotingCaseGroupingSummaries",
-        "OpportunityContext.Query.GetQuotingCaseGroupingViewMode",
-        "OpportunityContext.Query.GetQuotingCaseViewMode",
-        "OpportunityContext.Query.GetQuotingCases",
-        "OpportunityContext.Query.GetQuotingFirm",
-        "OpportunityContext.Query.GetQuotingProofs",
-        "OpportunityContext.Query.GetReplyForms",
-        "OpportunityContext.Query.GetRightsAndObligations",
-        "OpportunityContext.Query.GetServiceItemDetail",
-        "OpportunityContext.Query.GetServiceItemsByQuotingBundleId",
-        "OpportunityContext.Query.GetServiceScope",
-        "OpportunityContext.Query.GetTemplateVariables",
-        // File (2)
-        "OpportunityContext.File.DownloadFile",
-        "OpportunityContext.File.UploadEmbeddedImage",
-    ]
+    // 入職 placeholder（human-authorized 2026-06-03）：權限細項未規劃 → 新人先給「全部權限」。
+    // 來源改為「衍生自聚合 catalog」（PermissionCatalog，由 IAMPermissionCatalog target 內各 context 的
+    // *.permissions.yaml 快照在 build 時產出），不再手抄 OC 清單 —— OC 改 slot 命名 / 增減權限時，只要重 sync
+    // 那份 yaml，這裡就自動跟著更新、永不漂移（先前手抄版會落後，例如 OC 把 Query/Workflow 改成 module 名）。
+    // 範圍＝OpportunityContext（維持原本「給 OC 全權限」的行為；是否納入 EPC 等其他 context 另議）。
+    // TODO: 待 permission 方案定案後，依 (department, jobTitle) 推導真正 baseline，取代「全給」。
+    package static let allPermissions: Set<String> =
+        Set(PermissionCatalog.permissions(inContext: "OpportunityContext").map(\.rawValue))
 
     package init(id: String, userId: String, department: String, jobTitle: String, permissions: Set<String>, roles: Set<String>, status: EmployeeStatus) throws {
         self.id = id
