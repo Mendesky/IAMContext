@@ -48,8 +48,6 @@ let package = Package(
                 .product(name: "DDDKit", package: "swift-ddd-kit"),
                 .target(name: "IAMContextShared"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
-                // allPermissions 衍生自聚合 catalog（PermissionCatalog），不再手抄各 context 權限清單。
-                .target(name: "IAMPermissionCatalog"),
             ],
             resources: [
                 .process("openapi.yaml"),

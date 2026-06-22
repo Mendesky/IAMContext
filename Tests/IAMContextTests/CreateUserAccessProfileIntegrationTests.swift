@@ -29,7 +29,7 @@ struct CreateUserAccessProfileIntegrationTests {
             let aggregate = try #require(try await repository.find(byId: employeeAccessId))
             #expect(aggregate.userId == userId)
             #expect(aggregate.status == .Active)
-            #expect(aggregate.permissions == EmployeeAccess.allPermissions)
+            #expect(aggregate.permissions?.isEmpty == true)
         }
     }
 
