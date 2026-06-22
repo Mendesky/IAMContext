@@ -1,7 +1,6 @@
 import DDDKit
 import Foundation
 import IAMContextShared
-import IAMPermissionCatalog
 package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     package let id: String
     package var metadata: AggregateRootMetadata = .init()
@@ -22,15 +21,6 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
         // → 寫入落在 $ce-IAMCEmployeeAccess、projection 訂 $ce-IAMEmployeeAccess → 事件流不到 projector、read model 永遠空。
         "IAM\(Self.self)"
     }
-
-    // 入職 placeholder（human-authorized 2026-06-03）：權限細項未規劃 → 新人先給「全部權限」。
-    // 來源改為「衍生自聚合 catalog」（PermissionCatalog，由 IAMPermissionCatalog target 內各 context 的
-    // *.permissions.yaml 快照在 build 時產出），不再手抄 OC 清單 —— OC 改 slot 命名 / 增減權限時，只要重 sync
-    // 那份 yaml，這裡就自動跟著更新、永不漂移（先前手抄版會落後，例如 OC 把 Query/Workflow 改成 module 名）。
-    // 範圍＝OpportunityContext（維持原本「給 OC 全權限」的行為；是否納入 EPC 等其他 context 另議）。
-    // TODO: 待 permission 方案定案後，依 (department, jobTitle) 推導真正 baseline，取代「全給」。
-    package static let allPermissions: Set<String> =
-        Set(PermissionCatalog.permissions(inContext: "OpportunityContext").map(\.rawValue))
 
     package init(id: String, userId: String, department: String, jobTitle: String, permissions: Set<String>, roles: Set<String>, status: EmployeeStatus) throws {
         self.id = id
@@ -56,14 +46,14 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     // Create entry point used by the create use-case (/usecase Create pattern). The use-case Input does
     // NOT carry non-input createdEvent payload field(s) [permissions, roles, status], so deriving them is domain logic.
     package convenience init(id: String, userId: String, department: String, jobTitle: String) throws {
-        // domain-fill placeholder (human-authorized 2026-06-03)：權限細項未規劃 → 新人先給「全部權限」、roles 空集合、status .Active。
-        // TODO: 待 permission 方案定案後，依 (department, jobTitle) 推導真正的 permissions / roles。
+        // 建立時「不」預先給權限：profile 以空權限起始，權限之後由 grantPrivilege 顯式授予
+        // （human decision 2026-06-22，推翻先前「新人先給全部權限」placeholder）。roles 空集合、status .Active。
         try self.init(
             id: id,
             userId: userId,
             department: department,
             jobTitle: jobTitle,
-            permissions: Self.allPermissions,
+            permissions: [],
             roles: [],
             status: .Active
         )
