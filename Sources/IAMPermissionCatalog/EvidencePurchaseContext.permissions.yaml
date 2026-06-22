@@ -1,26 +1,56 @@
 context: EvidencePurchaseContext
 serverPrefix: /evidence-purchase-context
 
-# ① catalog — what permissions exist (consumed by IAM for registration / granting)
+# catalog — what permissions exist (consumed by IAM for registration / granting)
 # slot = the module that owns the handler (Aggregate suffix stripped; Query/Workflow abolished)
 permissions:
   # --- BusinessClientAggregate → slot BusinessClient ---
-  - { slot: BusinessClient, operationId: createBusinessClient, description: 建立記帳客戶 }
+  - slot: BusinessClient
+    operationId: createBusinessClient
+    description: 建立記帳客戶
 
   # --- CentralizedPurchaseAggregate → slot CentralizedPurchase ---
-  - { slot: CentralizedPurchase, operationId: createCentralizedPurchaseInfo, description: 建立集中購買憑證資訊 }
-  - { slot: CentralizedPurchase, operationId: deleteCentralizedPurchaseInfo, description: 刪除集中購買憑證資訊 }
-  - { slot: CentralizedPurchase, operationId: editCentralizedPurchaseStartDate, description: 編輯集中購買起始日 }
-  - { slot: CentralizedPurchase, operationId: editHandwriteDuplicateEvidenceCentralizedPurchaseCount, description: 編輯手寫二聯式憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editHandwriteDuplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount, description: 編輯手寫二聯式加印存根聯憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editHandwriteTriplicateEvidenceCentralizedPurchaseCount, description: 編輯手寫三聯式憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editHandwriteTriplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount, description: 編輯手寫三聯式加印存根聯憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editMachineTriplicateEvidenceCentralizedPurchaseCount, description: 編輯機器三聯式憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editMachineTriplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount, description: 編輯機器三聯式加印存根聯憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editMachineDuplicateEvidenceCentralizedPurchaseCount, description: 編輯機器二聯式憑證集中購買數量 }
-  - { slot: CentralizedPurchase, operationId: editSpecialTaxEvidenceCentralizedPurchaseCount, description: 編輯特種稅額憑證集中購買數量 }
+  - slot: CentralizedPurchase
+    operationId: createCentralizedPurchaseInfo
+    description: 建立集中購買憑證資訊
+  - slot: CentralizedPurchase
+    operationId: deleteCentralizedPurchaseInfo
+    description: 刪除集中購買憑證資訊
+  - slot: CentralizedPurchase
+    operationId: editCentralizedPurchaseStartDate
+    description: 編輯集中購買起始日
+  - slot: CentralizedPurchase
+    operationId: editHandwriteDuplicateEvidenceCentralizedPurchaseCount
+    description: 編輯手寫二聯式憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editHandwriteDuplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount
+    description: 編輯手寫二聯式加印存根聯憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editHandwriteTriplicateEvidenceCentralizedPurchaseCount
+    description: 編輯手寫三聯式憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editHandwriteTriplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount
+    description: 編輯手寫三聯式加印存根聯憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editMachineTriplicateEvidenceCentralizedPurchaseCount
+    description: 編輯機器三聯式憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editMachineTriplicateWithAdditionalCopyEvidenceCentralizedPurchaseCount
+    description: 編輯機器三聯式加印存根聯憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editMachineDuplicateEvidenceCentralizedPurchaseCount
+    description: 編輯機器二聯式憑證集中購買數量
+  - slot: CentralizedPurchase
+    operationId: editSpecialTaxEvidenceCentralizedPurchaseCount
+    description: 編輯特種稅額憑證集中購買數量
 
   # --- EPC_Universal composition module (cross-aggregate reads) → slot EPCUniversal ---
-  - { slot: EPCUniversal, operationId: getBusinessClientCentralizedPurchaseInfo, description: 查詢記帳客戶的集中購買憑證資訊 }
-  - { slot: EPCUniversal, operationId: getIds, description: 依 customerId 查詢相關 ids }
-  - { slot: EPCUniversal, operationId: getLastModifiedTime, description: 查詢記帳客戶最後異動時間 }
+  - slot: EPCUniversal
+    operationId: getBusinessClientCentralizedPurchaseInfo
+    description: 查詢記帳客戶的集中購買憑證資訊
+  - slot: EPCUniversal
+    operationId: getIds
+    description: 依 customerId 查詢相關 ids
+  - slot: EPCUniversal
+    operationId: getLastModifiedTime
+    description: 查詢記帳客戶最後異動時間
