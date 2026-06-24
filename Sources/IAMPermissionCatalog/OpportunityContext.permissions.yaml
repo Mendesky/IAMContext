@@ -1,925 +1,472 @@
-# OpportunityContext 權限 SSOT（PermissionKit）。split 兩段：permissions(catalog) + rules(routing)。
-# 維護：用 /permission-doc skill（openapi 變動後重跑、審 diff）。build 時 PermissionGenPlugin 從本檔
-# 產 Permission.swift + PermissionRules.swift（勿手寫那兩個 Swift 檔）。rawValue = OpportunityContext.<slot>.<Pascal(operationId)>。
 context: OpportunityContext
-serverPrefix: /opportunity-context
+serverPrefix: "/opportunity-context"
+
 permissions:
   - slot: AuditQuoting
-    operationId: editAccountingType
-  - slot: Query
-    operationId: getQuotingProofs
-  - slot: Query
-    operationId: getPredecessorServiceInfo
-  - slot: Query
-    operationId: getOperationInfo
-  - slot: Query
-    operationId: getEvidenceInfo
-  - slot: AuditQuoting
-    operationId: uploadQuotingProof
-  - slot: AuditQuoting
-    operationId: removeQuotingProof
-  - slot: AuditQuoting
-    operationId: recordPastCostAnalysisRequirement
-  - slot: AuditQuoting
-    operationId: recordPredecessorAuditorInfo
-  - slot: AuditQuoting
-    operationId: confirmNoPredecessorAuditor
-  - slot: AuditQuoting
-    operationId: editEstimatedEvidenceCount
-  - slot: AuditQuoting
-    operationId: editSalesEinvoiceUsage
-  - slot: AuditQuoting
-    operationId: editTotalAssets
-  - slot: AuditQuoting
-    operationId: editLastYearRevenue
-  - slot: AuditQuoting
-    operationId: editEstimatedRevenue
-  - slot: AuditQuoting
-    operationId: editEstimatedHeadcountOfWithholding
-  - slot: AuditQuoting
-    operationId: editPaidInCapital
-  - slot: AuditQuoting
-    operationId: editRegisteredCapital
-  - slot: AuditQuoting
-    operationId: editBranchCount
-  - slot: AuditQuoting
-    operationId: editIndustrialType
-  - slot: AuditQuoting
     operationId: addAccounting
-  - slot: AuditQuoting
-    operationId: addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
-  - slot: AuditQuoting
-    operationId: addAssistanceCtp
-  - slot: AuditQuoting
-    operationId: addPayrollSupportOperation
-  - slot: AuditQuoting
-    operationId: addTaxComplianceAudit
-  - slot: AuditQuoting
-    operationId: addTaxComplianceAuditAndUndistributedEarningsAudit
-  - slot: AuditQuoting
-    operationId: addCashierOperation
-  - slot: AuditQuoting
-    operationId: addFinancialComplianceAudit
+    description: "新增一筆會計帳務處理作業（accounting）serviceItem；serviceItemId 由後端生成並回傳"
   - slot: AuditQuoting
     operationId: addAccountingReform
+    description: "新增一筆會計帳務重整作業（accountingReform）serviceItem；startDate / endDate / providesElectronicFile 均為必填；僅適用於 accountingType = taxAccount"
   - slot: AuditQuoting
-    operationId: customizeServiceItem
+    operationId: addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
+    description: "新增一筆年度補充保費扣費明細彙報附加服務 serviceItem；workItem 固定；建議置於 additional quotingBundle"
   - slot: AuditQuoting
-    operationId: editServiceItemStartDate
+    operationId: addAssistanceCtp
+    description: "新增一筆年度 CTP 申報（ctp）附加服務 serviceItem；workItem 固定為 ctp；startDate / endDate 均為選填；建議置於 additional quotingBundle"
   - slot: AuditQuoting
-    operationId: editServiceItemEndDate
-  - slot: AuditQuoting
-    operationId: editServiceItemSelection
-  - slot: AuditQuoting
-    operationId: editAccountBalanceDetailReportNeed
-  - slot: AuditQuoting
-    operationId: editBalanceSheetNeed
-  - slot: AuditQuoting
-    operationId: editIncomeStatementNeed
-  - slot: AuditQuoting
-    operationId: editAccountingReformElectronicFileProvision
-  - slot: AuditQuoting
-    operationId: editPayrollHeadcount
-  - slot: AuditQuoting
-    operationId: editDomesticTransferCount
-  - slot: AuditQuoting
-    operationId: editInternationalTransferCount
-  - slot: AuditQuoting
-    operationId: editPayrollTransferCount
-  - slot: AuditQuoting
-    operationId: editCommonBankMonthlyRecordCount
-  - slot: AuditQuoting
-    operationId: editProfitseekingEnterpriseIncomeTaxFilingMethod
+    operationId: addCashierOperation
+    description: "新增一筆出納事務處理作業（cashierOperation）serviceItem；workItem 可選 accountsReceivablePayablePostingAndOffsetting 或 onlineBankingPaymentAggregator"
   - slot: AuditQuoting
     operationId: addCustomizedReporting
+    description: "在指定 serviceItem 下新增一筆客製化報表（customizedReporting）；僅適用於含 customizedReporting workItem 的 serviceItem；name 不可為空白"
   - slot: AuditQuoting
-    operationId: editCustomizedReporting
+    operationId: addFinancialComplianceAudit
+    description: "新增一筆財務報表查核簽證（financialComplianceAudit）serviceItem；workItem 固定，startDate 為必填"
+  - slot: AuditQuoting
+    operationId: addPayrollSupportOperation
+    description: "新增一筆薪資人力支援作業（payrollSupportOperation）serviceItem；workItem 可選 5 種；含 monthlyPayrollReviewOperation 時須提供 payrollHeadcount（> 0）"
+  - slot: AuditQuoting
+    operationId: addTaxComplianceAudit
+    description: "新增一筆營利事業所得稅查核簽證（taxComplianceAudit）serviceItem — 不含未分配盈餘查核；startDate 為必填"
+  - slot: AuditQuoting
+    operationId: addTaxComplianceAuditAndUndistributedEarningsAudit
+    description: "新增一筆營利事業所得稅查核簽證及未分配盈餘查核 serviceItem — 一般公司型態使用；startDate 為必填"
+  - slot: AuditQuoting
+    operationId: confirmNoPredecessorAuditor
+    description: "確認無前所"
+  - slot: AuditQuoting
+    operationId: customizeServiceItem
+    description: "新增一筆自訂（customized）serviceItem；serviceItemName 為必填且不可為空白字串；startDate 為選填"
   - slot: AuditQuoting
     operationId: deleteCustomizedReporting
+    description: "刪除 serviceItem 中指定的客製化報表（customizedReporting）；僅適用於含 customizedReporting workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editAccountBalanceDetailReportNeed
+    description: "修改 serviceItem 是否需要實科目餘額明細表；僅適用於含 standardReporting workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editAccountingReformElectronicFileProvision
+    description: "修改 serviceItem 是否提供整帳過程電子檔（providesElectronicFile）；僅適用於 type = accountingReform 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editAccountingType
+    description: "修改帳務類型"
+  - slot: AuditQuoting
+    operationId: editBalanceSheetNeed
+    description: "修改 serviceItem 是否需要資產負債表；僅適用於含 standardReporting workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editBranchCount
+    description: "修改分支機構數"
   - slot: AuditQuoting
     operationId: editBusinessTaxFilingMethod
+    description: "修改 serviceItem 的營業稅申報方式；僅適用於含 businessTaxFiling workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editCommonBankMonthlyRecordCount
+    description: "修改 serviceItem 的常用銀行單月資料筆數；僅適用於含 fundingProcess workItem 的 serviceItem，須 >= 0"
+  - slot: AuditQuoting
+    operationId: editCustomizedReporting
+    description: "修改 serviceItem 中指定客製化報表的 name 與 description；僅適用於含 customizedReporting workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editDomesticTransferCount
+    description: "修改 serviceItem 的國內轉帳次數；僅適用於含 onlineBankingPaymentAggregator workItem 的 serviceItem，須 >= 0"
+  - slot: AuditQuoting
+    operationId: editEstimatedEvidenceCount
+    description: "修改預估憑證週期數量"
+  - slot: AuditQuoting
+    operationId: editEstimatedHeadcountOfWithholding
+    description: "修改預估扣繳人數；省略 estimatedHeadcountOfWithholding 欄位代表清空（設為無值）"
+  - slot: AuditQuoting
+    operationId: editEstimatedRevenue
+    description: "修改預估營業額"
+  - slot: AuditQuoting
+    operationId: editIncomeStatementNeed
+    description: "修改 serviceItem 是否需要損益表；僅適用於含 standardReporting workItem 的 serviceItem"
+  - slot: AuditQuoting
+    operationId: editIndustrialType
+    description: "修改產業別"
+  - slot: AuditQuoting
+    operationId: editInternationalTransferCount
+    description: "修改 serviceItem 的國外轉帳次數；僅適用於含 onlineBankingPaymentAggregator workItem 的 serviceItem，須 >= 0"
+  - slot: AuditQuoting
+    operationId: editLastYearRevenue
+    description: "修改去年營業額"
+  - slot: AuditQuoting
+    operationId: editPaidInCapital
+    description: "修改實收資本額（paidInCapital）。僅適用於有限公司、股份有限公司；獨資合夥改用 editRegisteredCapital。不適用 organizationType 回 422，值為負或 NaN 回 422"
+  - slot: AuditQuoting
+    operationId: editPayrollHeadcount
+    description: "修改 serviceItem 的薪資處理人數（payrollHeadcount）；僅適用於含 monthlyPayrollReviewOperation workItem 的 serviceItem，須 > 0"
+  - slot: AuditQuoting
+    operationId: editPayrollTransferCount
+    description: "修改 serviceItem 的薪資轉帳次數；僅適用於含 onlineBankingPaymentAggregator workItem 的 serviceItem，須 >= 0"
+  - slot: AuditQuoting
+    operationId: editProfitseekingEnterpriseIncomeTaxFilingMethod
+    description: "修改 serviceItem 的營利事業所得稅申報方式；僅適用於含 profitseekingEnterpriseIncomeTaxFiling workItem 的 serviceItem；不可設為 taxComplianceAudit"
+  - slot: AuditQuoting
+    operationId: editRegisteredCapital
+    description: "修改登記資本額（registeredCapital）。僅適用於獨資合夥；有限公司、股份有限公司改用 editPaidInCapital。不適用 organizationType 回 422，值為負或 NaN 回 422"
+  - slot: AuditQuoting
+    operationId: editSalesEinvoiceUsage
+    description: "修改銷項電子發票使用狀態"
+  - slot: AuditQuoting
+    operationId: editServiceItemEndDate
+    description: "修改 serviceItem 的結束日；指定 workItemType 則僅修改該 workItem 的 endDate，未指定則修改 serviceItem 層級 endDate"
+  - slot: AuditQuoting
+    operationId: editServiceItemSelection
+    description: "修改 serviceItem 是否被選取（isSelected）；僅允許 additional quotingBundle，standard 嘗試修改回 422"
+  - slot: AuditQuoting
+    operationId: editServiceItemStartDate
+    description: "修改 serviceItem 的起始日；指定 workItemType 則僅修改該 workItem 的 startDate，未指定則修改 serviceItem 層級 startDate"
+  - slot: AuditQuoting
+    operationId: editTotalAssets
+    description: "修改資產總額"
+  - slot: AuditQuoting
+    operationId: getEvidenceInfo
+    description: "取得憑證資訊"
+  - slot: AuditQuoting
+    operationId: getOperationInfo
+    description: "取得營運資訊"
+  - slot: AuditQuoting
+    operationId: getPredecessorServiceInfo
+    description: "取得前所服務資訊"
+  - slot: AuditQuoting
+    operationId: getQuotingProofs
+    description: "取得報價佐證文件列表"
+  - slot: AuditQuoting
+    operationId: recordPastCostAnalysisRequirement
+    description: "記錄過往成本分析需求"
+  - slot: AuditQuoting
+    operationId: recordPredecessorAuditorInfo
+    description: "記錄前所資訊"
+  - slot: AuditQuoting
+    operationId: removeQuotingProof
+    description: "移除報價佐證文件"
+  - slot: AuditQuoting
+    operationId: removeServiceItems
+    description: "批次移除指定的 serviceItems（以 id 清單指定）；含 taxComplianceAudit 時會觸發營所稅 filingMethod / costAnalysis / pricingDetails 連鎖調整，需以原子批次提交"
   - slot: AuditQuoting
     operationId: selectAccountingWorkItems
+    description: "整組替換 accounting serviceItem 的 workItem 選擇與 configs；serviceItem 須存在且 type 為 accounting"
   - slot: AuditQuoting
     operationId: selectCashierOperationWorkItems
+    description: "整組替換 cashierOperation serviceItem 的 workItem 選擇與 configs；serviceItem 須存在且 type 為 cashierOperation"
   - slot: AuditQuoting
     operationId: selectPayrollSupportOperationWorkItems
+    description: "整組替換 payrollSupportOperation serviceItem 的 workItem 選擇與 configs；serviceItem 須存在且 type 為 payrollSupportOperation"
   - slot: AuditQuoting
-    operationId: removeServiceItems
-  - slot: QuotingCaseGrouping
-    operationId: addQuotingBundle
-  - slot: QuotingCaseGrouping
-    operationId: renameQuotingBundle
-  - slot: QuotingCaseGrouping
-    operationId: reorderQuotingBundles
-  - slot: QuotingCaseGrouping
-    operationId: reorderQuotingCases
-  - slot: QuotingCaseGrouping
-    operationId: removeQuotingBundle
-  - slot: Query
-    operationId: getContacts
-  - slot: QuotingCaseGrouping
-    operationId: addContact
-  - slot: QuotingCaseGrouping
-    operationId: removeContact
-  - slot: QuotingCaseGrouping
-    operationId: editContactDisplayName
-  - slot: QuotingCaseGrouping
-    operationId: editContactGender
-  - slot: QuotingCaseGrouping
-    operationId: editContactRelationship
-  - slot: QuotingCaseGrouping
-    operationId: editContactCommunicationMethods
-  - slot: QuotingCaseGrouping
-    operationId: removeQuotingCase
-  - slot: QuotingCaseGrouping
-    operationId: setPrimaryQuotingCase
-  - slot: QuotingCaseGrouping
-    operationId: addCollaborators
-  - slot: QuotingCaseGrouping
-    operationId: removeCollaborator
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingCaseBusinessId
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingCaseName
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingCaseCompanyName
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingCaseOrganizationType
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingCaseEstablishmentApprovalDate
-  - slot: Query
-    operationId: getQuotingFirm
-  - slot: QuotingCaseGrouping
-    operationId: editQuotingFirm
-  - slot: Query
-    operationId: getContractHeader
-  - slot: Query
-    operationId: getClientSource
-  - slot: QuotingCaseGrouping
-    operationId: editClientSource
-  - slot: Query
-    operationId: getQuotingBundles
-  - slot: QuotingCaseGrouping
-    operationId: uploadReplyForm
-  - slot: Query
-    operationId: getReplyForms
-  - slot: QuotingCaseGrouping
-    operationId: removeReplyForm
-  - slot: QuotingCaseGrouping
-    operationId: backfillQuotation
-  - slot: Query
-    operationId: getBackfilledQuotations
-  - slot: QuotingCaseGrouping
-    operationId: removeBackfilledQuotation
-  - slot: QuotingCaseGrouping
-    operationId: openQuotingCaseGrouping
-  - slot: QuotingCaseGrouping
-    operationId: priceServiceItems
-  - slot: Quotation
-    operationId: editLetterFrom
-  - slot: Quotation
-    operationId: editLetterTo
-  - slot: Quotation
-    operationId: editLetterContent
-  - slot: Quotation
-    operationId: editLetterTitle
-  - slot: Quotation
-    operationId: editFontSize
-  - slot: Quotation
-    operationId: editPaymentItemSupplementaryNoteContent
-  - slot: Quotation
-    operationId: resetPaymentItemSupplementaryNoteContent
-  - slot: Quotation
-    operationId: setPaymentItemSupplementaryNoteVisibility
-  - slot: Query
-    operationId: getLetter
-  - slot: Query
-    operationId: getPurpose
-  - slot: Query
-    operationId: getRightsAndObligations
-  - slot: Query
-    operationId: getAgreementTerms
-  - slot: Query
-    operationId: getContractNotes
-  - slot: Quotation
-    operationId: addContractNoteByUser
-  - slot: Quotation
-    operationId: reorderContractNotes
-  - slot: Quotation
-    operationId: editContractNote
-  - slot: Quotation
-    operationId: removeContractNoteByUser
-  - slot: Quotation
-    operationId: reorderPaymentItems
-  - slot: Quotation
-    operationId: renamePaymentItem
-  - slot: CompanyRegistrationQuoting
-    operationId: addCompanyRegistration
-  - slot: CompanyRegistrationQuoting
-    operationId: addAssistanceCompanySeal
-  - slot: CompanyRegistrationQuoting
-    operationId: addAssistanceChairmanSeal
-  - slot: CompanyRegistrationQuoting
-    operationId: addAssistanceCompanyConvenienceSeal
+    operationId: selectTaxComplianceAuditAndUndistributedEarningsAuditWorkItems
+    description: "整組替換 taxComplianceAuditAndUndistributedEarningsAudit serviceItem 的 workItemTypes 與 configs；須含 taxComplianceAudit anchor，startDate 必填"
+  - slot: AuditQuoting
+    operationId: uploadQuotingProof
+    description: "上傳報價佐證文件"
   - slot: CompanyRegistrationQuoting
     operationId: addAssistanceChairmanConvenienceSeal
+    description: "新增一筆代刻公司便章（小）附加服務 serviceItem；workItem 固定為 assistanceWithChairmanConvenienceSeal；chairmanConvenienceSealCount 必填且 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceChairmanSeal
+    description: "新增一筆代刻公司章（小）附加服務 serviceItem；workItem 固定為 assistanceWithChairmanSeal；chairmanSealCount 必填且 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceCompanyConvenienceSeal
+    description: "新增一筆代刻公司便章（大）附加服務 serviceItem；workItem 固定為 assistanceWithCompanyConvenienceSeal；companyConvenienceSealCount 必填且 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: addAssistanceCompanySeal
+    description: "新增一筆代刻公司章（大）附加服務 serviceItem；workItem 固定為 assistanceWithCompanySeal；companySealCount 必填且 > 0"
   - slot: CompanyRegistrationQuoting
     operationId: addAssistanceInvoiceSeal
-  - slot: CompanyRegistrationQuoting
-    operationId: addAssistanceWithCompanyCertificationApplication
-  - slot: CompanyRegistrationQuoting
-    operationId: addOwnerOccupiedResidencePartForBusinessApplication
+    description: "新增一筆代刻發票章附加服務 serviceItem；workItem 固定為 assistanceWithInvoiceSeal；invoiceSealCount 必填且 > 0"
   - slot: CompanyRegistrationQuoting
     operationId: addAssistanceLaborAndHealthInsuranceInsuredUnitSetting
+    description: "新增一筆代辦勞健保投保單位設立附加服務 serviceItem；workItem 固定為 assistanceWithLaborAndHealthInsuranceInsuredUnitSetting"
   - slot: CompanyRegistrationQuoting
-    operationId: editCompanySealCount
+    operationId: addAssistanceWithCompanyCertificationApplication
+    description: "新增一筆代辦工商憑證申請附加服務 serviceItem；workItem 固定為 assistanceWithCompanyCertificationApplication"
   - slot: CompanyRegistrationQuoting
-    operationId: editChairmanSealCount
+    operationId: addCompanyRegistration
+    description: "新增一筆公司設立（companyRegistration）serviceItem；serviceItemId 由後端生成並回傳。workItems 至少含一項；含 economicMinistryRegistration workItem 時 shareholderCount/isFranchise/region/isProcessedByJW 必填"
   - slot: CompanyRegistrationQuoting
-    operationId: editCompanyConvenienceSealCount
-  - slot: CompanyRegistrationQuoting
-    operationId: editChairmanConvenienceSealCount
-  - slot: CompanyRegistrationQuoting
-    operationId: editInvoiceSealCount
-  - slot: CompanyRegistrationQuoting
-    operationId: editShareholderCount
-  - slot: CompanyRegistrationQuoting
-    operationId: editServiceItemStartDate
-  - slot: CompanyRegistrationQuoting
-    operationId: editIsFranchise
-  - slot: CompanyRegistrationQuoting
-    operationId: configureEconomicMinistryRegistrationNoCharge
+    operationId: addOwnerOccupiedResidencePartForBusinessApplication
+    description: "新增一筆自用住宅申請部分供營業用附加服務 serviceItem；workItem 固定為 ownerOccupiedResidencePartForBusinessApplication"
   - slot: CompanyRegistrationQuoting
     operationId: configureEconomicMinistryRegistrationCharged
+    description: "以收費模式設定 serviceItem 的 economicMinistryRegistration 相關 configs（region 必填、paymentDisplayType 必填、price 選填）。收費模式下 isProcessedByJW 強制為 true"
   - slot: CompanyRegistrationQuoting
-    operationId: selectCompanyRegistrationWorkItems
+    operationId: configureEconomicMinistryRegistrationNoCharge
+    description: "以不收費模式設定 serviceItem 的 economicMinistryRegistration 相關 configs（region + isProcessedByJW）。執行後會移除既有 4 個 EMR configs 再寫入這 2 個"
+  - slot: CompanyRegistrationQuoting
+    operationId: editChairmanConvenienceSealCount
+    description: "編輯代刻公司便章（小）數量。serviceItem 需已含 assistanceWithChairmanConvenienceSeal workItem；chairmanConvenienceSealCount 必須 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: editChairmanSealCount
+    description: "編輯代刻公司章（小）數量。serviceItem 需已含 assistanceWithChairmanSeal workItem；chairmanSealCount 必須 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: editCompanyConvenienceSealCount
+    description: "編輯代刻公司便章（大）數量。serviceItem 需已含 assistanceWithCompanyConvenienceSeal workItem；companyConvenienceSealCount 必須 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: editCompanySealCount
+    description: "編輯代刻公司大章數量。serviceItem 需已含 assistanceWithCompanySeal workItem；companySealCount 必須 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: editInvoiceSealCount
+    description: "編輯代刻發票章數量。serviceItem 需已含 assistanceWithInvoiceSeal workItem；invoiceSealCount 必須 > 0"
+  - slot: CompanyRegistrationQuoting
+    operationId: editIsFranchise
+    description: "編輯 serviceItem 的 isFranchise（是否為特許行業）。serviceItem 需已含 economicMinistryRegistration workItem"
   - slot: CompanyRegistrationQuoting
     operationId: editServiceItemSelection
+    description: "修改 serviceItem 是否被選取（isSelected）。僅允許 additional quotingBundle 的 serviceItem 修改；standard bundle 嘗試修改回 422"
+  - slot: CompanyRegistrationQuoting
+    operationId: editServiceItemStartDate
+    description: "編輯 serviceItem 的 startDate config。適用於任意 serviceItem（無 workItemType 限制）"
+  - slot: CompanyRegistrationQuoting
+    operationId: editShareholderCount
+    description: "編輯 serviceItem 的股東人數。serviceItem 需已含 economicMinistryRegistration workItem；shareholderCount 必須 > 0"
   - slot: CompanyRegistrationQuoting
     operationId: removeServiceItems
-  - slot: Workflow
-    operationId: createQuotingCaseGrouping
-  - slot: Query
-    operationId: getServiceItemsByQuotingBundleId
-  - slot: Query
-    operationId: getServiceItemDetail
-  - slot: Query
-    operationId: getAccountingSetup
-  - slot: Query
-    operationId: getCustomerInfo
-  - slot: Query
-    operationId: getTemplateVariables
-  - slot: Query
-    operationId: getQuotingCases
-  - slot: Workflow
+    description: "批次移除指定的 serviceItems（以 id 清單指定）；被移除的 serviceItem 會連動從 pricingDetails 清除"
+  - slot: CompanyRegistrationQuoting
+    operationId: selectCompanyRegistrationWorkItems
+    description: "重新選擇 companyRegistration serviceItem 的 workItemTypes 與相關 configs。執行後完整替換既有 workItemTypes + configs"
+  - slot: OpportunityContext
     operationId: addQuotingCase
-  - slot: Query
-    operationId: getQuotingCaseGroupingAggregateRootIds
-  - slot: Workflow
-    operationId: closeQuotingCasesDeal
-  - slot: Workflow
-    operationId: deliverQuotingCase
-  - slot: Workflow
-    operationId: cancelQuotingCaseGroupingDealClose
-  - slot: Workflow
-    operationId: handOverQuotingCases
-  - slot: Workflow
-    operationId: cancelQuotingCaseGroupingHandOver
-  - slot: Workflow
+    description: "在既有 grouping 加一筆 quotingCase，依 customerEstablishmentStatus discriminator 分流三種情境"
+  - slot: OpportunityContext
     operationId: archiveQuotingCaseGrouping
-  - slot: Workflow
-    operationId: unarchiveQuotingCaseGrouping
-  - slot: Query
-    operationId: getServiceScope
-  - slot: Query
-    operationId: getQuotationPdfPreview
-  - slot: Query
-    operationId: getQuotationPdfDownload
-  - slot: Query
-    operationId: getPaymentSummary
-  - slot: File
-    operationId: downloadFile
-  - slot: Query
+    description: "封存 grouping（這份報價不再進行的決策），cascade lock 下游 aggregate"
+  - slot: OpportunityContext
+    operationId: cancelQuotingCaseGroupingDealClose
+    description: "撤回 grouping 的成交決議，把所有 settled cases 翻回 .opened"
+  - slot: OpportunityContext
+    operationId: cancelQuotingCaseGroupingHandOver
+    description: "撤回 grouping 的完成建檔決議，把所有 .handedOver case 翻回 .delivered"
+  - slot: OpportunityContext
+    operationId: changeOrganizationType
+    description: "變更指定 quotingCase 的組織型態並連動重整資本額（跨 aggregate orchestration）"
+  - slot: OpportunityContext
+    operationId: closeQuotingCasesDeal
+    description: "對 grouping 內所有 quotingCase 一次性結算成交/未成交（α 模型）"
+  - slot: OpportunityContext
+    operationId: createQuotingCaseGrouping
+    description: "建立 QuotingCaseGrouping，依 customerEstablishmentStatus discriminator 分流 established/establishing/unestablished 三種建立情境"
+  - slot: OpportunityContext
+    operationId: deliverQuotingCase
+    description: "把指定 quotingCase 從 .dealClosed 推進到 .delivered（建檔中），並 atomic 更新公司名"
+  - slot: OpportunityContext
+    operationId: getAccountingSetup
+    description: "取得 quotingCase 的帳務設定（accountingType + organizationType）"
+  - slot: OpportunityContext
     operationId: getBusinessClientAssistance
-  - slot: Query
-    operationId: getQuotingCaseGroupingViewMode
-  - slot: Query
-    operationId: getQuotingCaseViewMode
-  - slot: Query
+    description: "取得 grouping 的「貴公司協助辦理事項」清單（集團或 per-case 模式）"
+  - slot: OpportunityContext
+    operationId: getCustomerInfo
+    description: "取得 quotingCase 的客戶資訊（discriminated union by customerEstablishmentStatus），供編輯客戶資訊 dialog 初始值"
+  - slot: OpportunityContext
+    operationId: getPaymentSummary
+    description: "取得 quotation 整體酬金總覽，依 quotingCase 結構化（集團或 per-case 模式）"
+  - slot: OpportunityContext
+    operationId: getQuotationPdfDownload
+    description: "下載報價單 PDF binary（content-type application/pdf）"
+  - slot: OpportunityContext
+    operationId: getQuotationPdfPreview
+    description: "取得報價單 PDF 預覽，渲染為 PNG 回 base64 字串陣列（每頁一張）"
+  - slot: OpportunityContext
+    operationId: getQuotingCaseGroupingAggregateRootIds
+    description: "用 groupingId 一次撈齊該 grouping 名下所有 aggregate root id（Quotation/AuditQuoting/CompanyRegistrationQuoting）"
+  - slot: OpportunityContext
     operationId: getQuotingCaseGroupingSummaries
-  - slot: File
+    description: "取得 kanban 看板資料 — 該 operator 建立過的所有 quotingCaseGrouping 卡片摘要 list"
+  - slot: OpportunityContext
+    operationId: getQuotingCaseGroupingUserPermissions
+    description: "給 userId + groupingId，回該 user 對該案件的權限（依協作角色 owner/editor/viewer）"
+  - slot: OpportunityContext
+    operationId: getQuotingCaseGroupingViewMode
+    description: "集團總覽檢視 viewModel — 一次回傳整個 grouping 檢視頁所需 sections"
+  - slot: OpportunityContext
+    operationId: getQuotingCases
+    description: "列出 grouping 內所有 quotingCase 的 summary，含 primaryQuotingCaseId 標記"
+  - slot: OpportunityContext
+    operationId: getQuotingCaseViewMode
+    description: "單公司檢視 viewModel — 一次回傳該 case 檢視頁所需 sections"
+  - slot: OpportunityContext
+    operationId: getServiceItemDetail
+    description: "取得單一 serviceItem 的完整參數 View（含 type/isSelected/workItemTypes/configs）"
+  - slot: OpportunityContext
+    operationId: getServiceItemsByQuotingBundleId
+    description: "取得指定 quotingBundle 內的 serviceItem 索引（id/type/parent 關係）+ 定價分組"
+  - slot: OpportunityContext
+    operationId: getServiceScope
+    description: "取得 grouping 的服務範圍 modules（跨 case 聚合 serviceItem）"
+  - slot: OpportunityContext
+    operationId: getTemplateVariables
+    description: "取得指定 grouping 的範本變數表（grouping 級 + 各 case 級）"
+  - slot: OpportunityContext
+    operationId: handOverQuotingCases
+    description: "Grouping-level sweep：把 grouping 內所有 .delivered case 一次推進到 .handedOver（已建檔）"
+  - slot: OpportunityContext
+    operationId: unarchiveQuotingCaseGrouping
+    description: "撤銷封存，解除 grouping 的 archived 狀態並恢復 mutating 能力"
+  - slot: Quotation
+    operationId: addContractNoteByUser
+    description: "新增 user-added contract note。noteId 由後端產生 UUID 回給前端；非 idempotent"
+  - slot: Quotation
+    operationId: editContractNote
+    description: "編輯既有 contract note 的內文（by-trigger，對應 domain event ContractNoteEdited）"
+  - slot: Quotation
+    operationId: editFontSize
+    description: "編輯 quotation PDF 字級並持久化；preview / download 端會讀取此持久值，fontSize 必須 > 0"
+  - slot: Quotation
+    operationId: editLetterContent
+    description: "編輯指定 quotingCase 的 letter 內文覆寫（純文字字串）"
+  - slot: Quotation
+    operationId: editLetterFrom
+    description: "編輯指定 quotingCase 的 letter 中文 UI 標籤「致」對應的 from 欄位覆寫值"
+  - slot: Quotation
+    operationId: editLetterTitle
+    description: "編輯指定 quotingCase 的 letter 主旨覆寫（純文字字串；同意函上方「主旨」欄）"
+  - slot: Quotation
+    operationId: editLetterTo
+    description: "編輯指定 quotingCase 的 letter 中文 UI 標籤「由」對應的 to 欄位覆寫值"
+  - slot: Quotation
+    operationId: editPaymentItemSupplementaryNoteContent
+    description: "編輯指定 quotingCase 的酬金補充說明 markdown 內容"
+  - slot: Quotation
+    operationId: getAgreementTerms
+    description: "取得 quotation 的「其它約定事項」section 內容（QCM 預設文案）"
+  - slot: Quotation
+    operationId: getContractNotes
+    description: "取得 quotation 的 contract note 列表。不帶 quotingCaseId 為集團模式（聯集，已 dedupe），帶為 per-case 模式"
+  - slot: Quotation
+    operationId: getLetter
+    description: "取得 letter 覆寫值（title / from / to / content）。不帶 quotingCaseId 為集團模式，帶為 per-case 模式"
+  - slot: Quotation
+    operationId: getPurpose
+    description: "取得 quotation 的 purpose 內文（QCM 預設文案，與 case 無關）"
+  - slot: Quotation
+    operationId: getRightsAndObligations
+    description: "取得 quotation 的「權利義務事項」section 內容（QCM 預設文案）"
+  - slot: Quotation
+    operationId: removeContractNoteByUser
+    description: "使用者觸發的 contract note 刪除（by-trigger，對應 ContractNoteRemovedByUser）；user 一旦刪除即不可恢復"
+  - slot: Quotation
+    operationId: renamePaymentItem
+    description: "重新命名 payment item。name 不可為空字串（aggregate guard）"
+  - slot: Quotation
+    operationId: reorderContractNotes
+    description: "重新排序整份 contract note。noteIds 必須恰好涵蓋目前所有 noteId"
+  - slot: Quotation
+    operationId: reorderPaymentItems
+    description: "重新排序整份 payment item。paymentItemIds 必須恰好涵蓋目前所有 paymentItemId"
+  - slot: Quotation
+    operationId: resetPaymentItemSupplementaryNoteContent
+    description: "清空使用者覆寫的 markdown，回到「使用前端組裝預設」狀態。enabled 不變"
+  - slot: Quotation
+    operationId: setPaymentItemSupplementaryNoteVisibility
+    description: "設定指定 quotingCase 的酬金補充說明 toggle 顯示狀態"
+  - slot: QuotingCaseGrouping
+    operationId: addCollaborators
+    description: "加入 collaborators 共編該 grouping（per-id 一條 CollaboratorAdded event），role 只接受 editor/viewer"
+  - slot: QuotingCaseGrouping
+    operationId: addContact
+    description: "新增 contact 到 quotingCaseGrouping；contactId 由後端生成並回傳"
+  - slot: QuotingCaseGrouping
+    operationId: addQuotingBundle
+    description: "在指定的 quotingCaseGrouping 下新增 quotingBundle；quotingBundleId 由後端生成並回傳"
+  - slot: QuotingCaseGrouping
+    operationId: backfillQuotation
+    description: "上傳回補報價檔案（PDF，限 20MB）；backfilledQuotationId 由後端產生並回傳"
+  - slot: QuotingCaseGrouping
+    operationId: changeCollaboratorRole
+    description: "調整既有 collaborator 的角色（editor ↔ viewer），owner 角色不可變更"
+  - slot: QuotingCaseGrouping
+    operationId: editClientSource
+    description: "修改 quotingCaseGrouping 的客戶來源資訊（clientSource + referer + staffId + clientSourceDescription 原子覆寫）"
+  - slot: QuotingCaseGrouping
+    operationId: editContactCommunicationMethods
+    description: "修改 contact 的聯絡方式（整段覆寫）"
+  - slot: QuotingCaseGrouping
+    operationId: editContactDisplayName
+    description: "修改 contact 的顯示名稱"
+  - slot: QuotingCaseGrouping
+    operationId: editContactGender
+    description: "修改 contact 的性別"
+  - slot: QuotingCaseGrouping
+    operationId: editContactRelationship
+    description: "修改 contact 的關係描述"
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseBusinessId
+    description: "修改指定 quotingCase 的統一編號"
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseCompanyName
+    description: "修改指定 quotingCase 的正式公司名（companyName），deliver 階段寫入"
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseEstablishmentApprovalDate
+    description: "修改指定 quotingCase 的設立核准日；只有 established 類型可呼叫"
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingCaseName
+    description: "修改指定 quotingCase 的案件識別名（quotingCaseName）"
+  - slot: QuotingCaseGrouping
+    operationId: editQuotingFirm
+    description: "修改 quotingCaseGrouping 所屬的報價事務所"
+  - slot: QuotingCaseGrouping
+    operationId: getBackfilledQuotations
+    description: "取得已上傳的回補報價檔案清單（不含 mediaLink）"
+  - slot: QuotingCaseGrouping
+    operationId: getClientSource
+    description: "取得 quotingCaseGrouping 的客戶來源資訊"
+  - slot: QuotingCaseGrouping
+    operationId: getContacts
+    description: "取得 quotingCaseGrouping 的聯絡窗口清單，按加入順序排列"
+  - slot: QuotingCaseGrouping
+    operationId: getContractHeader
+    description: "取得 quotingCaseGrouping 合約表頭（recipient/sender/subject/description）"
+  - slot: QuotingCaseGrouping
+    operationId: getQuotingBundles
+    description: "依 quotingCaseId 取得該 quotingCase 下所有 quotingBundle，依新增時序排列"
+  - slot: QuotingCaseGrouping
+    operationId: getQuotingFirm
+    description: "取得 quotingCaseGrouping 所屬的報價事務所代碼"
+  - slot: QuotingCaseGrouping
+    operationId: getReplyForms
+    description: "取得已上傳的同意函清單（不含 mediaLink）"
+  - slot: QuotingCaseGrouping
+    operationId: openQuotingCaseGrouping
+    description: "使用者主動立案，須帶入 serialNumber（報價單編號），通過五道 guard"
+  - slot: QuotingCaseGrouping
+    operationId: priceServiceItems
+    description: "對指定 quotingBundle 內的 serviceItem 批次定價（跨 AQ + CRQ）"
+  - slot: QuotingCaseGrouping
+    operationId: removeBackfilledQuotation
+    description: "移除回補報價檔案；後端同步在 GCS 標記刪除"
+  - slot: QuotingCaseGrouping
+    operationId: removeCollaborator
+    description: "移除指定 collaborator（emit CollaboratorRemoved event），owner 不可移除"
+  - slot: QuotingCaseGrouping
+    operationId: removeContact
+    description: "從 quotingCaseGrouping 移除指定的 contact"
+  - slot: QuotingCaseGrouping
+    operationId: removeQuotingBundle
+    description: "移除指定的 quotingBundle；若為該 grouping 的最後一個 bundle 回 422"
+  - slot: QuotingCaseGrouping
+    operationId: removeQuotingCase
+    description: "從 quotingCaseGrouping 移除指定 quotingCase，同步移除其相關 quotingBundle；若為最後一個 case 回 422"
+  - slot: QuotingCaseGrouping
+    operationId: removeReplyForm
+    description: "移除同意函；後端同步在 GCS 標記刪除"
+  - slot: QuotingCaseGrouping
+    operationId: renameQuotingBundle
+    description: "修改指定 quotingBundle 的名稱"
+  - slot: QuotingCaseGrouping
+    operationId: reorderQuotingBundles
+    description: "重排指定 quotingCase 下的 quotingBundle，quotingBundleIds 必須恰好涵蓋該 case 目前的所有 bundleId"
+  - slot: QuotingCaseGrouping
+    operationId: reorderQuotingCases
+    description: "重排 grouping 下的所有 quotingCase，quotingCaseIds 必須恰好涵蓋目前所有 caseId"
+  - slot: QuotingCaseGrouping
+    operationId: setPrimaryQuotingCase
+    description: "把指定 quotingCase 設為 grouping 的 primary quotingCase"
+  - slot: QuotingCaseGrouping
+    operationId: uploadReplyForm
+    description: "上傳同意函（PDF/JPEG/PNG，限 20MB）；documentId 由後端產生並回傳"
+  - slot: Storage
+    operationId: downloadFile
+    description: "OC 共用檔案下載 endpoint，依 (category, aggregateRootId) 重建 GCS path 並 stream binary"
+  - slot: Storage
     operationId: uploadEmbeddedImage
-rules:
-  - method: patch
-    path: /audit-quotings/{quotingId}/accounting-type
-    requires:
-      - AuditQuoting.editAccountingType
-  - method: get
-    path: /audit-quotings/{quotingId}/quoting-proof-list
-    requires:
-      - Query.getQuotingProofs
-  - method: get
-    path: /audit-quotings/{quotingId}/predecessor-service-info
-    requires:
-      - Query.getPredecessorServiceInfo
-  - method: get
-    path: /audit-quotings/{quotingId}/operation-info
-    requires:
-      - Query.getOperationInfo
-  - method: get
-    path: /audit-quotings/{quotingId}/evidence-info
-    requires:
-      - Query.getEvidenceInfo
-  - method: post
-    path: /audit-quotings/{quotingId}/quoting-proofs
-    requires:
-      - AuditQuoting.uploadQuotingProof
-  - method: delete
-    path: /audit-quotings/{quotingId}/quoting-proofs/{documentId}
-    requires:
-      - AuditQuoting.removeQuotingProof
-  - method: patch
-    path: /audit-quotings/{quotingId}/past-cost-analysis-requirement
-    requires:
-      - AuditQuoting.recordPastCostAnalysisRequirement
-  - method: patch
-    path: /audit-quotings/{quotingId}/predecessor-auditor
-    requires:
-      - AuditQuoting.recordPredecessorAuditorInfo
-  - method: delete
-    path: /audit-quotings/{quotingId}/predecessor-auditor
-    requires:
-      - AuditQuoting.confirmNoPredecessorAuditor
-  - method: patch
-    path: /audit-quotings/{quotingId}/estimated-evidence-count
-    requires:
-      - AuditQuoting.editEstimatedEvidenceCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/sales-einvoice-usage
-    requires:
-      - AuditQuoting.editSalesEinvoiceUsage
-  - method: patch
-    path: /audit-quotings/{quotingId}/total-assets
-    requires:
-      - AuditQuoting.editTotalAssets
-  - method: patch
-    path: /audit-quotings/{quotingId}/last-year-revenue
-    requires:
-      - AuditQuoting.editLastYearRevenue
-  - method: patch
-    path: /audit-quotings/{quotingId}/estimated-revenue
-    requires:
-      - AuditQuoting.editEstimatedRevenue
-  - method: patch
-    path: /audit-quotings/{quotingId}/estimated-headcount-of-withholding
-    requires:
-      - AuditQuoting.editEstimatedHeadcountOfWithholding
-  - method: patch
-    path: /audit-quotings/{quotingId}/paid-in-capital
-    requires:
-      - AuditQuoting.editPaidInCapital
-  - method: patch
-    path: /audit-quotings/{quotingId}/registered-capital
-    requires:
-      - AuditQuoting.editRegisteredCapital
-  - method: patch
-    path: /audit-quotings/{quotingId}/branch-count
-    requires:
-      - AuditQuoting.editBranchCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/industrial-type
-    requires:
-      - AuditQuoting.editIndustrialType
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/accounting
-    requires:
-      - AuditQuoting.addAccounting
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/assistance-annual-supplementary-premium-deduction-details-reporting
-    requires:
-      - AuditQuoting.addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/assistance-ctp
-    requires:
-      - AuditQuoting.addAssistanceCtp
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/payroll-support-operation
-    requires:
-      - AuditQuoting.addPayrollSupportOperation
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/tax-compliance-audit
-    requires:
-      - AuditQuoting.addTaxComplianceAudit
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/tax-compliance-audit-and-undistributed-earnings-audit
-    requires:
-      - AuditQuoting.addTaxComplianceAuditAndUndistributedEarningsAudit
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/cashier-operation
-    requires:
-      - AuditQuoting.addCashierOperation
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/financial-compliance-audit
-    requires:
-      - AuditQuoting.addFinancialComplianceAudit
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/accounting-reform
-    requires:
-      - AuditQuoting.addAccountingReform
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/customize
-    requires:
-      - AuditQuoting.customizeServiceItem
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/start-date
-    requires:
-      - AuditQuoting.editServiceItemStartDate
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/end-date
-    requires:
-      - AuditQuoting.editServiceItemEndDate
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/selection
-    requires:
-      - AuditQuoting.editServiceItemSelection
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/account-balance-detail-report-need
-    requires:
-      - AuditQuoting.editAccountBalanceDetailReportNeed
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/balance-sheet-need
-    requires:
-      - AuditQuoting.editBalanceSheetNeed
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/income-statement-need
-    requires:
-      - AuditQuoting.editIncomeStatementNeed
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/accounting-reform-electronic-file-provision
-    requires:
-      - AuditQuoting.editAccountingReformElectronicFileProvision
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-headcount
-    requires:
-      - AuditQuoting.editPayrollHeadcount
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/domestic-transfer-count
-    requires:
-      - AuditQuoting.editDomesticTransferCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/international-transfer-count
-    requires:
-      - AuditQuoting.editInternationalTransferCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-transfer-count
-    requires:
-      - AuditQuoting.editPayrollTransferCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/common-bank-monthly-record-count
-    requires:
-      - AuditQuoting.editCommonBankMonthlyRecordCount
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/profitseeking-enterprise-income-tax-filing-method
-    requires:
-      - AuditQuoting.editProfitseekingEnterpriseIncomeTaxFilingMethod
-  - method: post
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings
-    requires:
-      - AuditQuoting.addCustomizedReporting
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings/{customizedReportingId}
-    requires:
-      - AuditQuoting.editCustomizedReporting
-  - method: delete
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/customized-reportings/{customizedReportingId}
-    requires:
-      - AuditQuoting.deleteCustomizedReporting
-  - method: patch
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/business-tax-filing-method
-    requires:
-      - AuditQuoting.editBusinessTaxFilingMethod
-  - method: put
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/accounting-work-items
-    requires:
-      - AuditQuoting.selectAccountingWorkItems
-  - method: put
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/cashier-operation-work-items
-    requires:
-      - AuditQuoting.selectCashierOperationWorkItems
-  - method: put
-    path: /audit-quotings/{quotingId}/service-items/{serviceItemId}/payroll-support-operation-work-items
-    requires:
-      - AuditQuoting.selectPayrollSupportOperationWorkItems
-  - method: delete
-    path: /audit-quotings/{quotingId}/service-items
-    requires:
-      - AuditQuoting.removeServiceItems
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles
-    requires:
-      - QuotingCaseGrouping.addQuotingBundle
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/name
-    requires:
-      - QuotingCaseGrouping.renameQuotingBundle
-  - method: put
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/quoting-bundles/order
-    requires:
-      - QuotingCaseGrouping.reorderQuotingBundles
-  - method: put
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/order
-    requires:
-      - QuotingCaseGrouping.reorderQuotingCases
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}
-    requires:
-      - QuotingCaseGrouping.removeQuotingBundle
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts
-    requires:
-      - Query.getContacts
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts
-    requires:
-      - QuotingCaseGrouping.addContact
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}
-    requires:
-      - QuotingCaseGrouping.removeContact
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/display-name
-    requires:
-      - QuotingCaseGrouping.editContactDisplayName
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/gender
-    requires:
-      - QuotingCaseGrouping.editContactGender
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/relationship
-    requires:
-      - QuotingCaseGrouping.editContactRelationship
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contacts/{contactId}/communication-methods
-    requires:
-      - QuotingCaseGrouping.editContactCommunicationMethods
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}
-    requires:
-      - QuotingCaseGrouping.removeQuotingCase
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/primary
-    requires:
-      - QuotingCaseGrouping.setPrimaryQuotingCase
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators
-    requires:
-      - QuotingCaseGrouping.addCollaborators
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/collaborators/{collaboratorId}
-    requires:
-      - QuotingCaseGrouping.removeCollaborator
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/business-id
-    requires:
-      - QuotingCaseGrouping.editQuotingCaseBusinessId
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/name
-    requires:
-      - QuotingCaseGrouping.editQuotingCaseName
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/company-name
-    requires:
-      - QuotingCaseGrouping.editQuotingCaseCompanyName
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/organization-type
-    requires:
-      - QuotingCaseGrouping.editQuotingCaseOrganizationType
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/establishment-approval-date
-    requires:
-      - QuotingCaseGrouping.editQuotingCaseEstablishmentApprovalDate
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-firm
-    requires:
-      - Query.getQuotingFirm
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-firm
-    requires:
-      - QuotingCaseGrouping.editQuotingFirm
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/contract-header
-    requires:
-      - Query.getContractHeader
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/client-source
-    requires:
-      - Query.getClientSource
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/client-source
-    requires:
-      - QuotingCaseGrouping.editClientSource
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/quoting-bundles
-    requires:
-      - Query.getQuotingBundles
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms
-    requires:
-      - QuotingCaseGrouping.uploadReplyForm
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms
-    requires:
-      - Query.getReplyForms
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/reply-forms/{documentId}
-    requires:
-      - QuotingCaseGrouping.removeReplyForm
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations
-    requires:
-      - QuotingCaseGrouping.backfillQuotation
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations
-    requires:
-      - Query.getBackfilledQuotations
-  - method: delete
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/backfilled-quotations/{backfilledQuotationId}
-    requires:
-      - QuotingCaseGrouping.removeBackfilledQuotation
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/opened
-    requires:
-      - QuotingCaseGrouping.openQuotingCaseGrouping
-  - method: patch
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/service-items/prices
-    requires:
-      - QuotingCaseGrouping.priceServiceItems
-  - method: patch
-    path: /quotations/{quotationId}/letters/{quotingCaseId}/from
-    requires:
-      - Quotation.editLetterFrom
-  - method: patch
-    path: /quotations/{quotationId}/letters/{quotingCaseId}/to
-    requires:
-      - Quotation.editLetterTo
-  - method: patch
-    path: /quotations/{quotationId}/letters/{quotingCaseId}/content
-    requires:
-      - Quotation.editLetterContent
-  - method: patch
-    path: /quotations/{quotationId}/letters/{quotingCaseId}/title
-    requires:
-      - Quotation.editLetterTitle
-  - method: patch
-    path: /quotations/{quotationId}/font-size
-    requires:
-      - Quotation.editFontSize
-  - method: patch
-    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/content
-    requires:
-      - Quotation.editPaymentItemSupplementaryNoteContent
-  - method: delete
-    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/content
-    requires:
-      - Quotation.resetPaymentItemSupplementaryNoteContent
-  - method: patch
-    path: /quotations/{quotationId}/payment-item-supplementary-notes/{quotingCaseId}/visibility
-    requires:
-      - Quotation.setPaymentItemSupplementaryNoteVisibility
-  - method: get
-    path: /quotations/{quotationId}/letters
-    requires:
-      - Query.getLetter
-  - method: get
-    path: /quotations/{quotationId}/purpose
-    requires:
-      - Query.getPurpose
-  - method: get
-    path: /quotations/{quotationId}/rights-and-obligations
-    requires:
-      - Query.getRightsAndObligations
-  - method: get
-    path: /quotations/{quotationId}/agreement-terms
-    requires:
-      - Query.getAgreementTerms
-  - method: get
-    path: /quotations/{quotationId}/contract-notes
-    requires:
-      - Query.getContractNotes
-  - method: post
-    path: /quotations/{quotationId}/contract-notes
-    requires:
-      - Quotation.addContractNoteByUser
-  - method: put
-    path: /quotations/{quotationId}/contract-notes/order
-    requires:
-      - Quotation.reorderContractNotes
-  - method: patch
-    path: /quotations/{quotationId}/contract-notes/{noteId}
-    requires:
-      - Quotation.editContractNote
-  - method: delete
-    path: /quotations/{quotationId}/contract-notes/{noteId}
-    requires:
-      - Quotation.removeContractNoteByUser
-  - method: put
-    path: /quotations/{quotationId}/payment-items/order
-    requires:
-      - Quotation.reorderPaymentItems
-  - method: patch
-    path: /quotations/{quotationId}/payment-items/{paymentItemId}/name
-    requires:
-      - Quotation.renamePaymentItem
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/company-registration
-    requires:
-      - CompanyRegistrationQuoting.addCompanyRegistration
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-company-seal
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceCompanySeal
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-chairman-seal
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceChairmanSeal
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-company-convenience-seal
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceCompanyConvenienceSeal
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-chairman-convenience-seal
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceChairmanConvenienceSeal
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-invoice-seal
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceInvoiceSeal
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-with-company-certification-application
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceWithCompanyCertificationApplication
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/owner-occupied-residence-part-for-business-application
-    requires:
-      - CompanyRegistrationQuoting.addOwnerOccupiedResidencePartForBusinessApplication
-  - method: post
-    path: /company-registration-quotings/{quotingId}/service-items/assistance-labor-and-health-insurance-insured-unit-setting
-    requires:
-      - CompanyRegistrationQuoting.addAssistanceLaborAndHealthInsuranceInsuredUnitSetting
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/company-seal-count
-    requires:
-      - CompanyRegistrationQuoting.editCompanySealCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/chairman-seal-count
-    requires:
-      - CompanyRegistrationQuoting.editChairmanSealCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/company-convenience-seal-count
-    requires:
-      - CompanyRegistrationQuoting.editCompanyConvenienceSealCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/chairman-convenience-seal-count
-    requires:
-      - CompanyRegistrationQuoting.editChairmanConvenienceSealCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/invoice-seal-count
-    requires:
-      - CompanyRegistrationQuoting.editInvoiceSealCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/shareholder-count
-    requires:
-      - CompanyRegistrationQuoting.editShareholderCount
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/start-date
-    requires:
-      - CompanyRegistrationQuoting.editServiceItemStartDate
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/is-franchise
-    requires:
-      - CompanyRegistrationQuoting.editIsFranchise
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/economic-ministry-registration-no-charge
-    requires:
-      - CompanyRegistrationQuoting.configureEconomicMinistryRegistrationNoCharge
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/economic-ministry-registration-charged
-    requires:
-      - CompanyRegistrationQuoting.configureEconomicMinistryRegistrationCharged
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/work-items
-    requires:
-      - CompanyRegistrationQuoting.selectCompanyRegistrationWorkItems
-  - method: patch
-    path: /company-registration-quotings/{quotingId}/service-items/{serviceItemId}/selection
-    requires:
-      - CompanyRegistrationQuoting.editServiceItemSelection
-  - method: delete
-    path: /company-registration-quotings/{quotingId}/service-items
-    requires:
-      - CompanyRegistrationQuoting.removeServiceItems
-  - method: post
-    path: /quoting-case-groupings
-    requires:
-      - Workflow.createQuotingCaseGrouping
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-bundles/{quotingBundleId}/service-items
-    requires:
-      - Query.getServiceItemsByQuotingBundleId
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/service-items/{serviceItemId}
-    requires:
-      - Query.getServiceItemDetail
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/accounting-setup
-    requires:
-      - Query.getAccountingSetup
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/customer-info
-    requires:
-      - Query.getCustomerInfo
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/template-variables
-    requires:
-      - Query.getTemplateVariables
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases
-    requires:
-      - Query.getQuotingCases
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases
-    requires:
-      - Workflow.addQuotingCase
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/aggregate-root-ids
-    requires:
-      - Query.getQuotingCaseGroupingAggregateRootIds
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/deal-closed
-    requires:
-      - Workflow.closeQuotingCasesDeal
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/delivery
-    requires:
-      - Workflow.deliverQuotingCase
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/deal-close-canceled
-    requires:
-      - Workflow.cancelQuotingCaseGroupingDealClose
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/hand-over
-    requires:
-      - Workflow.handOverQuotingCases
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/hand-over-canceled
-    requires:
-      - Workflow.cancelQuotingCaseGroupingHandOver
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/archive
-    requires:
-      - Workflow.archiveQuotingCaseGrouping
-  - method: post
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/unarchive
-    requires:
-      - Workflow.unarchiveQuotingCaseGrouping
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/service-scope
-    requires:
-      - Query.getServiceScope
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quotation/preview
-    requires:
-      - Query.getQuotationPdfPreview
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quotation/pdf
-    requires:
-      - Query.getQuotationPdfDownload
-  - method: get
-    path: /quotations/{quotationId}/payment-summary
-    requires:
-      - Query.getPaymentSummary
-  - method: get
-    path: /files/{documentId}
-    requires:
-      - File.downloadFile
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/business-client-assistance
-    requires:
-      - Query.getBusinessClientAssistance
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/view-mode
-    requires:
-      - Query.getQuotingCaseGroupingViewMode
-  - method: get
-    path: /quoting-case-groupings/{quotingCaseGroupingId}/quoting-cases/{quotingCaseId}/view-mode
-    requires:
-      - Query.getQuotingCaseViewMode
-  - method: get
-    path: /case-groupings/summaries
-    requires:
-      - Query.getQuotingCaseGroupingSummaries
-  - method: post
-    path: /images
-    requires:
-      - File.uploadEmbeddedImage
+    description: "上傳 markdown 內嵌圖（jpeg/png，限 5MB），回 documentId"

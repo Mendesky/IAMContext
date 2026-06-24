@@ -45,7 +45,9 @@ struct BearerTokenClientInterceptor: ClientInterceptor {
     func intercept<Input: Sendable, Output: Sendable>(
         request: StreamingClientRequest<Input>,
         context: ClientContext,
-        next: @Sendable (StreamingClientRequest<Input>, ClientContext) async throws -> StreamingClientResponse<Output>
+        // ⚠️ `next` 不是 @Sendable —— grpc-swift-2 的 ClientInterceptor.intercept 宣告的 next 是「純」closure
+        //    （見 GRPCCore/Call/Client/ClientInterceptor.swift）。加 @Sendable 會讓本方法不符合 protocol 需求、編不過。
+        next: (StreamingClientRequest<Input>, ClientContext) async throws -> StreamingClientResponse<Output>
     ) async throws -> StreamingClientResponse<Output> {
         var request = request
         request.metadata.replaceOrAddString("Bearer \(token)", forKey: "authorization")
@@ -53,6 +55,9 @@ struct BearerTokenClientInterceptor: ClientInterceptor {
     }
 }
 ```
+
+> 簽章校正（2026-06-22，EPC 回報實測）：`next` 早先誤標 `@Sendable`，照抄會編不過。已對照 grpc-swift-2 原始碼
+> `Sources/GRPCCore/Call/Client/ClientInterceptor.swift`（`next` 為純 closure）更正。
 
 然後在 `IAMContextGRPCClient` 建 client 時掛上（token 從 init 傳入、最終由 OC composition root 從 env 帶）：
 

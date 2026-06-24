@@ -14,7 +14,7 @@ struct GrantPrivilegeIntegrationTests {
         self.repository = EmployeeAccessRepository(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
     }
 
-    // happy：create 給 allPermissions，所以授一個「不在 allPermissions」的權限才會成功（去重 union）。
+    // happy：create 給空權限，授一條新權限 → 成功（union 加入）。
     @Test func grant_new_privilege_succeeds() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
@@ -30,8 +30,7 @@ struct GrantPrivilegeIntegrationTests {
         }
     }
 
-    // guard：授一個已存在的權限（在 allPermissions＝OC 153 內）→ permissionAlreadyExists。
-    // 註：allPermissions 已從舊 placeholder（含 it:read）換成 OC 權威 153 條，故改用真實存在的權限字串。
+    // guard：授一個「已存在」的權限 → permissionAlreadyExists。create 現在給空權限，故先 grant 一條，再重複 grant 同一條。
     @Test func grant_existing_privilege_throws() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
@@ -40,6 +39,11 @@ struct GrantPrivilegeIntegrationTests {
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
             let usecase = GrantPrivilegeService(repository: repository)
+            // 先授一條使其存在
+            _ = try await usecase.execute(input: .init(
+                employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
+            ))
+            // 再授同一條 → permissionAlreadyExists
             let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
                 let _: GrantPrivilegeOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
