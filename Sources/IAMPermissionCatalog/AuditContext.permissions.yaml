@@ -1,0 +1,179 @@
+context: AuditContext
+serverPrefix: /audit-context
+
+permissions:
+  # ── Composition 層（handler 在 AC_Universal，跨 aggregate 協調 / 共用讀模型）────────
+  - slot: AuditContext
+    operationId: createBusinessClient
+    description: 建立簽證客戶（root + 各 sub-aggregate，冪等）
+  - slot: AuditContext
+    operationId: getBusinessClientSettings
+    description: 取得簽證客戶設定
+  - slot: AuditContext
+    operationId: getProfitseekingEnterpriseAnnualIncomeTaxReturnInfo
+    description: 取得營所稅結算申報資訊
+  - slot: AuditContext
+    operationId: designateCpa
+    description: 指派簽證會計師
+  - slot: AuditContext
+    operationId: undesignateCpa
+    description: 取消指派簽證會計師
+  - slot: AuditContext
+    operationId: getDesignatedService
+    description: 取得已指派服務
+  - slot: AuditContext
+    operationId: getIds
+    description: 依 customerId 取得各 aggregate 完整 ids
+  - slot: AuditContext
+    operationId: getFilingSummary
+    description: 取得申報彙總
+  - slot: AuditContext
+    operationId: getLastModifiedTime
+    description: 取得最後異動時間
+
+  # ── BusinessClient（簽證客戶基本資料）──────────────────────────────────────────
+  - slot: BusinessClient
+    operationId: editBusinessClientBusinessId
+    description: 修改營利事業統一編號
+  - slot: BusinessClient
+    operationId: editBusinessClientName
+    description: 修改客戶名稱
+  - slot: BusinessClient
+    operationId: editBusinessClientEstablishmentApprovalDate
+    description: 修改設立核准日期
+  - slot: BusinessClient
+    operationId: editBusinessClientCommunicationMethods
+    description: 修改聯絡方式
+  - slot: BusinessClient
+    operationId: editBusinessClientAddresses
+    description: 修改地址
+  - slot: BusinessClient
+    operationId: getBusinessClientBasicInfo
+    description: 取得基本資訊
+  - slot: BusinessClient
+    operationId: editBusinessClientTaxId
+    description: 修改稅籍編號
+  - slot: BusinessClient
+    operationId: editBusinessClientNationalTaxBureauUnit
+    description: 修改國稅局所屬單位
+  - slot: BusinessClient
+    operationId: editBusinessClientMajorIndustryCode
+    description: 修改主行業代號
+  - slot: BusinessClient
+    operationId: editBusinessClientPreviousFilingIndustryCode
+    description: 修改前次申報行業代號
+  - slot: BusinessClient
+    operationId: getBusinessClientNationalTaxBureauUnitInfo
+    description: 取得國稅局所屬單位資訊
+  - slot: BusinessClient
+    operationId: getBusinessClientBasicInfoForView
+    description: 取得基本資訊（檢視用）
+  - slot: BusinessClient
+    operationId: designateDepartment
+    description: 指派承辦部門
+  - slot: BusinessClient
+    operationId: undesignateDepartment
+    description: 取消指派承辦部門
+
+  # ── BusinessClientOperation（營運資訊）─────────────────────────────────────────
+  - slot: BusinessClientOperation
+    operationId: getBusinessClientOperationInfo
+    description: 取得營運資訊
+  - slot: BusinessClientOperation
+    operationId: editBusinessClientTotalAssets
+    description: 修改資產總額
+  - slot: BusinessClientOperation
+    operationId: editBusinessClientIndustrialType
+    description: 修改行業別
+  - slot: BusinessClientOperation
+    operationId: editBusinessClientBranchCount
+    description: 修改分支機構家數
+  - slot: BusinessClientOperation
+    operationId: editBusinessClientPaidInCapital
+    description: 修改實收資本額
+  - slot: BusinessClientOperation
+    operationId: editBusinessClientRegisteredCapital
+    description: 修改登記資本額
+  - slot: BusinessClientOperation
+    operationId: changeBusinessClientOrganizationType
+    description: 變更組織型態
+
+  # ── BusinessClientEvidence（憑證資訊）─────────────────────────────────────────
+  - slot: BusinessClientEvidence
+    operationId: getBusinessClientEvidenceInfo
+    description: 取得憑證資訊
+  - slot: BusinessClientEvidence
+    operationId: editEvidenceDeliveryMethod
+    description: 修改憑證交付方式
+  - slot: BusinessClientEvidence
+    operationId: editEvidenceCountingPolicy
+    description: 修改憑證計數政策
+  - slot: BusinessClientEvidence
+    operationId: editInputEvidenceCountRange
+    description: 修改進項憑證張數區間
+  - slot: BusinessClientEvidence
+    operationId: useElectronicOutputInvoice
+    description: 設定是否使用電子銷項發票
+  - slot: BusinessClientEvidence
+    operationId: editOutputMachineDuplicateRollCountRange
+    description: 修改銷項收銀機二聯式卷數區間
+  - slot: BusinessClientEvidence
+    operationId: editOutputMachineTriplicateBoxCountRange
+    description: 修改銷項收銀機三聯式盒數區間
+  - slot: BusinessClientEvidence
+    operationId: editOutputHandwriteBookCountRange
+    description: 修改銷項手開本數區間
+
+  # ── BusinessClientPersonnel（人員：聯絡人 / 負責人）────────────────────────────
+  - slot: BusinessClientPersonnel
+    operationId: createBusinessClientContact
+    description: 新增聯絡人
+  - slot: BusinessClientPersonnel
+    operationId: createBusinessClientResponsiblePerson
+    description: 新增負責人
+  - slot: BusinessClientPersonnel
+    operationId: deleteBusinessClientContact
+    description: 刪除聯絡人
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelIdentification
+    description: 修改人員身分證明
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelName
+    description: 修改人員姓名
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelGender
+    description: 修改人員性別
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelCommunicationMethods
+    description: 修改人員聯絡方式
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelRelationship
+    description: 修改人員關係
+  - slot: BusinessClientPersonnel
+    operationId: editBusinessClientPersonnelAddresses
+    description: 修改人員地址
+  - slot: BusinessClientPersonnel
+    operationId: addBusinessClientPersonnelRole
+    description: 新增人員角色
+  - slot: BusinessClientPersonnel
+    operationId: getBusinessClientContacts
+    description: 取得聯絡人清單
+  - slot: BusinessClientPersonnel
+    operationId: getBusinessClientResponsiblePerson
+    description: 取得負責人
+
+  # ── BusinessTaxReturn（營業稅申報）────────────────────────────────────────────
+  - slot: BusinessTaxReturn
+    operationId: editBusinessTaxReturnInfoFilingMethod
+    description: 修改營業稅申報方式
+  - slot: BusinessTaxReturn
+    operationId: getBusinessTaxReturnInfo
+    description: 取得營業稅申報資訊
+
+  # ── ProfitseekingEnterpriseAnnualIncomeTaxReturn（營所稅結算申報）──────────────
+  - slot: ProfitseekingEnterpriseAnnualIncomeTaxReturn
+    operationId: editProfitseekingEnterpriseAnnualIncomeTaxReturnInfoCostAnalysisRequirement
+    description: 修改成本分析需求
+  - slot: ProfitseekingEnterpriseAnnualIncomeTaxReturn
+    operationId: editProfitseekingEnterpriseAnnualIncomeTaxReturnInfoFilingMethod
+    description: 修改營所稅申報方式
