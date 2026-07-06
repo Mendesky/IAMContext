@@ -1,0 +1,7 @@
+# 別把本機建置產物 / VCS 帶進 build context：
+# 本機 .build 是 macOS arm64 產物，複製進 Linux build 只會拖慢又可能干擾，builder 內會重建。
+.build/
+.git/
+.swiftpm/
+.DS_Store
+*.xcodeproj

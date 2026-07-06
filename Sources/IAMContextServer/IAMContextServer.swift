@@ -21,10 +21,31 @@ struct IAMContextServer {
     static let logger = Logger(label: "IAMContext")
 
     static func main() async throws {
-        let router = Router()
-        // TODO: add middleware (CORS / auth / logging) as needed for your project.
+        let env = ProcessInfo.processInfo.environment
 
-        let esdbSettings = ProcessInfo.processInfo.environment["ESDB_URL"]
+        let router = Router()
+
+        // HTTP admin auth (user 決策：方案 a — 管理員共用 token). HTTP 變更端點（grant/revoke/…）改動「授權
+        // 權威」本身，缺守門時任何能連到 :24202 的呼叫者都能把任意權限授給自己。對所有非 GET 請求要求
+        // Authorization: Bearer <IAM_ADMIN_API_TOKEN>；GET（唯讀 getPermissions）放行。**Fail-closed**（比照 gRPC）：
+        //   - IAM_ADMIN_API_TOKEN=<token>   → 啟用管理員 token 守門。
+        //   - IAM_ADMIN_API_AUTH_DISABLED=1 → 明確關閉（僅限本機/可信內網開發），會印 SECURITY WARNING。
+        //   - 兩者皆未設                     → 拒絕啟動。
+        let adminApiToken = env["IAM_ADMIN_API_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
+        let adminApiAuthDisabled = env["IAM_ADMIN_API_AUTH_DISABLED"] == "1"
+        if let adminApiToken {
+            router.addMiddleware {
+                AdminTokenMiddleware(expectedToken: adminApiToken)
+            }
+            logger.info("HTTP admin auth: ENABLED (bearer token on mutating endpoints)")
+        } else if adminApiAuthDisabled {
+            logger.warning("⚠️ SECURITY: HTTP admin auth DISABLED (IAM_ADMIN_API_AUTH_DISABLED=1) — 變更端點對任何能連到 HTTP API 的呼叫者開放，僅限本機/可信內網開發使用")
+        } else {
+            logger.critical("HTTP admin auth not configured: set IAM_ADMIN_API_TOKEN=<token> (or IAM_ADMIN_API_AUTH_DISABLED=1 for local dev). Refusing to start an unauthenticated permission authority HTTP API.")
+            throw IAMContextServerError.adminApiAuthNotConfigured
+        }
+
+        let esdbSettings = env["ESDB_URL"]
             ?? "kurrent://admin:changeit@localhost:2113?tls=false"
         let settings: ClientSettings = try esdbSettings.parse()
         let kdbClient = KurrentDBClient(settings: settings)
@@ -66,7 +87,6 @@ struct IAMContextServer {
         //   - IAM_GRPC_AUTH_DISABLED=1     → 明確關閉（僅限本機/可信內網開發），會印 SECURITY WARNING。
         //   - 兩者皆未設                    → 拒絕啟動（不讓權威服務在無驗證下意外上線）。
         // 注意：傳輸為 plaintext，token 在不可信網段可被嗅探；跨網段需另加 TLS。
-        let env = ProcessInfo.processInfo.environment
         let grpcAuthToken = env["IAM_GRPC_AUTH_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
         let grpcAuthDisabled = env["IAM_GRPC_AUTH_DISABLED"] == "1"
         var grpcInterceptors: [any ServerInterceptor] = []
@@ -95,11 +115,14 @@ struct IAMContextServer {
 
 enum IAMContextServerError: Error, CustomStringConvertible {
     case grpcAuthNotConfigured
+    case adminApiAuthNotConfigured
 
     var description: String {
         switch self {
         case .grpcAuthNotConfigured:
             return "gRPC auth not configured (set IAM_GRPC_AUTH_TOKEN, or IAM_GRPC_AUTH_DISABLED=1 for local dev)"
+        case .adminApiAuthNotConfigured:
+            return "HTTP admin auth not configured (set IAM_ADMIN_API_TOKEN, or IAM_ADMIN_API_AUTH_DISABLED=1 for local dev)"
         }
     }
 }
