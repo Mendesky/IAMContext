@@ -25,6 +25,11 @@ struct IAMContextServer {
 
         let router = Router()
 
+        // CORS — must precede AdminTokenMiddleware so OPTIONS preflight is not blocked by auth.
+        router.addMiddleware {
+            CORSMiddleware()
+        }
+
         // HTTP admin auth (user 決策：方案 a — 管理員共用 token). HTTP 變更端點（grant/revoke/…）改動「授權
         // 權威」本身，缺守門時任何能連到 :24202 的呼叫者都能把任意權限授給自己。對所有非 GET 請求要求
         // Authorization: Bearer <IAM_ADMIN_API_TOKEN>；GET（唯讀 getPermissions）放行。**Fail-closed**（比照 gRPC）：
