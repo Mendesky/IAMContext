@@ -111,9 +111,6 @@ permissions:
     operationId: editServiceItemEndDate
     description: "修改 serviceItem 的結束日；指定 workItemType 則僅修改該 workItem 的 endDate，未指定則修改 serviceItem 層級 endDate"
   - slot: AuditQuoting
-    operationId: editServiceItemSelection
-    description: "修改 serviceItem 是否被選取（isSelected）；僅允許 additional quotingBundle，standard 嘗試修改回 422"
-  - slot: AuditQuoting
     operationId: editServiceItemStartDate
     description: "修改 serviceItem 的起始日；指定 workItemType 則僅修改該 workItem 的 startDate，未指定則修改 serviceItem 層級 startDate"
   - slot: AuditQuoting
@@ -209,9 +206,6 @@ permissions:
   - slot: CompanyRegistrationQuoting
     operationId: editIsFranchise
     description: "編輯 serviceItem 的 isFranchise（是否為特許行業）。serviceItem 需已含 economicMinistryRegistration workItem"
-  - slot: CompanyRegistrationQuoting
-    operationId: editServiceItemSelection
-    description: "修改 serviceItem 是否被選取（isSelected）。僅允許 additional quotingBundle 的 serviceItem 修改；standard bundle 嘗試修改回 422"
   - slot: CompanyRegistrationQuoting
     operationId: editServiceItemStartDate
     description: "編輯 serviceItem 的 startDate config。適用於任意 serviceItem（無 workItemType 限制）"
