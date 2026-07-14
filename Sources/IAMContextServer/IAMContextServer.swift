@@ -3,7 +3,9 @@ import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2Posix
 import GRPCServiceLifecycle
+import HTTPTypes
 import Hummingbird
+import Middleware
 import KurrentDB
 import Logging
 import OpenAPIHummingbird
@@ -26,8 +28,20 @@ struct IAMContextServer {
         let router = Router()
 
         // CORS — must precede AdminTokenMiddleware so OPTIONS preflight is not blocked by auth.
+        // 共用 Middleware 版是**白名單制**：只對 IAM_CORS_ALLOWED_ORIGINS（逗號分隔）內的 origin 回 CORS
+        // header，預設 mendesky-web 本機 dev。已知取捨（user 決策 2026-07-14，捨自寫版換共用版）：
+        // handler/auth throw 出的 4xx/5xx 回應不帶 CORS header，瀏覽器端只見 CORS error、讀不到實際狀態碼。
+        let corsAllowedOrigins = Set(
+            (env["IAM_CORS_ALLOWED_ORIGINS"] ?? "http://localhost:4200")
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+        )
         router.addMiddleware {
-            CORSMiddleware()
+            DynamicCORSMiddleware(
+                allowedOrigins: corsAllowedOrigins,
+                allowedHeaders: [.contentType, .authorization, HTTPField.Name("operatorid")!, HTTPField.Name("userid")!],
+                maxAge: 600
+            )
         }
 
         // HTTP admin auth (user 決策：方案 a — 管理員共用 token). HTTP 變更端點（grant/revoke/…）改動「授權

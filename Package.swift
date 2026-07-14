@@ -30,6 +30,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-openapi-hummingbird", from: "2.0.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird", from: "2.0.0"),
+        // 共用 HTTP middleware（DynamicCORSMiddleware 等）。比照 AuditContext/OC：尚未 tag → 指 main。
+        .package(url: "git@github.com:Mendesky/Middleware.git", branch: "main"),
         .package(url: "https://github.com/apple/swift-log", from: "1.0.0"),
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.0.0"),
         .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", from: "2.0.0"),
@@ -78,6 +80,7 @@ let package = Package(
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
                 .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
                 .product(name: "HTTPTypes", package: "swift-http-types"),
+                .product(name: "Middleware", package: "Middleware"),
             ]
         ),
         // protoc-generated gRPC contract for proto/PermissionsService.proto.
