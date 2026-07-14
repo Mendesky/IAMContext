@@ -36,6 +36,9 @@ let package = Package(
         .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", from: "2.0.0"),
         .package(url: "https://github.com/grpc/grpc-swift-extras.git", from: "2.1.0"),
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.33.3"),
+        // HTTP 端管理員 token 守門（AdminTokenMiddleware）需讀 Authorization header；
+        // swift-http-types 已在 Package.resolved（Hummingbird 傳遞依賴），此處僅顯式暴露 product。
+        .package(url: "https://github.com/apple/swift-http-types", from: "1.0.0"),
         // permission codegen（原獨立 PermissionKit，2026-06-12 併入本 package——user 決策：
         // 現階段 codegen 是小功能、IAM 版本與其綁定，變大再考慮拆分）所需：
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.1.3"),
@@ -74,6 +77,7 @@ let package = Package(
                 .product(name: "GRPCServiceLifecycle", package: "grpc-swift-extras"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
                 .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
             ]
         ),
         // protoc-generated gRPC contract for proto/PermissionsService.proto.

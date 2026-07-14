@@ -1,0 +1,132 @@
+context: CustomerRelationshipContext
+serverPrefix: /customer-relationship-context
+
+permissions:
+  # ---- JuridicalCustomer aggregate ----
+  - slot: JuridicalCustomer
+    operationId: createJuridicalCustomer
+    description: 建立法人客戶
+  - slot: JuridicalCustomer
+    operationId: uploadNewBusinessClientRiskControlDocumentToGcs
+    description: 上傳新客風控表文件至 GCS
+  - slot: JuridicalCustomer
+    operationId: getNewBusinessClientRiskControlDocument
+    description: 讀取新客風控表
+  - slot: JuridicalCustomer
+    operationId: deleteNewBusinessClientRiskControlDocument
+    description: 刪除新客風控表文件
+  - slot: JuridicalCustomer
+    operationId: downloadDocument
+    description: 下載法人客戶文件
+  - slot: JuridicalCustomer
+    operationId: editNewBusinessClientRiskControlDocumentCompeletedDate
+    description: 編輯新客風控表完成日期
+
+  # ---- NaturalCustomer aggregate ----
+  - slot: NaturalCustomer
+    operationId: createNaturalCustomer
+    description: 建立自然人客戶
+  - slot: NaturalCustomer
+    operationId: getNaturalCustomerIdWithIdentification
+    description: 以身分證號查詢自然人客戶 id
+  - slot: NaturalCustomer
+    operationId: bindIdentificationOfNaturalCustomer
+    description: 綁定自然人客戶身分證號
+
+  # ---- HandoverDocument aggregate ----
+  - slot: HandoverDocument
+    operationId: addBusinessClientSituation
+    description: 新增客戶狀況
+  - slot: HandoverDocument
+    operationId: getBusinessClientSituation
+    description: 讀取客戶狀況
+  - slot: HandoverDocument
+    operationId: editBusinessClientSituationDescription
+    description: 編輯客戶狀況說明
+  - slot: HandoverDocument
+    operationId: editBusinessScopeAndProducts
+    description: 編輯營業範圍與產品
+  - slot: HandoverDocument
+    operationId: getBusinessScopeAndProducts
+    description: 讀取營業範圍與產品
+  - slot: HandoverDocument
+    operationId: editHeadcountOfWithholding
+    description: 編輯扣繳人數
+  - slot: HandoverDocument
+    operationId: getHeadcountOfWithholding
+    description: 讀取扣繳人數
+  - slot: HandoverDocument
+    operationId: editInterviewers
+    description: 編輯面談人
+  - slot: HandoverDocument
+    operationId: editMaintenanceSupervisors
+    description: 編輯維護負責人
+  - slot: HandoverDocument
+    operationId: getHandoverDocumentMaintainer
+    description: 讀取交接文件維護人員
+  - slot: HandoverDocument
+    operationId: editBusinessClientLastYearRevenue
+    description: 編輯去年營收
+  - slot: HandoverDocument
+    operationId: editBusinessClientEstimatedRevenue
+    description: 編輯預估營收
+  - slot: HandoverDocument
+    operationId: getBusinessClientOperationInfo
+    description: 讀取營運資訊
+
+  # ---- PreserviceOrganization aggregate ----
+  - slot: PreserviceOrganization
+    operationId: createPreserviceOrganization
+    description: 建立前置服務組織
+  - slot: PreserviceOrganization
+    operationId: getPreserviceOrganization
+    description: 讀取前置服務組織
+  - slot: PreserviceOrganization
+    operationId: deletePreserviceOrganization
+    description: 刪除前置服務組織
+  - slot: PreserviceOrganization
+    operationId: editPreserviceOrganizationName
+    description: 編輯前所名稱
+  - slot: PreserviceOrganization
+    operationId: editPreserviceOrganizationDescription
+    description: 編輯前所說明
+  - slot: PreserviceOrganization
+    operationId: editPreserviceOrganizationServiceBusinesses
+    description: 編輯前所服務事業
+  - slot: PreserviceOrganization
+    operationId: editPreserviceOrganizationChangeReasons
+    description: 編輯前所異動原因
+
+  # ---- RelatedBusiness aggregate ----
+  - slot: RelatedBusiness
+    operationId: getRelatedBusinesses
+    description: 讀取關係企業清單
+  - slot: RelatedBusiness
+    operationId: createRelatedBusiness
+    description: 建立關係企業
+  - slot: RelatedBusiness
+    operationId: editRelatedBusinessBusinessId
+    description: 編輯關係企業統編
+  - slot: RelatedBusiness
+    operationId: editRelatedBusinessName
+    description: 編輯關係企業名稱
+  - slot: RelatedBusiness
+    operationId: deleteRelatedBusiness
+    description: 刪除關係企業
+  - slot: RelatedBusiness
+    operationId: editRelatedBusinessRelationship
+    description: 編輯關係企業關係
+  - slot: RelatedBusiness
+    operationId: editRelatedBusinessDescription
+    description: 編輯關係企業說明
+
+  # ---- Universal (CRC_Universal composition layer) ----
+  - slot: Universal
+    operationId: getJuridicalCustomerIds
+    description: 讀取法人客戶在本 context 的所有關聯 id
+  - slot: Universal
+    operationId: initJuridicalCustomerRelatedInfoFromQuotingCase
+    description: 從報價案初始化法人客戶關聯資料（跨聚合協調建檔）
+  - slot: Universal
+    operationId: getJuridicalCustomerLastModifiedTime
+    description: 讀取法人客戶最後異動時間
