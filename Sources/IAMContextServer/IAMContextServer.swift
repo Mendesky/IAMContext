@@ -3,6 +3,7 @@ import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2Posix
 import GRPCServiceLifecycle
+import HTTPTypes
 import Hummingbird
 import KurrentDB
 import Logging
@@ -26,8 +27,15 @@ struct IAMContextServer {
         let router = Router()
 
         // CORS — must precede AdminTokenMiddleware so OPTIONS preflight is not blocked by auth.
+        // Hummingbird 內建版，參數比照 OC（user 決策 2026-07-14：.all 與 OC 一致；安全邊界在 admin token，
+        // 不在 origin）。內建版對 throw 出的 4xx/5xx 也會補 CORS header（EditedHTTPError），
+        // 瀏覽器讀得到實際狀態碼——先前手寫版/共用 DynamicCORS 版都做不全這點。
         router.addMiddleware {
-            CORSMiddleware()
+            CORSMiddleware(
+                allowOrigin: .all,
+                allowHeaders: [.contentType, .authorization, HTTPField.Name("operatorId")!, HTTPField.Name("userId")!],
+                allowMethods: [.get, .post, .put, .delete, .patch, .options]
+            )
         }
 
         // HTTP admin auth (user 決策：方案 a — 管理員共用 token). HTTP 變更端點（grant/revoke/…）改動「授權
