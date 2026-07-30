@@ -464,3 +464,9 @@ permissions:
   - slot: Storage
     operationId: uploadEmbeddedImage
     description: "上傳 markdown 內嵌圖（jpeg/png，限 5MB），回 documentId"
+  - slot: Handover
+    operationId: assignDepartment
+    description: "將部門指派給已建檔案件的 Handover"
+  - slot: Handover
+    operationId: assignStaffMember
+    description: "將人員指派給已建檔案件的 Handover"
