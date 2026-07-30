@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+# 覆寫目標 KDB：KDB_HOST=172.16.1.39 KDB_PORT=12113 ./projection.sh（或 KDB_URL=http://<host>:<port> 全覆寫）
 
 set -euo pipefail
 
 # 配置
-KDB_HOST="http://localhost:2113"
+KDB_HOST="${KDB_HOST:-localhost}"
+KDB_PORT="${KDB_PORT:-2113}"
+KDB_URL="${KDB_URL:-http://${KDB_HOST}:${KDB_PORT}}"
 KDB_USER="admin"
 KDB_PASS="changeit"
 PROJECTIONS_DIR="projections"
@@ -34,7 +37,7 @@ fi
 check_projection_exists() {
     local name=$1
     
-    local exists=$(curl -s -u "${KDB_USER}:${KDB_PASS}" "${KDB_HOST}/projections/any" \
+    local exists=$(curl -s -u "${KDB_USER}:${KDB_PASS}" "${KDB_URL}/projections/any" \
         | jq -r --arg name "$name" '.projections[] | select(.name == $name) | .name')
     
     if [ -n "$exists" ]; then
@@ -52,7 +55,7 @@ disable_projection() {
     
     http_code=$(curl -s -o /tmp/kdb_disable.txt -w "%{http_code}" \
         -d{} \
-        "${KDB_HOST}/projection/${name}/command/disable" \
+        "${KDB_URL}/projection/${name}/command/disable" \
         -u "${KDB_USER}:${KDB_PASS}")
     
     if [ "$http_code" -eq 200 ]; then
@@ -77,7 +80,7 @@ delete_projection() {
     
     http_code=$(curl -s -o /tmp/kdb_delete.txt -w "%{http_code}" \
         -X DELETE \
-        "${KDB_HOST}/projection/${name}?deleteStateStream=${deleteStateStream}&deleteCheckpointStream=${deleteCheckpointStream}&deleteEmittedStreams=${deleteEmittedStreams}" \
+        "${KDB_URL}/projection/${name}?deleteStateStream=${deleteStateStream}&deleteCheckpointStream=${deleteCheckpointStream}&deleteEmittedStreams=${deleteEmittedStreams}" \
         -H "accept:application/json" \
         -H "Content-Length:0" \
         -u "${KDB_USER}:${KDB_PASS}")
@@ -113,7 +116,7 @@ create_projection_api() {
     while [ "$attempt" -le "$max_attempts" ]; do
         http_code=$(curl -s -o /tmp/kdb_create.txt -w "%{http_code}" \
             --data-binary "@${file}" \
-            "${KDB_HOST}/projections/continuous?name=${name}&type=js&enabled=true&emit=true&trackemittedstreams=true" \
+            "${KDB_URL}/projections/continuous?name=${name}&type=js&enabled=true&emit=true&trackemittedstreams=true" \
             -u "${KDB_USER}:${KDB_PASS}")
 
         if [ "$http_code" -eq 201 ]; then
@@ -205,7 +208,7 @@ main() {
     # 列出所有 projections
     echo ""
     echo "目前所有 projections:"
-    curl -s -u "${KDB_USER}:${KDB_PASS}" "${KDB_HOST}/projections/any" | jq -r '.projections[].name'
+    curl -s -u "${KDB_USER}:${KDB_PASS}" "${KDB_URL}/projections/any" | jq -r '.projections[].name'
 }
 
 main "$@"
