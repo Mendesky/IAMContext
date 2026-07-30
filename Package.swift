@@ -147,7 +147,8 @@ let package = Package(
         ),
         .testTarget(
             name: "IAMContextTests",
-            dependencies: ["EmployeeAccessAggregate", "IAMContextShared",
+            dependencies: ["EmployeeAccessAggregate", "IAMContextShared", "IAMContextServer", "Generated",
+                .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "TestUtility", package: "swift-ddd-kit")]
         ),
     ],
