@@ -21,6 +21,8 @@ extension Components.Schemas.EmployeeAccessApiError {
         // 2026-06-12: 整合性守門錯誤（code review 補洞）→ 客戶端錯誤，走 422。
         case .userIdMismatch: self = .userIdMismatch
         case .profileAlreadyExists: self = .profileAlreadyExists
+        // 2026-08-05: 建檔必填欄位驗證（human-authorized）→ 客戶端錯誤，走 422。
+        case .firmRequired: self = .firmRequired
         }
     }
 }

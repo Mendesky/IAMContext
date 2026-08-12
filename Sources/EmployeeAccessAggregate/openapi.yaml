@@ -286,6 +286,7 @@ components:
         - departmentUnchanged
         - userIdMismatch
         - profileAlreadyExists
+        - firmRequired
     GrantPrivilegeRequest:
       type: object
       required:
@@ -360,6 +361,8 @@ components:
           type: string
         newJobTitle:
           type: string
+        newFirm:
+          type: string
     CreateUserAccessProfileRequest:
       type: object
       required:
@@ -372,4 +375,6 @@ components:
         department:
           type: string
         jobTitle:
+          type: string
+        firm:
           type: string

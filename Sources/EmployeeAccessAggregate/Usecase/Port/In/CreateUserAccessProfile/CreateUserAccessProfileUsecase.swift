@@ -15,7 +15,12 @@ extension CreateUserAccessProfileUsecase {
             if try await repository.find(byId: input.employeeAccessId, hiddingDeleted: false) != nil {
                 throw ContextError<EmployeeAccessError>.profileAlreadyExists(function: #function, message: "a profile already exists for employeeAccessId \(input.employeeAccessId)")
             }
-            let employeeAccess = try EmployeeAccess(id: input.employeeAccessId, userId: input.userId, department: input.department, jobTitle: input.jobTitle)
+            // FIRM GUARD (human-authorized 2026-08-05): firm 必填——nil 或空字串都拒絕。
+            // 注意：event/aggregate 的 firm 保持 String?（舊事件相容），驗證只在建檔入口做。
+            guard let firm = input.firm, !firm.isEmpty else {
+                throw ContextError<EmployeeAccessError>.firmRequired(function: #function, message: "firm must be present and non-empty when creating a profile")
+            }
+            let employeeAccess = try EmployeeAccess(id: input.employeeAccessId, userId: input.userId, department: input.department, jobTitle: input.jobTitle, firm: firm)
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
             return .init(id: employeeAccess.id, message: nil)
         } catch let error as ContextError<EmployeeAccessError> {

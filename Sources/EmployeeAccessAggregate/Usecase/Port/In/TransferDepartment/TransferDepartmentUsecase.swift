@@ -11,7 +11,7 @@ extension TransferDepartmentUsecase {
             throw DDDError.aggregateNotFound(usecase: self, aggregateRootType: EmployeeAccess.self, aggregateRootId: input.employeeAccessId)
         }
         do {
-            try employeeAccess.transferDepartment(employeeAccessId: input.employeeAccessId, userId: input.userId, newDepartment: input.newDepartment, newJobTitle: input.newJobTitle)
+            try employeeAccess.transferDepartment(employeeAccessId: input.employeeAccessId, userId: input.userId, newDepartment: input.newDepartment, newJobTitle: input.newJobTitle, newFirm: input.newFirm)
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
             return .init(id: employeeAccess.id, message: nil)
         } catch let error as ContextError<EmployeeAccessError> {

@@ -169,7 +169,8 @@ package struct ApiHandler: APIProtocol {
             userId: payload.userId,
             newDepartment: payload.newDepartment,
             newJobTitle: payload.newJobTitle,
-            operatorId: operatorId
+            operatorId: operatorId,
+            newFirm: payload.newFirm
         )
 
         let service = TransferDepartmentApplicationService(repository: repository)
@@ -197,7 +198,8 @@ package struct ApiHandler: APIProtocol {
             userId: payload.userId,
             department: payload.department,
             jobTitle: payload.jobTitle,
-            operatorId: operatorId
+            operatorId: operatorId,
+            firm: payload.firm
         )
 
         let service = CreateUserAccessProfileApplicationService(repository: repository)

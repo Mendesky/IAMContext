@@ -10,6 +10,7 @@ func seedActiveProfile(
     operatorId: String,
     department: String = "資訊部門",
     jobTitle: String = "組員",
+    firm: String? = "測試所",  // firm 已必填（firmRequired guard）：seed 預設給合法值；要測 nil/空字串請直呼 create Service
     repository: EmployeeAccessRepository
 ) async throws -> CreateUserAccessProfileOutput {
     try await CreateUserAccessProfileService(repository: repository).execute(input: .init(
@@ -17,6 +18,7 @@ func seedActiveProfile(
         userId: userId,
         department: department,
         jobTitle: jobTitle,
-        operatorId: operatorId
+        operatorId: operatorId,
+        firm: firm
     ))
 }

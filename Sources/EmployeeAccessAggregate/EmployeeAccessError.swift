@@ -14,6 +14,8 @@ package enum EmployeeAccessError: Error, Equatable {
     // Added post-review (human-authorized 2026-06-12): integrity guards surfaced by code review.
     case userIdMismatch  // 請求帶的 userId 與該 profile（由 employeeAccessId 載入）的 userId 不一致
     case profileAlreadyExists  // 同一 employeeAccessId 已有 profile（避免重複建立 → 事件流出現兩個 createdEvent）
+    // Added (human-authorized 2026-08-05): create command must carry a non-blank firm.
+    case firmRequired  // 建立 profile 時 firm 為 nil 或空字串
 }
 
 extension ContextError where ErrorType == EmployeeAccessError {
@@ -46,5 +48,8 @@ extension ContextError where ErrorType == EmployeeAccessError {
     }
     static func profileAlreadyExists(function: String = #function, message: String = "") -> Self {
         .init(error: .profileAlreadyExists, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func firmRequired(function: String = #function, message: String = "") -> Self {
+        .init(error: .firmRequired, in: .class(EmployeeAccess.self, function: function), message: message)
     }
 }

@@ -12,6 +12,7 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     package var permissions: Set<String>?
     package var roles: Set<String>?
     package var department: String?
+    package var firm: String?
     package var jobTitle: String?
     package var status: EmployeeStatus?
 
@@ -22,10 +23,11 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
         "IAM\(Self.self)"
     }
 
-    package init(id: String, userId: String, department: String, jobTitle: String, permissions: Set<String>, roles: Set<String>, status: EmployeeStatus) throws {
+    package init(id: String, userId: String, department: String, jobTitle: String, permissions: Set<String>, roles: Set<String>, status: EmployeeStatus, firm: String? = nil) throws {
         self.id = id
         self.userId = userId
         self.department = department
+        self.firm = firm
         self.jobTitle = jobTitle
         self.permissions = permissions
         self.roles = roles
@@ -39,13 +41,14 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
             permissions: permissions,
             roles: roles,
             status: status,
+            firm: firm,
             occurred: .now
         )
         try self.apply(event: event)
     }
     // Create entry point used by the create use-case (/usecase Create pattern). The use-case Input does
     // NOT carry non-input createdEvent payload field(s) [permissions, roles, status], so deriving them is domain logic.
-    package convenience init(id: String, userId: String, department: String, jobTitle: String) throws {
+    package convenience init(id: String, userId: String, department: String, jobTitle: String, firm: String? = nil) throws {
         // 建立時「不」預先給權限：profile 以空權限起始，權限之後由 grantPrivilege 顯式授予
         // （human decision 2026-06-22，推翻先前「新人先給全部權限」placeholder）。roles 空集合、status .Active。
         try self.init(
@@ -55,7 +58,8 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
             jobTitle: jobTitle,
             permissions: [],
             roles: [],
-            status: .Active
+            status: .Active,
+            firm: firm
         )
     }
     package required convenience init?(first createdEvent: UserAccessProfileCreated, other events: [any DomainEvent]) throws {
@@ -66,7 +70,8 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
             jobTitle: createdEvent.jobTitle,
             permissions: createdEvent.permissions,
             roles: createdEvent.roles,
-            status: createdEvent.status
+            status: createdEvent.status,
+            firm: createdEvent.firm
         )
         try self.apply(events: events)
         try self.clearAllDomainEvents()

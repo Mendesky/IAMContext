@@ -6,6 +6,7 @@ package struct CreateUserAccessProfileApplicationServiceInput {
     package let userId: String
     package let department: String
     package let jobTitle: String
+    package let firm: String?
     package let operatorId: String
 
     package init(
@@ -13,12 +14,14 @@ package struct CreateUserAccessProfileApplicationServiceInput {
         userId: String,
         department: String,
         jobTitle: String,
-        operatorId: String
+        operatorId: String,
+        firm: String? = nil
     ) {
         self.employeeAccessId = employeeAccessId
         self.userId = userId
         self.department = department
         self.jobTitle = jobTitle
+        self.firm = firm
         self.operatorId = operatorId
     }
 }
@@ -44,7 +47,8 @@ package struct CreateUserAccessProfileApplicationService: ApplicationService {
             userId: input.userId,
             department: input.department,
             jobTitle: input.jobTitle,
-            operatorId: input.operatorId
+            operatorId: input.operatorId,
+            firm: input.firm
         ))
         return .init(employeeAccessId: input.employeeAccessId)
     }

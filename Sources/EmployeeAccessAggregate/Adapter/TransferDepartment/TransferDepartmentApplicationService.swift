@@ -6,6 +6,7 @@ package struct TransferDepartmentApplicationServiceInput {
     package let userId: String
     package let newDepartment: String
     package let newJobTitle: String
+    package let newFirm: String?
     package let operatorId: String
 
     package init(
@@ -13,12 +14,14 @@ package struct TransferDepartmentApplicationServiceInput {
         userId: String,
         newDepartment: String,
         newJobTitle: String,
-        operatorId: String
+        operatorId: String,
+        newFirm: String? = nil
     ) {
         self.employeeAccessId = employeeAccessId
         self.userId = userId
         self.newDepartment = newDepartment
         self.newJobTitle = newJobTitle
+        self.newFirm = newFirm
         self.operatorId = operatorId
     }
 }
@@ -44,7 +47,8 @@ package struct TransferDepartmentApplicationService: ApplicationService {
             userId: input.userId,
             newDepartment: input.newDepartment,
             newJobTitle: input.newJobTitle,
-            operatorId: input.operatorId
+            operatorId: input.operatorId,
+            newFirm: input.newFirm
         ))
         return .init(employeeAccessId: input.employeeAccessId)
     }

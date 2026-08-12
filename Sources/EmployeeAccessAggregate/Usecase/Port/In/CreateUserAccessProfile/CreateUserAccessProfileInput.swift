@@ -6,13 +6,15 @@ package struct CreateUserAccessProfileInput: UseCaseInput {
     package let userId: String
     package let department: String
     package let jobTitle: String
+    package let firm: String?
     package let operatorId: String
 
-    package init(employeeAccessId: String, userId: String, department: String, jobTitle: String, operatorId: String) {
+    package init(employeeAccessId: String, userId: String, department: String, jobTitle: String, operatorId: String, firm: String? = nil) {
         self.employeeAccessId = employeeAccessId
         self.userId = userId
         self.department = department
         self.jobTitle = jobTitle
+        self.firm = firm
         self.operatorId = operatorId
     }
 }
