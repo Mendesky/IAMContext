@@ -8,6 +8,10 @@ package class PermissionsReadModel: ReadModel {
     package var employeeAccessId: String = ""
     package var userId: String?
     package var permissions: Array<String>?
+    /// 員工目前所在部門（由 UserAccessProfileCreated 設定，DepartmentTransferred 更新）。
+    package var department: String?
+    /// 員工目前所別（由 UserAccessProfileCreated 設定，DepartmentTransferred 帶 newFirm 時更新）。
+    package var firm: String?
 
     package init(userId: String) {
         self.userId = userId

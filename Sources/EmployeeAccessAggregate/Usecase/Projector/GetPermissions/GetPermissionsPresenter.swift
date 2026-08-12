@@ -61,9 +61,12 @@ package struct GetPermissionsPresenter: GetPermissionsProjectorProtocol {
     }
 
     package func when(readModel: inout ReadModelType, event: DepartmentTransferred) throws {
-        // hand-fill (human-authorized 2026-06-03): no-op — GetPermissions read model 只投影 permissions，不追蹤 department。
-        _ = readModel
-        _ = event
+        // 追蹤部門變動，讓 department 欄位反映最新部門（供 GetPermissionHolders 的 department 過濾使用）。
+        readModel.department = event.newDepartment
+        // 若轉調事件帶 newFirm，同步更新所別。
+        if let newFirm = event.newFirm {
+            readModel.firm = newFirm
+        }
     }
 
     package func when(readModel: inout ReadModelType, event: UserAccessProfileCreated) throws {
@@ -71,5 +74,7 @@ package struct GetPermissionsPresenter: GetPermissionsProjectorProtocol {
         readModel.employeeAccessId = event.employeeAccessId
         readModel.userId = event.userId
         readModel.permissions = Array(event.permissions)
+        readModel.department = event.department
+        readModel.firm = event.firm
     }
 }

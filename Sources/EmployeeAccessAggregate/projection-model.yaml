@@ -9,3 +9,9 @@ GetPermissions:
     - DepartmentTransferred
     - UserAccessProfileCreated
 
+GetPermissionHolders:
+  model: readModel
+  events:
+    - PrivilegeGranted
+    - PrivilegeRevoked
+

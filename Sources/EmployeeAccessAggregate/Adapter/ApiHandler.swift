@@ -236,4 +236,18 @@ package struct ApiHandler: APIProtocol {
         }
     }
 
+    package func getPermissionHolders(_ input: Operations.getPermissionHolders.Input) async throws -> Operations.getPermissionHolders.Output {
+        let permission = input.query.permission
+        let department = input.query.department
+        let firm = input.query.firm
+
+        let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+        do {
+            let output = try await service.execute(input: .init(permission: permission, department: department, firm: firm))
+            return .ok(.init(body: .json(output)))
+        } catch {
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
 }
