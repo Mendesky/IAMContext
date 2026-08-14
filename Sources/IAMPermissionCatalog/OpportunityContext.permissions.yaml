@@ -13,7 +13,7 @@ permissions:
     description: "新增一筆年度補充保費扣費明細彙報附加服務 serviceItem；workItem 固定；建議置於 additional quotingBundle"
   - slot: AuditQuoting
     operationId: addAssistanceCtp
-    description: "新增一筆年度 CTP 申報（ctp）附加服務 serviceItem；workItem 固定為 ctp；startDate / endDate 均為選填；建議置於 additional quotingBundle"
+    description: "新增一筆年度 CTP 申報（ctp）附加服務 serviceItem；workItem 固定為 ctp；startDate / endDate 均為選填；quotingBundleType 必須為 additional。行號（獨資合夥）不提供此服務"
   - slot: AuditQuoting
     operationId: addCashierOperation
     description: "新增一筆出納事務處理作業（cashierOperation）serviceItem；workItem 可選 accountsReceivablePayablePostingAndOffsetting 或 onlineBankingPaymentAggregator"
@@ -470,6 +470,9 @@ permissions:
   - slot: Handover
     operationId: getHandoverAssignment
     description: "查詢指定 Handover 目前的分配狀態（departments / assignedMembers / belongedMembers）"
+  - slot: Handover
+    operationId: editBelongedMember
+    description: "EditBelongedMember：以 set 語意覆蓋指定 Handover 的歸屬組員，並同步移除/新增對應的 belongedUser collaborator"
   - slot: Handover
     operationId: assignDepartment
     description: "將部門指派給已建檔案件的 Handover"
