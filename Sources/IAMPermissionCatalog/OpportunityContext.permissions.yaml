@@ -276,6 +276,9 @@ permissions:
     operationId: getQuotingCaseGroupingViewMode
     description: "集團總覽檢視 viewModel — 一次回傳整個 grouping 檢視頁所需 sections"
   - slot: OpportunityContext
+    operationId: getGroupingAssignmentTimeline
+    description: "查詢 grouping 的分配時間軸（送出分配 / 完成案件分配 / 完成案件歸屬 三個時間戳）"
+  - slot: OpportunityContext
     operationId: getQuotingCases
     description: "列出 grouping 內所有 quotingCase 的 summary，含 primaryQuotingCaseId 標記"
   - slot: OpportunityContext
@@ -477,8 +480,23 @@ permissions:
     operationId: assignDepartment
     description: "將部門指派給已建檔案件的 Handover"
   - slot: Handover
+    operationId: editEinvoicePlatformCredential
+    description: "填寫 / 覆寫電子發票整合服務平台的帳號、密碼與字軌起訖號碼"
+  - slot: Handover
     operationId: assignStaffMember
     description: "將人員指派給已建檔案件的 Handover"
+  - slot: Handover
+    operationId: editTaxRemitter
+    description: "設定已建檔案件各稅種的代繳方式（訪談表代繳稅金卡；五個稅種共用同一權限）"
+  - slot: Handover
+    operationId: getTaxRemitters
+    description: "讀取已建檔案件各稅種的代繳方式（訪談表代繳稅金卡）"
+  - slot: Handover
+    operationId: getEinvoicePlatform
+    description: "讀取電子發票整合服務平台設定（useEinvoice / 帳號 / 字軌起訖；不含密碼明文）"
+  - slot: Handover
+    operationId: getEinvoicePlatformCredential
+    description: "讀取電子發票整合服務平台的密碼明文（高敏感，與 getEinvoicePlatform 分開授權）"
   # ── [data-level] 每個所的「分配權限」（資料層面權限）────────────────────────────
   # 持有 AllocateFor<所> 者 ＝ 該所的分配人員。用於「已建檔」時自動把該所分配人員加入案件檢視者。
   # ⚠️ 這類權限屬「資料層面(data-level)」——決定「看得到哪些資料」，不綁任何 HTTP endpoint（故不列入
