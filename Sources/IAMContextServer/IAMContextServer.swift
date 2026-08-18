@@ -5,6 +5,7 @@ import GRPCNIOTransportHTTP2Posix
 import GRPCServiceLifecycle
 import HTTPTypes
 import Hummingbird
+import IAMPermissionCatalog
 import KurrentDB
 import Logging
 import OpenAPIHummingbird
@@ -23,6 +24,15 @@ struct IAMContextServer {
 
     static func main() async throws {
         let env = ProcessInfo.processInfo.environment
+
+        // ── debug full-permissions mode ──────────────────────────────────────────────────
+        // IAM_DEBUG_FULL_PERMISSIONS=1: every getPermissions call returns the entire
+        // catalog universe, regardless of userId.  getPermissionHolders is NOT affected.
+        // ⚠️  NEVER enable in production — this bypasses all per-user authorisation checks.
+        let debugConfig = DebugConfig.fromEnvironment(env)
+        if debugConfig.fullPermissions {
+            logger.critical("⚠️  IAM DEBUG MODE: ALL PERMISSIONS GRANTED TO EVERYONE — IAM_DEBUG_FULL_PERMISSIONS=1 is set. This bypasses per-user authorisation for ALL contexts using this IAM. DO NOT run this in production.")
+        }
 
         let router = Router()
 
@@ -65,7 +75,11 @@ struct IAMContextServer {
 
         let serverURL = URL(string: "/")!
 
-        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient)
+        // Resolve debug override for HTTP handler: full catalog sorted for determinism.
+        let debugOverridePermissions: [String]? = debugConfig.fullPermissions
+            ? Array(PermissionCatalog.allRawValues).sorted()
+            : nil
+        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, debugOverridePermissions: debugOverridePermissions)
             .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
 
         // TODO(Phase 1.m v2): projection subscription wiring
@@ -117,7 +131,7 @@ struct IAMContextServer {
             address: .ipv4(host: "0.0.0.0", port: grpcPort),
             transportSecurity: .plaintext
           ), services: [
-            PermissionsService(kdbClient: kdbClient)
+            PermissionsService(kdbClient: kdbClient, debugConfig: debugConfig)
           ], interceptors: grpcInterceptors)
 
         logger.info("starting IAMContextServer on 0.0.0.0:\(port) (HTTP) / 0.0.0.0:\(grpcPort) (gRPC)")

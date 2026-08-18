@@ -11,8 +11,13 @@ package struct ApiHandler: APIProtocol {
         return .init(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
     }
 
-    package init(kdbClient: KurrentDBClient) {
+    /// When non-nil, getPermissions bypasses per-user lookup and returns this fixed set.
+    /// Set by IAMContextServer when IAM_DEBUG_FULL_PERMISSIONS=1 is active.
+    package let debugOverridePermissions: [String]?
+
+    package init(kdbClient: KurrentDBClient, debugOverridePermissions: [String]? = nil) {
         self.kdbClient = kdbClient
+        self.debugOverridePermissions = debugOverridePermissions
     }
 
     private func mapToApiError(_ error: Error) -> Components.Schemas.EmployeeAccessApiError? {
@@ -219,7 +224,7 @@ package struct ApiHandler: APIProtocol {
     package func getPermissions(_ input: Operations.getPermissions.Input) async throws -> Operations.getPermissions.Output {
         let userId = input.path.userId
 
-        let service = GetPermissionsApplicationService(kdbClient: kdbClient)
+        let service = GetPermissionsApplicationService(kdbClient: kdbClient, debugOverridePermissions: debugOverridePermissions)
         let asInput = GetPermissionsApplicationServiceInput(
             userId: userId
         )
