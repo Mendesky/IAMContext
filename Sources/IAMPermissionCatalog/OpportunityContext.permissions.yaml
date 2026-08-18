@@ -13,7 +13,7 @@ permissions:
     description: "新增一筆年度補充保費扣費明細彙報附加服務 serviceItem；workItem 固定；建議置於 additional quotingBundle"
   - slot: AuditQuoting
     operationId: addAssistanceCtp
-    description: "新增一筆年度 CTP 申報（ctp）附加服務 serviceItem；workItem 固定為 ctp；startDate / endDate 均為選填；建議置於 additional quotingBundle"
+    description: "新增一筆年度 CTP 申報（ctp）附加服務 serviceItem；workItem 固定為 ctp；startDate / endDate 均為選填；quotingBundleType 必須為 additional。行號（獨資合夥）不提供此服務"
   - slot: AuditQuoting
     operationId: addCashierOperation
     description: "新增一筆出納事務處理作業（cashierOperation）serviceItem；workItem 可選 accountsReceivablePayablePostingAndOffsetting 或 onlineBankingPaymentAggregator"
@@ -26,6 +26,9 @@ permissions:
   - slot: AuditQuoting
     operationId: addPayrollSupportOperation
     description: "新增一筆薪資人力支援作業（payrollSupportOperation）serviceItem；workItem 可選 5 種；含 monthlyPayrollReviewOperation 時須提供 payrollHeadcount（> 0）"
+  - slot: AuditQuoting
+    operationId: addProvisionalIncomeTaxAudit
+    description: "新增一筆暫繳簽證（provisionalIncomeTaxAudit）serviceItem；workItem 固定，startDate（服務年度）為必填；同 bundle 與記帳暫繳申報互斥"
   - slot: AuditQuoting
     operationId: addTaxComplianceAudit
     description: "新增一筆營利事業所得稅查核簽證（taxComplianceAudit）serviceItem — 不含未分配盈餘查核；startDate 為必填"
@@ -464,3 +467,44 @@ permissions:
   - slot: Storage
     operationId: uploadEmbeddedImage
     description: "上傳 markdown 內嵌圖（jpeg/png，限 5MB），回 documentId"
+  - slot: Handover
+    operationId: getHandoverAssignment
+    description: "查詢指定 Handover 目前的分配狀態（departments / assignedMembers / belongedMembers）"
+  - slot: Handover
+    operationId: assignDepartment
+    description: "將部門指派給已建檔案件的 Handover"
+  - slot: Handover
+    operationId: editEinvoicePlatformCredential
+    description: "填寫 / 覆寫電子發票整合服務平台的帳號、密碼與字軌起訖號碼"
+  - slot: Handover
+    operationId: assignStaffMember
+    description: "將人員指派給已建檔案件的 Handover"
+  - slot: Handover
+    operationId: editTaxRemitter
+    description: "設定已建檔案件各稅種的代繳方式（訪談表代繳稅金卡；五個稅種共用同一權限）"
+  - slot: Handover
+    operationId: getTaxRemitters
+    description: "讀取已建檔案件各稅種的代繳方式（訪談表代繳稅金卡）"
+  # ── [data-level] 每個所的「分配權限」（資料層面權限）────────────────────────────
+  # 持有 AllocateFor<所> 者 ＝ 該所的分配人員。用於「已建檔」時自動把該所分配人員加入案件檢視者。
+  # ⚠️ 這類權限屬「資料層面(data-level)」——決定「看得到哪些資料」，不綁任何 HTTP endpoint（故不列入
+  # rules.yaml）。未來正式實作資料層權限機制時，需將這類 data-level 權限與 endpoint-level 權限
+  # 獨立劃分處理，勿與 endpoint 權限混用。
+  - slot: Handover
+    operationId: allocateForMain
+    description: "[data-level] 總所(main)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Handover
+    operationId: allocateForTaipei
+    description: "[data-level] 台北所(taipei)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Handover
+    operationId: allocateForTaoyuan
+    description: "[data-level] 桃園所(taoyuan)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Handover
+    operationId: allocateForTaichung
+    description: "[data-level] 台中所(taichung)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Handover
+    operationId: allocateForChanghua
+    description: "[data-level] 彰化所(changhua)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Handover
+    operationId: allocateForChiayi
+    description: "[data-level] 嘉義所(chiayi)分配人員：已建檔時自動成為該所案件檢視者"
