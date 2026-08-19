@@ -48,4 +48,142 @@ jobs:
           KURRENTDB_NODE_PORT: 2113
           KURRENTDB_INSECURE: true
           KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP: true
-          KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS: 127.0.0.1 
+          KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS: 127.0.0.1
+
+  # ────────────────────────────────────────────────────────────
+  # 通知：build 跑完後發 Teams Adaptive Card。
+  #   - always()：紅 / 綠 / skip / cancelled 都通知。
+  #   - 只有「失敗」時才 @tag 人；綠燈不吵人。
+  #   - build 被 concurrency 取消 → 視為中性（不誤報失敗）。
+  #   - 獨立 job：多一次 ~10s runner 起步，換來「彙整所有 job 結果、日後加 job 也自動涵蓋」。
+  #
+  # 需要的設定：
+  #   secret  TEAMS_WEBHOOK_URL          — Power Automate Workflow 的觸發 URL（取代已退役的 O365 連接器）
+  #   file    .github/workflows/teams-mapping.json — GitHub login → Teams 身分 的對照表（見該檔）
+  #
+  # tag 邏輯：成功 → tag requested_reviewers；失敗 → tag assignees（皆限 PR 事件、對照表查得到的人）。
+  #   - cancelled / push 事件（無 PR context）→ 無人可 tag（正常）。
+  #   - requested_reviewers 只含「尚未送出 review」的人；要含已審者可改用 reviews API（需 token，暫不加）。
+  #   - 對照表查不到的 login 會被靜默略過 → 記得維護該檔。
+  #   - 顯示名不對或不跳通知時，把 mapping 的 upn 換成該人的 Entra Object ID。
+  # ────────────────────────────────────────────────────────────
+  notify-teams:
+    name: Notify Teams
+    needs: [build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # 必要！否則 runner 上沒有 .github/workflows/teams-mapping.json → 永遠 tag 不到人
+      - name: Compose & send Adaptive Card
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          set -euo pipefail
+
+          # secret 未設定 → 跳過通知（設定後自動生效），不讓 PR 因此紅燈
+          if [ -z "${TEAMS_WEBHOOK_URL:-}" ]; then
+            echo "::warning::TEAMS_WEBHOOK_URL secret 未設定 — 跳過 Teams 通知"
+            exit 0
+          fi
+
+          # 整體狀態
+          if [ "$BUILD_RESULT" = "failure" ]; then
+            overall="failure"; emoji="❌"; color="Attention"
+          elif [ "$BUILD_RESULT" = "cancelled" ]; then
+            overall="cancelled"; emoji="⚪"; color="Default"
+          else
+            overall="success"; emoji="✅"; color="Good"
+          fi
+
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          # PR 直連（PR 事件才有 .pull_request.number）→ 給 reviewer 一鍵到 PR 頁按 merge
+          pr_number=$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH")
+          pr_url=""
+          [ -n "$pr_number" ] && pr_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${pr_number}"
+
+          # 分支顯示：PR 事件用來源分支名（head_ref），比 "171/merge" 好認；push 用 ref_name
+          branch_name="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          branch_disp="$branch_name"
+          [ -n "$pr_number" ] && branch_disp="$branch_name (PR #$pr_number)"
+
+          # 解析要 tag 的人（<at>顯示名</at> 與 entity.text 必須完全一致）
+          # 成功 → requested_reviewers；失敗 → assignees。從 $GITHUB_EVENT_PATH 讀（而非 workflow 表達式內插）
+          # → 避免 PR 欄位被拿來做 script injection。
+          # 備註：requested_reviewers 只含「尚未送出 review」者；若要含已審者需改用 reviews API
+          #       （需 permissions: pull-requests: read + GH_TOKEN），目前先不加。
+          MAP_FILE=.github/workflows/teams-mapping.json
+          people='[]'
+          if [ -f "$MAP_FILE" ]; then
+            people=$(jq -c --slurpfile map "$MAP_FILE" --arg status "$overall" '
+              ($map[0] | with_entries(.key |= ascii_downcase)) as $m
+              | ( if   $status == "success" then (.pull_request.requested_reviewers // [])
+                  elif $status == "failure" then (.pull_request.assignees // [])
+                  else [] end )
+              | map(.login | ascii_downcase) | unique
+              | map($m[.]) | map(select(. != null)) | unique_by(.upn)
+            ' "$GITHUB_EVENT_PATH")
+          fi
+
+          # ── debug：對照表狀態 + 來源 login + mapping 結果（展開 Actions run log 這段確認）──
+          echo "::group::tag 對照 debug"
+          echo "event=$GITHUB_EVENT_NAME  overall=$overall"
+          if [ ! -f "$MAP_FILE" ]; then
+            echo "map 檔  : ✗ 不存在（$MAP_FILE 沒 commit / 路徑錯 / 或這個 job 忘了 checkout）"
+          elif ! jq empty "$MAP_FILE" 2>/dev/null; then
+            echo "map 檔  : ⚠️ 存在但 JSON 壞掉 → 修 JSON"
+          else
+            echo "map 檔  : ✓ 存在，共 $(jq 'length' "$MAP_FILE") 筆，key(小寫)= $(jq -c '[keys[]|ascii_downcase]' "$MAP_FILE")"
+          fi
+          echo "assignees          : $(jq -c '[(.pull_request.assignees // [])[].login]' "$GITHUB_EVENT_PATH")"
+          echo "requested_reviewers: $(jq -c '[(.pull_request.requested_reviewers // [])[].login]' "$GITHUB_EVENT_PATH")"
+          echo "→ 對到的人(已mapping): $people"
+          echo "::endgroup::"
+
+          entities=$(jq -nc --argjson p "$people" '
+            [ $p[] | {type:"mention", text:("<at>"+.name+"</at>"),
+                      mentioned:{id:.upn, name:.name}} ]')
+          # 一句 call-to-action + tag：成功請 reviewer 去 merge、失敗請 assignee 去 fix
+          mline=$(jq -rn --argjson p "$people" --arg status "$overall" '
+            if ($p|length)==0 then ""
+            else ($p | map("<at>"+.name+"</at>") | join(" ")) as $tags
+              | if   $status=="success" then "✅ CI 已通過，請 reviewer 協助 merge：" + $tags
+                elif $status=="failure" then "❌ CI 失敗，請 assignee 儘快 fix：" + $tags
+                else $tags end
+            end')
+
+          # 用 jq 組卡片，避開手刻 JSON 的跳脫地雷
+          payload=$(jq -nc \
+            --arg title "$emoji CI $overall · $branch_disp" \
+            --arg color "$color" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg branch "$branch_disp" \
+            --arg br "$BUILD_RESULT" \
+            --arg actor "$GITHUB_ACTOR" \
+            --arg mline "$mline" \
+            --arg runurl "$run_url" \
+            --arg prurl "$pr_url" \
+            --argjson entities "$entities" '
+            {
+              type:"AdaptiveCard",
+              "$schema":"http://adaptivecards.io/schemas/adaptive-card.json",
+              version:"1.5",
+              body: ([
+                {type:"TextBlock", size:"Large", weight:"Bolder", color:$color, text:$title},
+                {type:"FactSet", facts:[
+                  {title:"Repo",   value:$repo},
+                  {title:"Branch", value:$branch},
+                  {title:"Build",  value:$br},
+                  {title:"By",     value:$actor}
+                ]}
+              ] + (if $mline=="" then [] else [{type:"TextBlock", wrap:true, text:$mline}] end)),
+              actions: (
+                (if $prurl=="" then [] else [{type:"Action.OpenUrl", title:"前往 PR（可直接 merge）", url:$prurl}] end)
+                + [{type:"Action.OpenUrl", title:"查看執行紀錄", url:$runurl}]
+              ),
+              msteams:{entities:$entities}
+            }')
+
+          curl -sSf -X POST -H "Content-Type: application/json" \
+            -d "$payload" "$TEAMS_WEBHOOK_URL"
