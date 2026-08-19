@@ -81,6 +81,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          # secret 未設定 → 跳過通知（設定後自動生效），不讓 PR 因此紅燈
+          if [ -z "${TEAMS_WEBHOOK_URL:-}" ]; then
+            echo "::warning::TEAMS_WEBHOOK_URL secret 未設定 — 跳過 Teams 通知"
+            exit 0
+          fi
+
           # 整體狀態
           if [ "$BUILD_RESULT" = "failure" ]; then
             overall="failure"; emoji="❌"; color="Attention"
