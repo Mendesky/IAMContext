@@ -48,6 +48,7 @@ DepartmentTransferred:
     userId: "String"
     newDepartment: "String"
     newJobTitle: "String"
+    newFirm: "String?"
 
 UserAccessProfileCreated:
   kind: createdEvent
@@ -60,6 +61,7 @@ UserAccessProfileCreated:
     permissions: "Set<String>"
     roles: "Set<String>"
     status: "EmployeeStatus"
+    firm: "String?"
 
 EmployeeAccessDeleted:
   kind: deletedEvent

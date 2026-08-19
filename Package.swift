@@ -68,6 +68,7 @@ let package = Package(
                 .target(name: "EmployeeAccessAggregate"),
                 .target(name: "IAMContextShared"),
                 .target(name: "Generated"),
+                .target(name: "IAMPermissionCatalog"),
                 .product(name: "DDDKit", package: "swift-ddd-kit"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
@@ -147,7 +148,9 @@ let package = Package(
         ),
         .testTarget(
             name: "IAMContextTests",
-            dependencies: ["EmployeeAccessAggregate", "IAMContextShared",
+            dependencies: ["EmployeeAccessAggregate", "IAMContextShared", "IAMContextServer", "Generated",
+                "IAMPermissionCatalog",
+                .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "TestUtility", package: "swift-ddd-kit")]
         ),
     ],

@@ -11,8 +11,13 @@ package struct ApiHandler: APIProtocol {
         return .init(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
     }
 
-    package init(kdbClient: KurrentDBClient) {
+    /// When non-nil, getPermissions bypasses per-user lookup and returns this fixed set.
+    /// Set by IAMContextServer when IAM_DEBUG_FULL_PERMISSIONS=1 is active.
+    package let debugOverridePermissions: [String]?
+
+    package init(kdbClient: KurrentDBClient, debugOverridePermissions: [String]? = nil) {
         self.kdbClient = kdbClient
+        self.debugOverridePermissions = debugOverridePermissions
     }
 
     private func mapToApiError(_ error: Error) -> Components.Schemas.EmployeeAccessApiError? {
@@ -169,7 +174,8 @@ package struct ApiHandler: APIProtocol {
             userId: payload.userId,
             newDepartment: payload.newDepartment,
             newJobTitle: payload.newJobTitle,
-            operatorId: operatorId
+            operatorId: operatorId,
+            newFirm: payload.newFirm
         )
 
         let service = TransferDepartmentApplicationService(repository: repository)
@@ -197,7 +203,8 @@ package struct ApiHandler: APIProtocol {
             userId: payload.userId,
             department: payload.department,
             jobTitle: payload.jobTitle,
-            operatorId: operatorId
+            operatorId: operatorId,
+            firm: payload.firm
         )
 
         let service = CreateUserAccessProfileApplicationService(repository: repository)
@@ -217,7 +224,7 @@ package struct ApiHandler: APIProtocol {
     package func getPermissions(_ input: Operations.getPermissions.Input) async throws -> Operations.getPermissions.Output {
         let userId = input.path.userId
 
-        let service = GetPermissionsApplicationService(kdbClient: kdbClient)
+        let service = GetPermissionsApplicationService(kdbClient: kdbClient, debugOverridePermissions: debugOverridePermissions)
         let asInput = GetPermissionsApplicationServiceInput(
             userId: userId
         )
@@ -230,6 +237,20 @@ package struct ApiHandler: APIProtocol {
             if let apiError = mapToApiError(error) {
                 return .unprocessableContent(.init(body: .json(.init(error: apiError))))
             }
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
+    package func getPermissionHolders(_ input: Operations.getPermissionHolders.Input) async throws -> Operations.getPermissionHolders.Output {
+        let permission = input.query.permission
+        let department = input.query.department
+        let firm = input.query.firm
+
+        let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+        do {
+            let output = try await service.execute(input: .init(permission: permission, department: department, firm: firm))
+            return .ok(.init(body: .json(output)))
+        } catch {
             return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
         }
     }
