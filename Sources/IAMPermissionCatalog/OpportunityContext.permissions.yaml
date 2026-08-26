@@ -255,6 +255,9 @@ permissions:
     operationId: getCustomerInfo
     description: "取得 quotingCase 的客戶資訊（discriminated union by customerEstablishmentStatus），供編輯客戶資訊 dialog 初始值"
   - slot: OpportunityContext
+    operationId: getOrganizationType
+    description: "取得 quotingCase 的組織型態"
+  - slot: OpportunityContext
     operationId: getPaymentSummary
     description: "取得 quotation 整體酬金總覽，依 quotingCase 結構化（集團或 per-case 模式）"
   - slot: OpportunityContext
@@ -311,6 +314,12 @@ permissions:
   - slot: Quotation
     operationId: editFontSize
     description: "編輯 quotation PDF 字級並持久化；preview / download 端會讀取此持久值，fontSize 必須 > 0"
+  - slot: Quotation
+    operationId: editGroupMergedDisplayName
+    description: "設定或清空集團合併報價單的自訂顯示名稱（送 null 清空）；僅集團可設定"
+  - slot: Quotation
+    operationId: getGroupMergedDisplayName
+    description: "取得集團合併報價單的自訂顯示名稱；null 代表未填／已清空，PDF 回退為預設呈現"
   - slot: Quotation
     operationId: editLetterContent
     description: "編輯指定 quotingCase 的 letter 內文覆寫（純文字字串）"
@@ -408,6 +417,12 @@ permissions:
     operationId: getBackfilledQuotations
     description: "取得已上傳的回補報價檔案清單（不含 mediaLink）"
   - slot: QuotingCaseGrouping
+    operationId: getClientDocuments
+    description: "取得整個 grouping 的客戶文件清單（不含 mediaLink），每筆自帶 quotingCaseId"
+  - slot: QuotingCaseGrouping
+    operationId: getClientDocumentsZipDownload
+    description: "把指定 quotingCase 的所有客戶文件打包成單一 zip 下載（總量上限 500MB）"
+  - slot: QuotingCaseGrouping
     operationId: getClientSource
     description: "取得 quotingCaseGrouping 的客戶來源資訊"
   - slot: QuotingCaseGrouping
@@ -435,6 +450,9 @@ permissions:
     operationId: removeBackfilledQuotation
     description: "移除回補報價檔案；後端同步在 GCS 標記刪除"
   - slot: QuotingCaseGrouping
+    operationId: removeClientDocument
+    description: "移除指定 quotingCase 的客戶文件；後端同步在 GCS 標記刪除"
+  - slot: QuotingCaseGrouping
     operationId: removeCollaborator
     description: "移除指定 collaborator（emit CollaboratorRemoved event），owner 不可移除"
   - slot: QuotingCaseGrouping
@@ -461,6 +479,9 @@ permissions:
   - slot: QuotingCaseGrouping
     operationId: setPrimaryQuotingCase
     description: "把指定 quotingCase 設為 grouping 的 primary quotingCase"
+  - slot: QuotingCaseGrouping
+    operationId: uploadClientDocument
+    description: "上傳客戶文件到指定 quotingCase（限 50MB）；documentId 由後端產生並回傳。不受案件階段限制"
   - slot: QuotingCaseGrouping
     operationId: uploadReplyForm
     description: "上傳同意函（PDF/JPEG/PNG，限 20MB）；documentId 由後端產生並回傳"
@@ -520,3 +541,30 @@ permissions:
   - slot: Handover
     operationId: allocateForChiayi
     description: "[data-level] 嘉義所(chiayi)分配人員：已建檔時自動成為該所案件檢視者"
+  - slot: Annotating
+    operationId: markHighlightByTextQuote
+    description: "以 TextQuote selector 在訪談表指定欄位劃記，並原子建立首則留言；aggregate 端只驗白名單身分（`requireMember`），「能不能劃記」就由本條授權決定"
+  - slot: Annotating
+    operationId: unmarkHighlight
+    description: "移除指定劃記，整串留言（含他人留言）一併消失；限白名單內該劃記的 creator 本人 ∨ 持 `hasFullRights` 者"
+  - slot: Annotating
+    operationId: leaveFormMessage
+    description: "建立表單層留言串（root message）；aggregate 端只驗白名單身分，「能不能留言」由本條授權決定"
+  - slot: Annotating
+    operationId: deleteFormThread
+    description: "刪除整個表單留言串（含 root message）；限白名單內該串 creator 本人 ∨ 持 `hasFullRights` 者"
+  - slot: Annotating
+    operationId: leaveMessage
+    description: "在指定 highlight 串或表單留言串下留言/回覆；aggregate 端只驗白名單身分，「能不能留言」由本條授權決定；回覆串深上限 2 層"
+  - slot: Annotating
+    operationId: editMessage
+    description: "編輯指定留言內容；僅白名單內作者本人可執行 —— `hasFullRights` 在這裡**刻意不適用**，本文件最大權限只涵蓋刪除，不含改他人文字"
+  - slot: Annotating
+    operationId: deleteMessage
+    description: "刪除指定留言並級聯刪除其子回覆；限白名單內作者本人 ∨ 該串 creator ∨ 持 `hasFullRights` 者；formThread root message 不可用此 operation 刪除（改用 deleteFormThread）"
+  - slot: Annotating
+    operationId: getAnnotatingIdByHandoverDocumentId
+    description: "由 handoverDocumentId 反查對應的 annotatingId（first-wins）"
+  - slot: Annotating
+    operationId: getAnnotations
+    description: "取得指定訪談表的全部劃記與留言串（依 operator 白名單身分回傳可見範圍），非白名單者一律回 404"
