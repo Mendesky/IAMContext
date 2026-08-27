@@ -16,7 +16,7 @@ jobs:
   # tag push 事件不帶 branch 資訊 → 驗證 tag commit 在 main 歷史上才 release
   guard:
     name: Verify tag is on main
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     outputs:
       on-main: ${{ steps.check.outputs.on-main }}
     steps:
@@ -37,19 +37,20 @@ jobs:
     name: Build and push to Artifact Registry
     needs: guard
     if: needs.guard.outputs.on-main == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v4
 
-      # swift release build + docker layers 很吃磁碟
-      - name: Free up disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
+      # swift release build + docker layers 很吃磁碟；self-hosted 磁碟自管，
+      # GitHub-hosted 時代的 free-disk-space 不再需要（對齊 OC release-docker.yml）
+      # - name: Free up disk space
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: false
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: true
 
       # 轉發給 Dockerfile 的 RUN --mount=type=ssh swift build
       - name: Set up SSH agent for private packages

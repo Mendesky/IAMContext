@@ -7,6 +7,16 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# IAM 的整合測試寫死 KurrentDBClient(settings: .localhost())（固定 2113、不讀環境變數），
+# 無法像 OC 一樣每 run 隨機挑 port —— 同一台 self-hosted runner 上兩個 run 同時起
+# KurrentDB 會在 2113 互咬（OC 在 self-hosted 踩過同型問題，後來以隨機 port / DB pool 解掉）。
+# 所以用 workflow 級 concurrency 把整個 repo 的 CI 序列化：一個在跑、最新一個排隊
+#（GitHub 對同 group 的 pending 只保留最新，較舊的 pending 會被取消——對 PR CI 可接受）。
+# 若日後測試改為讀環境變數（如 OC 的 ESDB_TEST_URL/ESDB_TEST_URLS），才能改採隨機 port 解除序列化。
+concurrency:
+  group: iam-ci-kurrentdb-2113
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Swift ${{ matrix.swift }} on ${{ matrix.os }}
@@ -14,41 +24,53 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         swift: ["6.2"]
-    runs-on: ${{ matrix.os }}
+    #runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, linux, X64, dev]
     steps:
-      - uses: SwiftyLab/setup-swift@latest
-        with:
-           swift-version: ${{ matrix.swift }}
+      # self-hosted runner 已預裝 Swift 工具鏈、磁碟充足：GitHub-hosted 時代的
+      # setup-swift / free-disk-space 不再需要（對齊 OC swift-build-testing.yaml 的做法）
+      # - uses: SwiftyLab/setup-swift@latest
+      #   with:
+      #      swift-version: ${{ matrix.swift }}
       - uses: actions/checkout@v4
-      - name: Free up disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true   
-      - run: bash ./scripts/projection.sh
-      - run: ulimit -n 10000
-      - name: Build 
-        run: swift build --build-tests --enable-code-coverage
+      # KurrentDB 不再用 services:（services 不等 DB ready，self-hosted 上 job 起步快、
+      # projection.sh 會搶在 DB 可用前打），改 docker run + health 輪詢 + always 停掉（對齊 OC）。
+      # port 固定 2113 的原因見檔頭 concurrency 註解。
+      - name: Start KurrentDB
+        run: |
+          docker run -d --rm --name "kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}" \
+            -p "127.0.0.1:2113:2113" \
+            -e KURRENTDB_CLUSTER_SIZE=1 \
+            -e KURRENTDB_RUN_PROJECTIONS=All \
+            -e KURRENTDB_START_STANDARD_PROJECTIONS=true \
+            -e KURRENTDB_NODE_PORT=2113 \
+            -e KURRENTDB_INSECURE=true \
+            -e KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP=true \
+            -e KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS=127.0.0.1 \
+            docker.kurrent.io/kurrent-latest/kurrentdb:26.0
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:2113/health/live" || true)
+            if [ "$code" = "204" ] || [ "$code" = "200" ]; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "KurrentDB 啟動逾時（port 2113 可能已被佔用——檢查同機是否有殘留容器或常駐 KurrentDB）" >&2
+          docker logs "kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}" || true
+          exit 1
+      - name: Setup projections
+        run: bash ./scripts/projection.sh
+      - name: Build
+        run: |
+          ulimit -n 10000
+          swift build --build-tests --enable-code-coverage
       - name: Swift Testing
-        run: swift test -v --skip-build --no-parallel --disable-xctest --enable-swift-testing
-    services:
-    # Label used to access the service container
-      kurrentdb:
-      # Docker Hub image
-        image: docker.kurrent.io/kurrent-latest/kurrentdb:26.0
-        ports:
-          - "2113:2113"
-        env:
-          KURRENTDB_CLUSTER_SIZE: 1
-          KURRENTDB_RUN_PROJECTIONS: All
-          KURRENTDB_START_STANDARD_PROJECTIONS: true
-          KURRENTDB_NODE_PORT: 2113
-          KURRENTDB_INSECURE: true
-          KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP: true
-          KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS: 127.0.0.1
+        run: |
+          ulimit -n 10000
+          swift test -v --skip-build --no-parallel --disable-xctest --enable-swift-testing
+      - name: Stop KurrentDB
+        if: always()
+        run: docker stop "kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}" || true
 
   # ────────────────────────────────────────────────────────────
   # 通知：build 跑完後發 Teams Adaptive Card。
@@ -71,7 +93,7 @@ jobs:
     name: Notify Teams
     needs: [build]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4          # 必要！否則 runner 上沒有 .github/workflows/teams-mapping.json → 永遠 tag 不到人
       - name: Compose & send Adaptive Card
