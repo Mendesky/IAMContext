@@ -1,0 +1,57 @@
+context: StaffContext
+serverPrefix: /staff-context
+
+permissions:
+  # ── StaffAggregate module（slot = Staff）──
+  - slot: Staff
+    operationId: getStaffs
+    description: 查詢在職員工清單
+  - slot: Staff
+    operationId: getStaffsWithAccount
+    description: 查詢員工清單（含帳號連結）
+  - slot: Staff
+    operationId: getStaff
+    description: 查詢單一員工
+  - slot: Staff
+    operationId: getAllFirms
+    description: 查詢所有所別
+  - slot: Staff
+    operationId: getDepartmentByFirm
+    description: 查詢某所別的部門
+  - slot: Staff
+    operationId: getStaffsByDepartment
+    description: 查詢某部門的員工
+  - slot: Staff
+    operationId: getAllDepartments
+    description: 查詢所有部門
+  - slot: Staff
+    operationId: getStaffSyncSnapshot
+    description: M365 同步用全量快照（含停用員工）
+  - slot: Staff
+    operationId: getStaffSyncDigest
+    description: M365 同步用 checksum 摘要（含停用員工，供快速比對篩選）
+  - slot: Staff
+    operationId: enrollStaff
+    description: 新進員工建檔
+  - slot: Staff
+    operationId: modifyStaffTitle
+    description: 修改職稱
+  - slot: Staff
+    operationId: changeStaffWorkUnit
+    description: 調整所別/部門
+  - slot: Staff
+    operationId: renameStaff
+    description: 修改姓名
+  - slot: Staff
+    operationId: modifyStaffEmail
+    description: 修改信箱
+  - slot: Staff
+    operationId: deactivateStaff
+    description: 停用員工（離職）
+  - slot: Staff
+    operationId: staffLinkToAccount
+    description: 員工連結帳號
+  # ── StaffContext composition module ──
+  - slot: StaffContext
+    operationId: getCpaStaffs
+    description: 查詢會計師員工
