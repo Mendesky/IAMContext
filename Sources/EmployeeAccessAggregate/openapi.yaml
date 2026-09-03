@@ -225,6 +225,29 @@ paths:
                   type: string
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/scope-check:
+    post:
+      operationId: checkScope
+      description: '授權範圍判斷：回傳 userIds 之中，屬於指定 department/firm 範圍者（交集，去重，順序不保證）。department 與 firm 皆為 nil 時回傳所有存在於 IAM 的 userId。不存在於 IAM 的 userId 靜默排除，不報錯。空 userIds 回空陣列。只回傳判斷結果，不回傳部門/所別屬性——要拿來做判斷的問這裡，要拿來顯示的問 StaffContext。'
+      parameters:
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckScopeRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckScopeResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
 components:
   parameters:
     employeeAccessId:
@@ -261,6 +284,7 @@ components:
       name: firm
       in: query
       required: false
+      description: '所別統一編號（統編），值域見 StaffContext Firm。IAM 不驗證傳入值是否為合法統編（錯誤值自然查無資料）。'
       schema:
         type: string
   responses:
@@ -399,6 +423,7 @@ components:
         newJobTitle:
           type: string
         newFirm:
+          description: '所別統一編號（統編），值域見 StaffContext Firm。'
           type: string
     CreateUserAccessProfileRequest:
       type: object
@@ -414,4 +439,31 @@ components:
         jobTitle:
           type: string
         firm:
+          description: '所別統一編號（統編），值域見 StaffContext Firm。必填、不驗證格式。'
           type: string
+    CheckScopeRequest:
+      type: object
+      required:
+        - userIds
+      properties:
+        userIds:
+          description: '要判斷的對象，可為空陣列（回傳空 inScope，非錯誤）。'
+          type: array
+          items:
+            type: string
+        firm:
+          description: '所別統一編號（統編），值域見 StaffContext Firm。nil = 不以所別限縮。'
+          type: string
+        department:
+          description: 'nil = 不以部門限縮。'
+          type: string
+    CheckScopeResponse:
+      type: object
+      required:
+        - inScope
+      properties:
+        inScope:
+          description: 'userIds 之中，屬於該範圍者。去重，順序不保證。'
+          type: array
+          items:
+            type: string

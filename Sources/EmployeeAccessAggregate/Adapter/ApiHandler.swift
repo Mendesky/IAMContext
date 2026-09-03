@@ -255,4 +255,18 @@ package struct ApiHandler: APIProtocol {
         }
     }
 
+    package func checkScope(_ input: Operations.checkScope.Input) async throws -> Operations.checkScope.Output {
+        guard case let .json(payload) = input.body else {
+            return .unprocessableContent(.init(body: .json(.init(error: .invalidPayload))))
+        }
+
+        let service = CheckScopeApplicationService(kdbClient: kdbClient)
+        do {
+            let output = try await service.execute(input: .init(userIds: payload.userIds, firm: payload.firm, department: payload.department))
+            return .ok(.init(body: .json(.init(inScope: output.inScope))))
+        } catch {
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
 }

@@ -153,6 +153,19 @@ let package = Package(
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "TestUtility", package: "swift-ddd-kit")]
         ),
+        // 一次性遷移腳本（spec `docs/tasks/2026-09-03-firm-format-and-scope-check.md` Step 1-2）：
+        // 把既有 EmployeeAccess 的 firm 從名稱轉統編。path 指到 scripts/migrations/ 而非 Sources/，
+        // 讓腳本與其他一次性維運工具放在同一個慣例位置，同時仍受 SwiftPM 編譯與型別檢查。
+        // ⚠️ 只提供程式碼，不在任何 CI/build 流程中自動執行；執行由人手動 `swift run MigrateFirmFormat` 決定時機。
+        .executableTarget(
+            name: "MigrateFirmFormat",
+            dependencies: [
+                .target(name: "EmployeeAccessAggregate"),
+                .target(name: "IAMContextShared"),
+                .product(name: "DDDKit", package: "swift-ddd-kit"),
+            ],
+            path: "scripts/migrations/MigrateFirmFormat"
+        ),
     ],
     swiftLanguageModes: [.v5]
 )
