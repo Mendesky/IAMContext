@@ -52,10 +52,9 @@ package struct GetPermissionHoldersApplicationService: ApplicationService {
                 continue
             }
             let readModel = result.readModel
-            if let targetDepartment = input.department, readModel.department != targetDepartment {
-                continue
-            }
-            if let targetFirm = input.firm, readModel.firm != targetFirm {
+            // 比對邏輯統一由 PermissionScopeFilter 提供（CheckScopeApplicationService 共用同一份，
+            // 見 Adapter/Shared/PermissionScopeFilter.swift；不得另寫第二套）。
+            guard PermissionScopeFilter.matches(readModel: readModel, department: input.department, firm: input.firm) else {
                 continue
             }
             filtered.append(userId)
