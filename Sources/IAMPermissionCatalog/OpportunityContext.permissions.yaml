@@ -305,6 +305,9 @@ permissions:
   - slot: OpportunityContext
     operationId: unarchiveQuotingCaseGrouping
     description: "撤銷封存，解除 grouping 的 archived 狀態並恢復 mutating 能力"
+  - slot: OpportunityContext
+    operationId: withdrawQuotingCaseAssignment
+    description: "退回整案分配：清空 grouping 的 designatedUser / assignedUser / belongedUser，並連動清除該 grouping 下所有 handover 的 assignment"
   - slot: Quotation
     operationId: addContractNoteByUser
     description: "新增 user-added contract note。noteId 由後端產生 UUID 回給前端；非 idempotent"
@@ -377,6 +380,9 @@ permissions:
   - slot: QuotingCaseGrouping
     operationId: addQuotingBundle
     description: "在指定的 quotingCaseGrouping 下新增 quotingBundle；quotingBundleId 由後端生成並回傳"
+  - slot: QuotingCaseGrouping
+    operationId: assignDesignatedUser
+    description: "指定 / 改派案件分配人員（designatedUser）；POST 指定與 PUT 改派共用同一權限（set 語意，一個 grouping 恆只有一個 designatedUser）"
   - slot: QuotingCaseGrouping
     operationId: backfillQuotation
     description: "上傳回補報價檔案（PDF，限 20MB）；backfilledQuotationId 由後端產生並回傳"
