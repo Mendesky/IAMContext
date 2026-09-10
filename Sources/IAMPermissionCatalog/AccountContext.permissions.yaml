@@ -1,0 +1,33 @@
+context: AccountContext
+serverPrefix: /account-context
+
+# 注意：login / forgot-password / reset-password 類 endpoint 是取得 token 前的
+# 認證流程，屬 BearerToken 白名單，依規則不入 permission catalog。
+permissions:
+  - slot: Account
+    operationId: getAccounts
+    description: 查詢帳號清單
+  - slot: Account
+    operationId: createAccount
+    description: 建立帳號
+  - slot: Account
+    operationId: modifyAccountPassword
+    description: 修改帳號密碼
+  - slot: Account
+    operationId: activateAccount
+    description: 啟用帳號
+  - slot: Account
+    operationId: deactivateAccount
+    description: 停用帳號
+  - slot: Account
+    operationId: linkAccountStaff
+    description: 帳號連結員工
+  - slot: Account
+    operationId: unlinkAccountStaff
+    description: 帳號解除員工連結
+  - slot: Account
+    operationId: getAccountEmail
+    description: 查詢帳號信箱
+  - slot: Account
+    operationId: getStaffIdentifier
+    description: 查詢帳號對應員工識別
