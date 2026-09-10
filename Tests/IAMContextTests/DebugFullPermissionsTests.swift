@@ -21,7 +21,7 @@ import IAMPermissionCatalog
         let fullCatalog = Array(PermissionCatalog.allRawValues).sorted()
         #expect(!fullCatalog.isEmpty, "catalog must have entries for this test to be meaningful")
 
-        let kdbClient = KurrentDBClient(settings: .localhost())
+        let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
             debugOverridePermissions: fullCatalog
@@ -35,7 +35,7 @@ import IAMPermissionCatalog
     /// debug on: returns ALL catalog rawValues, including "holder marker" style permissions.
     @Test func service_debugOn_includesAllCatalogRawValues() async throws {
         let fullCatalog = Array(PermissionCatalog.allRawValues).sorted()
-        let kdbClient = KurrentDBClient(settings: .localhost())
+        let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
             debugOverridePermissions: fullCatalog
@@ -49,7 +49,7 @@ import IAMPermissionCatalog
 
     /// debug off: unknown userId still throws notFound (normal path unchanged).
     @Test func service_debugOff_unknownUser_throwsNotFound() async throws {
-        let kdbClient = KurrentDBClient(settings: .localhost())
+        let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
             debugOverridePermissions: nil  // debug OFF
@@ -85,7 +85,7 @@ import IAMPermissionCatalog
 
     /// debug on (gRPC): any userId returns the full catalog with x-iam-debug header.
     @Test func grpc_debugOn_returnsFullCatalog() async throws {
-        let kdbClient = KurrentDBClient(settings: .localhost())
+        let kdbClient = makeTestKurrentDBClient()
         let sut = PermissionsService(
             kdbClient: kdbClient,
             debugConfig: DebugConfig(fullPermissions: true)
@@ -119,7 +119,7 @@ import IAMPermissionCatalog
 
     /// debug off (gRPC): unknown userId returns empty success (existing behaviour preserved).
     @Test func grpc_debugOff_unknownUser_returnsEmptySuccess() async throws {
-        let kdbClient = KurrentDBClient(settings: .localhost())
+        let kdbClient = makeTestKurrentDBClient()
         let sut = PermissionsService(
             kdbClient: kdbClient,
             debugConfig: DebugConfig(fullPermissions: false)

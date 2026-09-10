@@ -12,7 +12,7 @@ import IAMContextShared
 // 所以測試起點只需 seedActiveProfile，不需 grant 任何權限（與 GetPermissionHoldersIntegrationTests 不同）。
 @Suite(.serialized)
 struct CheckScopeTests {
-    let kdbClient: KurrentDBClient = .init(settings: .localhost())
+    let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
     let repository: EmployeeAccessRepository
 
     init() {
