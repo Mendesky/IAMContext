@@ -16,7 +16,7 @@ import IAMContextShared
 //       因此測試以 `Task.sleep` 等待 projection 完成（demo 環境可接受）。
 @Suite(.serialized)
 struct GetPermissionHoldersIntegrationTests {
-    let kdbClient: KurrentDBClient = .init(settings: .localhost())
+    let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
     let repository: EmployeeAccessRepository
 
     init() {

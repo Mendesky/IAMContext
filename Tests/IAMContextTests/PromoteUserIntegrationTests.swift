@@ -7,7 +7,7 @@ import IAMContextShared
 
 @Suite(.serialized)
 struct PromoteUserIntegrationTests {
-    let kdbClient: KurrentDBClient = .init(settings: .localhost())
+    let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
     let repository: EmployeeAccessRepository
 
     init() {

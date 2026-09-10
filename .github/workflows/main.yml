@@ -7,15 +7,18 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# IAM 的整合測試寫死 KurrentDBClient(settings: .localhost())（固定 2113、不讀環境變數），
-# 無法像 OC 一樣每 run 隨機挑 port —— 同一台 self-hosted runner 上兩個 run 同時起
-# KurrentDB 會在 2113 互咬（OC 在 self-hosted 踩過同型問題，後來以隨機 port / DB pool 解掉）。
-# 所以用 workflow 級 concurrency 把整個 repo 的 CI 序列化：一個在跑、最新一個排隊
-#（GitHub 對同 group 的 pending 只保留最新，較舊的 pending 會被取消——對 PR CI 可接受）。
-# 若日後測試改為讀環境變數（如 OC 的 ESDB_TEST_URL/ESDB_TEST_URLS），才能改採隨機 port 解除序列化。
-concurrency:
-  group: iam-ci-kurrentdb-2113
-  cancel-in-progress: false
+# KurrentDB 每個 run 隨機挑一個 host port，測試端用 ESDB_TEST_URL 連上去（對齊 OC
+# swift-build-testing.yaml 的做法）。先前因為測試寫死 KurrentDBClient(settings: .localhost())
+# （固定 2113）而必須用 workflow 級 concurrency 把 CI 序列化，但序列化只擋得住本 repo 本
+# workflow——2026-09-10 run 34434555462 就是被同一台 dev 機上「別的 runner 帳號 / 常駐
+# KurrentDB」佔掉 2113 而失敗（bind: address already in use），序列化完全無效。
+# 測試端加了 ESDB_TEST_URL 入口後改採隨機 port，序列化不再需要，一併移除。
+#
+# ⚠️ port 三邊必須對齊（照 OC 的做法，不要自己改）：
+#   -p 127.0.0.1:<port>:<port>  ← host 與 container 兩端同號
+#   KURRENTDB_NODE_PORT=<port>  ← DB 本身也 listen 同號
+# 這樣 DB advertise 給 client 的 port 天生就等於 host port，不需要 advertise-port 變數
+# （OC 實作裡並不存在 KURRENTDB_ADVERTISE_NODE_PORT_TO_CLIENT_AS 這種變數，別去猜）。
 
 jobs:
   build:
@@ -25,7 +28,14 @@ jobs:
         os: [ubuntu-latest]
         swift: ["6.2"]
     #runs-on: ${{ matrix.os }}
-    runs-on: [self-hosted, linux, X64, dev]
+    # label `55` 把工作鎖在 ai-System-Product-Name 那台。jiabao runner group 裡 6 台
+    # runner 全都帶 self-hosted/Linux/X64/dev，光靠這四個 label 無法區分機器；而
+    # yayun-MS-7D43（label `53`，含 dev53 / dev53-2 / dev53-runner-3）的 git 設定在
+    # 2026-09-07 → 09-10 之間被改動，checkout 私有 repo 一律
+    # `ERROR: Repository not found.` / exit 128（同一個 dev53-2 runner 09-07 還是好的）。
+    # 09-10 當天 55 那台兩次 checkout 都成功、53 那台兩次都失敗。
+    # ⚠️ 代價：CI 綁在單一實體機、失去跨機冗餘。yayun-MS-7D43 修好後應把 `55` 拿掉。
+    runs-on: [self-hosted, linux, X64, dev, "55"]
     steps:
       # self-hosted runner 已預裝 Swift 工具鏈、磁碟充足：GitHub-hosted 時代的
       # setup-swift / free-disk-space 不再需要（對齊 OC swift-build-testing.yaml 的做法）
@@ -35,36 +45,72 @@ jobs:
       - uses: actions/checkout@v4
       # KurrentDB 不再用 services:（services 不等 DB ready，self-hosted 上 job 起步快、
       # projection.sh 會搶在 DB 可用前打），改 docker run + health 輪詢 + always 停掉（對齊 OC）。
-      # port 固定 2113 的原因見檔頭 concurrency 註解。
+      # 隨機挑 port 的理由與「三邊對齊」規則見檔頭註解。
       - name: Start KurrentDB
+        id: kdb
         run: |
-          docker run -d --rm --name "kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}" \
-            -p "127.0.0.1:2113:2113" \
-            -e KURRENTDB_CLUSTER_SIZE=1 \
-            -e KURRENTDB_RUN_PROJECTIONS=All \
-            -e KURRENTDB_START_STANDARD_PROJECTIONS=true \
-            -e KURRENTDB_NODE_PORT=2113 \
-            -e KURRENTDB_INSECURE=true \
-            -e KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP=true \
-            -e KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS=127.0.0.1 \
-            docker.kurrent.io/kurrent-latest/kurrentdb:26.0
-          for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:2113/health/live" || true)
-            if [ "$code" = "204" ] || [ "$code" = "200" ]; then
-              exit 0
+          set -euo pipefail
+          name="kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}"
+          # 外層重試：挑號通過 ss 檢查後、docker bind 之前仍可能被別人搶走（TOCTOU），
+          # 所以把「docker run 失敗」也當成撞號信號，整組重挑。
+          for attempt in $(seq 1 5); do
+            candidate=""
+            for i in $(seq 1 20); do
+              c=$(shuf -i 20000-60000 -n 1)
+              if ! ss -tln | awk '{print $4}' | grep -q ":${c}$"; then
+                candidate="$c"
+                break
+              fi
+            done
+            if [ -z "$candidate" ]; then
+              echo "第 ${attempt} 次嘗試：20 次挑號皆撞號" >&2
+              continue
             fi
-            sleep 1
+            # ⚠️ 三邊對齊：-p 的 host/container 兩端與 KURRENTDB_NODE_PORT 必須同號（見檔頭）
+            if ! docker run -d --rm --name "$name" \
+              -p "127.0.0.1:${candidate}:${candidate}" \
+              -e KURRENTDB_CLUSTER_SIZE=1 \
+              -e KURRENTDB_RUN_PROJECTIONS=All \
+              -e KURRENTDB_START_STANDARD_PROJECTIONS=true \
+              -e KURRENTDB_NODE_PORT="${candidate}" \
+              -e KURRENTDB_INSECURE=true \
+              -e KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP=true \
+              -e KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS=127.0.0.1 \
+              docker.kurrent.io/kurrent-latest/kurrentdb:26.0; then
+              echo "第 ${attempt} 次嘗試：docker run 失敗（port ${candidate} 可能剛被搶走）" >&2
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              continue
+            fi
+            # 起得來之後的逾時屬於「DB 本身有問題」，不再重挑 port，直接紅燈並留 log
+            for k in $(seq 1 60); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${candidate}/health/live" || true)
+              if [ "$code" = "204" ] || [ "$code" = "200" ]; then
+                echo "port=${candidate}" >> "$GITHUB_OUTPUT"
+                echo "KurrentDB 就緒：127.0.0.1:${candidate}"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "KurrentDB 啟動逾時（port ${candidate}）" >&2
+            docker logs "$name" || true
+            docker stop "$name" >/dev/null 2>&1 || true
+            exit 1
           done
-          echo "KurrentDB 啟動逾時（port 2113 可能已被佔用——檢查同機是否有殘留容器或常駐 KurrentDB）" >&2
-          docker logs "kurrentdb-iam-${{ github.run_id }}-${{ github.run_attempt }}" || true
+          echo "5 次嘗試都挑不到可用 port——檢查同機是否有大量殘留容器" >&2
           exit 1
       - name: Setup projections
+        env:
+          KDB_PORT: ${{ steps.kdb.outputs.port }}
         run: bash ./scripts/projection.sh
       - name: Build
         run: |
           ulimit -n 10000
           swift build --build-tests --enable-code-coverage
+      # ESDB_TEST_URL：測試端的 KurrentDB 連線覆寫入口（沒設就 fallback 成 .localhost() 的
+      # 固定 2113，維持本機開發習慣）。scheme/帳密沿用 IAMContextServer.swift 的 ESDB_URL 格式。
       - name: Swift Testing
+        env:
+          ESDB_TEST_URL: kurrent://admin:changeit@localhost:${{ steps.kdb.outputs.port }}?tls=false
         run: |
           ulimit -n 10000
           swift test -v --skip-build --no-parallel --disable-xctest --enable-swift-testing
@@ -93,7 +139,11 @@ jobs:
     name: Notify Teams
     needs: [build]
     if: always()
-    runs-on: self-hosted
+    # label 必須與 build job 完全一致（含 `55`，理由見 build job 的註解）。
+    # 只寫 `self-hosted` 會被派到組織裡任一台 runner——2026-09-10 run 34434555462
+    # 就是被派到 yayun-MS-7D43，checkout 直接 `ERROR: Repository not found.` / exit 128,
+    # 連 build 結果都通知不出去。
+    runs-on: [self-hosted, linux, X64, dev, "55"]
     steps:
       - uses: actions/checkout@v4          # 必要！否則 runner 上沒有 .github/workflows/teams-mapping.json → 永遠 tag 不到人
       - name: Compose & send Adaptive Card

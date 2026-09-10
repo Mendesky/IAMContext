@@ -14,7 +14,7 @@ import IAMContextShared
 //     happy-path（回真 permissions）需 projection 部署 + 事件 ingest，屬 runtime infra，不在單元測試覆蓋。
 @Suite(.serialized)
 struct GetPermissionsIntegrationTests {
-    let kdbClient: KurrentDBClient = .init(settings: .localhost())
+    let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
 
     // 未知 userId（read-model stream 空）→ EmployeeAccessQueryError.notFound。
     @Test func get_permissions_unknown_user_throws_notFound() async throws {
