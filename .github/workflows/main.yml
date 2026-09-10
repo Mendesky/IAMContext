@@ -28,7 +28,14 @@ jobs:
         os: [ubuntu-latest]
         swift: ["6.2"]
     #runs-on: ${{ matrix.os }}
-    runs-on: [self-hosted, linux, X64, dev]
+    # label `55` 把工作鎖在 ai-System-Product-Name 那台。jiabao runner group 裡 6 台
+    # runner 全都帶 self-hosted/Linux/X64/dev，光靠這四個 label 無法區分機器；而
+    # yayun-MS-7D43（label `53`，含 dev53 / dev53-2 / dev53-runner-3）的 git 設定在
+    # 2026-09-07 → 09-10 之間被改動，checkout 私有 repo 一律
+    # `ERROR: Repository not found.` / exit 128（同一個 dev53-2 runner 09-07 還是好的）。
+    # 09-10 當天 55 那台兩次 checkout 都成功、53 那台兩次都失敗。
+    # ⚠️ 代價：CI 綁在單一實體機、失去跨機冗餘。yayun-MS-7D43 修好後應把 `55` 拿掉。
+    runs-on: [self-hosted, linux, X64, dev, "55"]
     steps:
       # self-hosted runner 已預裝 Swift 工具鏈、磁碟充足：GitHub-hosted 時代的
       # setup-swift / free-disk-space 不再需要（對齊 OC swift-build-testing.yaml 的做法）
@@ -132,11 +139,11 @@ jobs:
     name: Notify Teams
     needs: [build]
     if: always()
-    # label 必須與 build job 完全一致。只寫 `self-hosted` 會被派到組織裡任一台
-    # self-hosted runner——2026-09-10 run 34434555462 就是被派到一台 git 設定有
-    # `url.*.insteadOf` 把 HTTPS 改寫成 SSH 的機器,checkout 直接
-    # `ERROR: Repository not found.` / exit 128,連 build 結果都通知不出去。
-    runs-on: [self-hosted, linux, X64, dev]
+    # label 必須與 build job 完全一致（含 `55`，理由見 build job 的註解）。
+    # 只寫 `self-hosted` 會被派到組織裡任一台 runner——2026-09-10 run 34434555462
+    # 就是被派到 yayun-MS-7D43，checkout 直接 `ERROR: Repository not found.` / exit 128,
+    # 連 build 結果都通知不出去。
+    runs-on: [self-hosted, linux, X64, dev, "55"]
     steps:
       - uses: actions/checkout@v4          # 必要！否則 runner 上沒有 .github/workflows/teams-mapping.json → 永遠 tag 不到人
       - name: Compose & send Adaptive Card
