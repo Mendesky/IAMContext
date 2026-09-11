@@ -111,6 +111,9 @@ permissions:
     operationId: editSalesEinvoiceUsage
     description: "修改銷項電子發票使用狀態"
   - slot: AuditQuoting
+    operationId: editServiceItemContent
+    description: "修改自訂（customized）serviceItem 的服務內容（呈現在服務範圍段落）；省略本欄位即為清空"
+  - slot: AuditQuoting
     operationId: editServiceItemEndDate
     description: "修改 serviceItem 的結束日；指定 workItemType 則僅修改該 workItem 的 endDate，未指定則修改 serviceItem 層級 endDate"
   - slot: AuditQuoting
