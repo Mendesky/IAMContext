@@ -49,8 +49,14 @@ permissions:
     operationId: deactivateStaff
     description: 停用員工（離職）
   - slot: Staff
+    operationId: activateStaff
+    description: 啟用員工（復職）
+  - slot: Staff
     operationId: staffLinkToAccount
     description: 員工連結帳號
+  - slot: Staff
+    operationId: staffUnlinkToAccount
+    description: 員工解除帳號連結
   # ── StaffContext composition module ──
   - slot: StaffContext
     operationId: getCpaStaffs

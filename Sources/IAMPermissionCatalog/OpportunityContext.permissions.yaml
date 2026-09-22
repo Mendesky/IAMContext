@@ -6,8 +6,20 @@ permissions:
     operationId: addAccounting
     description: "新增一筆會計帳務處理作業（accounting）serviceItem；serviceItemId 由後端生成並回傳"
   - slot: AuditQuoting
+    operationId: addTaxAccounting
+    description: "新增一筆稅務帳務處理作業（taxAccounting）serviceItem；serviceItemId 由後端生成並回傳"
+  - slot: AuditQuoting
+    operationId: addManagementAccounting
+    description: "新增一筆管理帳務處理作業（managementAccounting）serviceItem；serviceItemId 由後端生成並回傳"
+  - slot: AuditQuoting
+    operationId: addFinancialAccounting
+    description: "新增一筆財務帳務處理作業（financialAccounting）serviceItem；serviceItemId 由後端生成並回傳"
+  - slot: AuditQuoting
     operationId: addAccountingReform
     description: "新增一筆會計帳務重整作業（accountingReform）serviceItem；startDate / endDate / providesElectronicFile 均為必填；僅適用於 accountingType = taxAccount"
+  - slot: AuditQuoting
+    operationId: addProjectAccountingReform
+    description: "新增一筆專案會計帳務重整作業（projectAccountingReform）serviceItem；一次性（oneTime）報價單專用，不掛記帳母卡、可獨立計價；startDate / endDate 必填，無 providesElectronicFile"
   - slot: AuditQuoting
     operationId: addAssistanceAnnualSupplementaryPremiumDeductionDetailsReporting
     description: "新增一筆年度補充保費扣費明細彙報附加服務 serviceItem；workItem 固定；建議置於 additional quotingBundle"
@@ -228,6 +240,12 @@ permissions:
     operationId: addQuotingCase
     description: "在既有 grouping 加一筆 quotingCase，依 customerEstablishmentStatus discriminator 分流三種情境"
   - slot: OpportunityContext
+    operationId: addExistingClientQuotingCase
+    description: "在既有所客（existingClient）grouping 加一筆 quotingCase（集團情境）；不收核准設立日期／資本額"
+  - slot: OpportunityContext
+    operationId: addOneTimeQuotingCase
+    description: "在既有一次性（oneTime）grouping 加一筆 quotingCase（集團情境）；收核准設立日期（必填）與資本額（依 organizationType 二擇一）"
+  - slot: OpportunityContext
     operationId: archiveQuotingCaseGrouping
     description: "封存 grouping（這份報價不再進行的決策），cascade lock 下游 aggregate"
   - slot: OpportunityContext
@@ -245,6 +263,12 @@ permissions:
   - slot: OpportunityContext
     operationId: createQuotingCaseGrouping
     description: "建立 QuotingCaseGrouping，依 customerEstablishmentStatus discriminator 分流 established/establishing/unestablished 三種建立情境"
+  - slot: OpportunityContext
+    operationId: createExistingClientQuotingCaseGrouping
+    description: "建立所客報價單（quotingType=existingClient）QuotingCaseGrouping；前導頁只收統編／業績來源（不收帳務類型）"
+  - slot: OpportunityContext
+    operationId: createOneTimeQuotingCaseGrouping
+    description: "建立一次性報價單（quotingType=oneTime，使用者可見名稱「一次性專案報價案件」）QuotingCaseGrouping；政府標案、對象為機構；收核准設立日期（必填）與資本額（依 organizationType 二擇一），clientSource 用潛客那組"
   - slot: OpportunityContext
     operationId: deliverQuotingCase
     description: "把指定 quotingCase 從 .dealClosed 推進到 .delivered（建檔中），並 atomic 更新公司名"
