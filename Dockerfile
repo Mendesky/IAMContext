@@ -14,7 +14,15 @@ COPY . /workspace
 # IAMContext's deps are all public https packages (no private git@github.com: SSH deps like Middleware),
 # so the SSH mount is a no-op here — kept for pipeline uniformity with the other contexts
 # (build all with `docker build --ssh default -t ...`).
-RUN --mount=type=ssh swift build -c release --static-swift-stdlib
+#
+# Not --static-swift-stdlib: the runtime stage below is swift:slim, which
+# already ships the full Swift runtime, so static linking buys nothing here
+# and --static-swift-stdlib + Foundation is broken on Linux since Swift 6.4
+# (undefined ICU references linking libFoundationInternationalization.a —
+# https://github.com/swiftlang/swift-build/issues/1764, originally filed as
+# swift-package-manager#10564). swift:latest rolled to 6.4.0 on 2026-09-19 and
+# broke the 1.4.0 release build (Ld permission-catalog-gen failed).
+RUN --mount=type=ssh swift build -c release
 
 # set up the dist folder
 WORKDIR /dist
