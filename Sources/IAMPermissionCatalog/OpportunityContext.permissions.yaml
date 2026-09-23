@@ -550,6 +550,24 @@ permissions:
   - slot: Handover
     operationId: allocateForChiayi
     description: "[data-level] 嘉義所(chiayi)分配人員：已建檔時自動成為該所案件檢視者"
+  # ── 訪談表管理（五個資料範圍，各一個專屬權限）──────────────────────
+  # 使用者 2026-09-22 裁定：新 read model 用新權限；全所必須是特定權限，組內與所內也不同。
+  # 故端點拆成五條路徑（權限中介層以 method ＋ path 對規則，無法依 query 值分流）。
+  - slot: HandoverManagement
+    operationId: getMyCustomers
+    description: "訪談表管理「我的客戶」— 歸屬給自己的訪談表"
+  - slot: HandoverManagement
+    operationId: getCreatedCustomers
+    description: "訪談表管理「我建立的」— 自己開案的訪談表"
+  - slot: HandoverManagement
+    operationId: getDepartmentCustomers
+    description: "訪談表管理「組內客戶」— 本組分配到的訪談表"
+  - slot: HandoverManagement
+    operationId: getFirmCustomers
+    description: "訪談表管理「所內客戶」— 本所全部訪談表"
+  - slot: HandoverManagement
+    operationId: getAllCustomers
+    description: "訪談表管理「全所客戶」— 全部訪談表"
   - slot: Annotating
     operationId: markHighlightByTextQuote
     description: "以 TextQuote selector 在訪談表指定欄位劃記，並原子建立首則留言；aggregate 端只驗白名單身分（`requireMember`），「能不能劃記」就由本條授權決定"
