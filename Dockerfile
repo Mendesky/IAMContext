@@ -1,5 +1,9 @@
 #------- build -------
-FROM swift:latest AS builder
+# Toolchain 釘死 6.2.4（＝ CI main.yml 測的 6.2 系列）。不要用 swift:latest：
+# 它已滾到 6.4.0，該版有 --static-swift-stdlib 遇 Foundation 就掛的上游回歸
+#（連結 libFoundation.a 時 undefined reference to CFCharacterSetGetPredefined 等，
+#  swiftlang/swift-package-manager#10564）。釘版同時讓 image 可重現。
+FROM swift:6.2.4 AS builder
 
 # set up the workspace
 WORKDIR /workspace
@@ -27,7 +31,8 @@ RUN cp ${BUILD_FOLDER}/${APP_NAME} ./
 RUN find -L ${BUILD_FOLDER}/ -regex '.*\.resources$' -exec cp -Ra {} ./ \;
 
 #------- package -------
-FROM swift:slim
+# runtime 與 builder 同版：swift:slim 會跟著 latest 漂，執行期 runtime 與編譯期 toolchain 不同版沒有保證。
+FROM swift:6.2.4-slim
 ENV APP_NAME="IAMContextServer"
 
 # set up the app folder
