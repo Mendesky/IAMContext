@@ -17,10 +17,13 @@ import IAMContextShared
 actor PermissionsService: IAMContext_PermissionsService.ServiceProtocol {
 
     let kdbClient: KurrentDBClient
+    /// 角色定義出埠（階段二）。與 HTTP ApiHandler 共用同一實例（IAMContextServer 組裝）。
+    let roleDirectory: RoleDirectory
     let debugConfig: DebugConfig
 
-    init(kdbClient: KurrentDBClient, debugConfig: DebugConfig = .fromEnvironment()) {
+    init(kdbClient: KurrentDBClient, roleDirectory: RoleDirectory, debugConfig: DebugConfig = .fromEnvironment()) {
         self.kdbClient = kdbClient
+        self.roleDirectory = roleDirectory
         self.debugConfig = debugConfig
     }
 
@@ -31,7 +34,7 @@ actor PermissionsService: IAMContext_PermissionsService.ServiceProtocol {
             let override: [String]? = debugConfig.fullPermissions
                 ? Array(PermissionCatalog.allRawValues).sorted()
                 : nil
-            let service = GetPermissionsApplicationService(kdbClient: kdbClient, debugOverridePermissions: override)
+            let service = GetPermissionsApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverridePermissions: override)
             let permissions = try await service.execute(input: .init(userId: request.message.userID))
             if debugConfig.fullPermissions {
                 var metadata = Metadata()

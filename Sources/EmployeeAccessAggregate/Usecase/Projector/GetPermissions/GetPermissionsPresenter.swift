@@ -43,15 +43,14 @@ package struct GetPermissionsPresenter: GetPermissionsProjectorProtocol {
     }
 
     package func when(readModel: inout ReadModelType, event: RolesAssigned) throws {
-        // hand-fill (human-authorized 2026-06-03): no-op — GetPermissions read model 只投影 permissions，不追蹤 roles。
-        _ = readModel
-        _ = event
+        // 階段二（role-permission-composition §d）：由 no-op 改為聯集——read model 開始追蹤持有的 roleId，
+        // 供 GetPermissionsApplicationService 向 RoleDirectory 解析角色展開的權限。
+        readModel.roles.formUnion(event.roles)
     }
 
     package func when(readModel: inout ReadModelType, event: RolesRevoked) throws {
-        // hand-fill (human-authorized 2026-06-03): no-op — GetPermissions read model 只投影 permissions，不追蹤 roles。
-        _ = readModel
-        _ = event
+        // 階段二（role-permission-composition §d）：由 no-op 改為差集。
+        readModel.roles.subtract(event.roles)
     }
 
     package func when(readModel: inout ReadModelType, event: UserPromoted) throws {

@@ -24,6 +24,7 @@ import IAMPermissionCatalog
         let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
+            roleDirectory: FakeRoleDirectory(),
             debugOverridePermissions: fullCatalog
         )
 
@@ -38,6 +39,7 @@ import IAMPermissionCatalog
         let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
+            roleDirectory: FakeRoleDirectory(),
             debugOverridePermissions: fullCatalog
         )
 
@@ -52,6 +54,7 @@ import IAMPermissionCatalog
         let kdbClient = makeTestKurrentDBClient()
         let sut = GetPermissionsApplicationService(
             kdbClient: kdbClient,
+            roleDirectory: FakeRoleDirectory(),
             debugOverridePermissions: nil  // debug OFF
         )
 
@@ -88,6 +91,7 @@ import IAMPermissionCatalog
         let kdbClient = makeTestKurrentDBClient()
         let sut = PermissionsService(
             kdbClient: kdbClient,
+            roleDirectory: FakeRoleDirectory(),
             debugConfig: DebugConfig(fullPermissions: true)
         )
         let request = ServerRequest<IAMContext_GetPermissionsRequest>(
@@ -122,6 +126,7 @@ import IAMPermissionCatalog
         let kdbClient = makeTestKurrentDBClient()
         let sut = PermissionsService(
             kdbClient: kdbClient,
+            roleDirectory: FakeRoleDirectory(),
             debugConfig: DebugConfig(fullPermissions: false)
         )
         let request = ServerRequest<IAMContext_GetPermissionsRequest>(

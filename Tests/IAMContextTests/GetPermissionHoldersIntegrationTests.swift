@@ -64,7 +64,7 @@ struct GetPermissionHoldersIntegrationTests {
             try await Task.sleep(for: .milliseconds(500))
 
             // 只有 userId2 留在清單（userId1 已被 revoke）
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let holders = try await service.execute(input: .init(permission: permission))
 
             #expect(holders.contains(userId2), "userId2 should be in holders after grant")
@@ -76,7 +76,7 @@ struct GetPermissionHoldersIntegrationTests {
     @Test func unknown_permission_returns_empty_array() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let unknownPermission = await bundle.generateId(for: "unknownPermission")
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let holders = try await service.execute(input: .init(permission: unknownPermission))
             #expect(holders.isEmpty, "unknown permission should return empty array, not throw")
         }
@@ -106,7 +106,7 @@ struct GetPermissionHoldersIntegrationTests {
             try await Task.sleep(for: .milliseconds(500))
 
             // 不帶 department → 全體持有者都回來
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let holders = try await service.execute(input: .init(permission: permission))
             #expect(holders.contains(userId1), "userId1 should appear when no department filter")
             #expect(holders.contains(userId2), "userId2 should appear when no department filter")
@@ -137,7 +137,7 @@ struct GetPermissionHoldersIntegrationTests {
             try await Task.sleep(for: .milliseconds(500))
 
             // 不帶 firm → 全體持有者都回來
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let holders = try await service.execute(input: .init(permission: permission))
             #expect(holders.contains(userId1), "userId1 should appear when no firm filter")
             #expect(holders.contains(userId2), "userId2 should appear when no firm filter")
@@ -167,7 +167,7 @@ struct GetPermissionHoldersIntegrationTests {
 
             try await Task.sleep(for: .milliseconds(500))
 
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
 
             // 帶 firm=台北所 → 只回 userId1
             let holdersTP = try await service.execute(input: .init(permission: permission, firm: "台北所"))
@@ -206,7 +206,7 @@ struct GetPermissionHoldersIntegrationTests {
 
             try await Task.sleep(for: .milliseconds(500))
 
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
 
             // firm=台北所 + department=資訊部門 → 只有 userId1（交集）
             let holders = try await service.execute(input: .init(permission: permission, department: "資訊部門", firm: "台北所"))
@@ -239,7 +239,7 @@ struct GetPermissionHoldersIntegrationTests {
 
             try await Task.sleep(for: .milliseconds(500))
 
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
 
             // 帶 department=資訊部門 → 只回 userId1
             let holdersIT = try await service.execute(input: .init(permission: permission, department: "資訊部門"))
@@ -275,7 +275,7 @@ struct GetPermissionHoldersIntegrationTests {
 
             try await Task.sleep(for: .milliseconds(500))
 
-            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
 
             // 新部門 / 新所別過濾 → 查得到
             let newDept = try await service.execute(input: .init(permission: permission, department: "業務部門"))

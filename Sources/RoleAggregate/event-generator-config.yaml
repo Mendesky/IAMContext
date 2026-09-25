@@ -1,0 +1,3 @@
+accessModifier: package
+dependencies:
+  - IAMContextShared

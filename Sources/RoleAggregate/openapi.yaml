@@ -1,0 +1,310 @@
+openapi: 3.1.0
+info:
+  title: IAMContext Role API
+  version: 0.1.0
+paths:
+  /roles:
+    post:
+      operationId: createRole
+      description: 'TODO: describe createRole'
+      parameters:
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+    get:
+      operationId: getRoles
+      description: 'TODO: describe getRoles'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleSummary'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}/rename:
+    post:
+      operationId: renameRole
+      description: 'TODO: describe renameRole'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRoleRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}/update-description:
+    post:
+      operationId: updateRoleDescription
+      description: 'TODO: describe updateRoleDescription'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleDescriptionRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}/add-permissions:
+    post:
+      operationId: addPermissions
+      description: 'TODO: describe addPermissions'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePermissionsRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}/remove-permissions:
+    post:
+      operationId: removePermissions
+      description: 'TODO: describe removePermissions'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePermissionsRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}:
+    delete:
+      operationId: deleteRole
+      description: 'TODO: describe deleteRole'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+        - $ref: '#/components/parameters/operatorId'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /roles/{roleId}/permissions:
+    get:
+      operationId: getRolePermissions
+      description: 'TODO: describe getRolePermissions'
+      parameters:
+        - $ref: '#/components/parameters/roleId'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+components:
+  parameters:
+    roleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        type: string
+    operatorId:
+      name: operatorId
+      in: header
+      required: true
+      schema:
+        type: string
+  responses:
+    NotFoundError:
+      description: '404 Not Found'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/RoleApiError'
+    UnprocessableEntityError:
+      description: '422 Unprocessable Entity'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/RoleApiError'
+    ServiceUnavailableError:
+      description: '503 Service Unavailable'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                $ref: '#/components/schemas/RoleApiError'
+  schemas:
+    RoleId:
+      type: object
+      required:
+        - roleId
+      properties:
+        roleId:
+          type: string
+    RoleApiError:
+      type: string
+      enum:
+        - aggregateNotFound
+        - invalidPayload
+        - invalidDateFormat
+        - undefinedDomainError
+        - serviceUnavailable
+        - roleNameRequired
+        - roleNameDuplicated
+        - roleNameUnchanged
+        - descriptionUnchanged
+        - permissionsUnchanged
+        - invalidPermission
+    CreateRoleRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    RenameRoleRequest:
+      type: object
+      required:
+        - newName
+      properties:
+        newName:
+          type: string
+    UpdateRoleDescriptionRequest:
+      type: object
+      properties:
+        newDescription:
+          type: string
+    RolePermissionsRequest:
+      type: object
+      required:
+        - permissions
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+    RoleSummary:
+      type: object
+      required:
+        - roleId
+        - name
+        - permissions
+      properties:
+        roleId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
