@@ -1,0 +1,627 @@
+<title>IAM 角色機制規劃</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --ink: #1B2130;
+    --muted: #5B6474;
+    --rule: #D8DDE5;
+    --accent: #1F4E8C;
+    --accent-soft: #E7EEF9;
+    --seal: #B23F2B;
+    --seal-soft: #F8ECE8;
+    --ok: #1E7B4F;
+    --warn: #9A6700;
+    --code-bg: #EEF1F5;
+    --shadow: 0 1px 2px rgba(27,33,48,.06);
+    --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+    --sans: "Noto Sans TC", "PingFang TC", "Heiti TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161F;
+      --surface: #181E2A;
+      --ink: #E7EBF3;
+      --muted: #9AA4B7;
+      --rule: #2A3345;
+      --accent: #8FB2F2;
+      --accent-soft: #1E2A42;
+      --seal: #E3805F;
+      --seal-soft: #3A2620;
+      --ok: #5CC48E;
+      --warn: #E0B24A;
+      --code-bg: #1F2736;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161F;
+    --surface: #181E2A;
+    --ink: #E7EBF3;
+    --muted: #9AA4B7;
+    --rule: #2A3345;
+    --accent: #8FB2F2;
+    --accent-soft: #1E2A42;
+    --seal: #E3805F;
+    --seal-soft: #3A2620;
+    --ok: #5CC48E;
+    --warn: #E0B24A;
+    --code-bg: #1F2736;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.75;
+    padding-inline: 20px;
+    padding-block: 0 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 48px;
+  }
+  @media (min-width: 1080px) {
+    .page { grid-template-columns: 200px minmax(0, 1fr); }
+    .rail { display: block; }
+  }
+
+  header.masthead {
+    grid-column: 1 / -1;
+    padding-block: 44px 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  .eyebrow b { color: var(--accent); font-weight: 500; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: clamp(30px, 4.2vw, 44px);
+    line-height: 1.2;
+    margin: 0 0 14px;
+    letter-spacing: .01em;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 17px;
+    max-width: 62ch;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .rail { display: none; }
+  .rail nav {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 28px);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .rail nav p {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .rail nav ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
+  .rail nav li a {
+    display: block;
+    padding: 4px 0 4px 14px;
+    color: var(--muted);
+    margin-left: -1px;
+    border-left: 1px solid transparent;
+  }
+  .rail nav li a:hover { color: var(--ink); border-left-color: var(--accent); text-decoration: none; }
+
+  main { min-width: 0; max-width: 78ch; }
+  section { margin-bottom: 52px; }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1.3;
+    margin: 0 0 18px;
+    padding-top: 6px;
+    text-wrap: balance;
+  }
+  h2 .no {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: .06em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 16px;
+    margin: 28px 0 10px;
+  }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.4em; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--muted); }
+
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .path { font-family: var(--mono); font-size: 12.5px; color: var(--muted); word-break: break-all; }
+
+  .stamp {
+    display: inline-block;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .12em;
+    color: var(--seal);
+    border: 2px solid var(--seal);
+    border-radius: 3px;
+    padding: 0 6px;
+    line-height: 1.6;
+    transform: rotate(-4deg);
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  .summary {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+    padding: 22px 26px;
+    border-radius: 4px;
+  }
+  .summary ol { margin: 0; padding-left: 1.3em; }
+  .summary li { margin-bottom: 10px; }
+  .summary li:last-child { margin-bottom: 0; }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 18px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    line-height: 1.55;
+    background: var(--surface);
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: .04em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--rule);
+    white-space: nowrap;
+  }
+  thead th { background: var(--surface); }
+  td.k { font-weight: 500; white-space: nowrap; }
+  tr.reco td { background: var(--seal-soft); }
+  .compare td { min-width: 150px; }
+  .compare th:first-child, .compare td:first-child { min-width: 96px; }
+
+  .verdict {
+    border-top: 3px solid var(--seal);
+    background: var(--surface);
+    padding: 20px 24px;
+    margin: 22px 0;
+  }
+  .verdict h3 { margin-top: 0; }
+  .verdict ol { margin-bottom: 0; }
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14.5px;
+  }
+  .note.pending { border-left-color: var(--warn); background: var(--surface); }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .06em;
+    padding: 1px 7px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    vertical-align: middle;
+  }
+  .tag.ok { color: var(--ok); border-color: var(--ok); }
+  .tag.warn { color: var(--warn); border-color: var(--warn); }
+  .tag.seal { color: var(--seal); border-color: var(--seal); }
+
+  pre.mermaid {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    overflow-x: auto;
+    margin: 18px 0;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  .phases { list-style: none; padding: 0; margin: 0; counter-reset: ph; }
+  .phases > li {
+    counter-increment: ph;
+    position: relative;
+    padding: 18px 0 18px 56px;
+    border-top: 1px solid var(--rule);
+  }
+  .phases > li:last-child { border-bottom: 1px solid var(--rule); }
+  .phases > li::before {
+    content: counter(ph);
+    position: absolute;
+    left: 0; top: 16px;
+    width: 38px; height: 38px;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .phases h3 { margin: 0 0 6px; }
+  .phases .goal { color: var(--muted); margin-bottom: 8px; }
+  .phases ul { margin-bottom: 6px; }
+
+  .sources { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 18px; }
+  .sources ul { padding-left: 1.2em; }
+  .sources li { margin-bottom: 3px; }
+
+  @media (max-width: 640px) {
+    body { font-size: 15px; }
+    .summary { padding: 18px; }
+    th, td { padding: 8px 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow"><b>IAMContext</b> · 規劃報告 · 2026-09-21 · <span class="tag ok">階段一、二已實作 2026-09-24</span></p>
+    <h1>角色機制規劃</h1>
+    <p class="lede">讓角色成為權限的定義主體，並讓「改角色」等於「改所有持有者的有效權限」，而且不對任何一位員工寫入事件。</p>
+  </header>
+
+  <aside class="rail">
+    <nav aria-label="目錄">
+      <p>目錄</p>
+      <ol>
+        <li><a href="#s1">結論</a></li>
+        <li><a href="#s2">現況</a></li>
+        <li><a href="#s3">命名審視</a></li>
+        <li><a href="#s4">邊界</a></li>
+        <li><a href="#s5">同步機制</a></li>
+        <li><a href="#s6">事件與查詢</a></li>
+        <li><a href="#s7">邊界情境</a></li>
+        <li><a href="#s8">與既有規格的差異</a></li>
+        <li><a href="#s9">階段與驗收</a></li>
+        <li><a href="#s10">待你裁決</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <main>
+    <section id="s1">
+      <h2><span class="no">一</span>結論</h2>
+      <div class="summary">
+        <ol>
+          <li><b>沿用既有規格，解除一條範圍外。</b>2026-08-06 已有一份通過審查的 Role aggregate 規格（<span class="path">docs/tasks/role-aggregate.md</span>，狀態 ready、尚未實作）。它明確把「員工有效權限＝直接授權 ∪ 角色展開」列為不做；本輪把這一條做進來。</li>
+          <li><b>同步機制推薦「引用＋查詢時合成」。</b>員工只存 roleId，權限清單只存在 Role。查權限時把兩邊合起來。角色一改，下一次查詢就是新結果，不需要對任何持有者發 command。</li>
+          <li><b>命名調整兩處。</b>指派角色不落在 Role，沿用 EmployeeAccess 既有的 <code>assignRoles</code>／<code>revokeRoles</code>，補上「roleId 必須存在」的驗證。加減權限拿掉 InRole／FromRole 後綴，改成 <code>addPermissions</code>／<code>removePermissions</code>。</li>
+          <li><b>分三階段交付。</b>階段一角色本體，階段二合成（本輪重點：getPermissions 與 permission-holders 反查兩個讀取端同時切換），階段三管理視圖與清理。gRPC 契約（proto）三個階段都不變。</li>
+          <li><b>消費端已有 60 秒快取，角色不會讓它更糟。</b>Middleware 的 CachingPermissionsProvider 讓權限變更最多延遲 60 秒生效，今天的直接授權與收回已是如此。角色編輯走同一條路，不需要為它加通知層。</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="no">二</span>現況：為什麼角色現在沒有作用</h2>
+      <p>角色在 IAMContext 裡目前只是掛在員工身上的字串標籤。沒有定義主體，也不參與權限計算。</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>事實</th><th>位置</th></tr></thead>
+          <tbody>
+            <tr><td><code>EmployeeAccess.roles</code> 是 <code>Set&lt;String&gt;?</code>，純字串。<code>permissions</code> 同樣是 <code>Set&lt;String&gt;?</code> 的 rawValue 集合。聚合 id 是 employeeAccessId（＝staff.id），另有 <code>userId</code> 欄位。</td><td class="path">Sources/EmployeeAccessAggregate/Entity/EmployeeAccess.swift</td></tr>
+            <tr><td><code>assignRoles</code>／<code>revokeRoles</code> 只增減字串，不驗證角色是否存在。</td><td class="path">Sources/EmployeeAccessAggregate/Entity/Commands/EmployeeAccess+AssignRoles.swift</td></tr>
+            <tr><td>gRPC <code>getPermissions(userId)</code> 經 GetPermissionsPresenter 折疊 <code>IAM_GetPermissions-&lt;userId&gt;</code> 這條連結 stream，只處理 PrivilegeGranted／PrivilegeRevoked。RolesAssigned／RolesRevoked 是明確的 no-op。</td><td class="path">Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/GetPermissionsPresenter.swift<br>Sources/IAMContextServer/PermissionsService.swift</td></tr>
+            <tr><td>反查「誰持有某權限」也只看直接授權。這個端點有外部消費端：OpportunityContext 後端與 mendesky-web 的選派人 modal。</td><td class="path">projections/IAM_PermissionHoldersProjection.js<br>OpportunityContext/Sources/OpportunityContext/IAMClient/IAMHTTPPermissionHoldersClient.swift</td></tr>
+            <tr><td>Role aggregate 程式碼不存在。在 Sources／Tests 搜 <code>RoleAggregate</code>、<code>RoleCreated</code>、<code>createRole</code>、<code>PermissionsInRole</code>、<code>RoleDefinition</code>、<code>struct Role</code> 六種寫法皆零命中。</td><td class="path">Sources/（無 RoleAggregate 目錄）</td></tr>
+            <tr><td>既有規格定義了 6 個 command、6 個 event、3 個查詢，決策 D1–D16 全數已裁決。其中 Non-goal 第一條寫明 getPermissions 行為完全不變。</td><td class="path">docs/tasks/role-aggregate.md<br>docs/discussions/2026-08-06-role-aggregate.md</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="no">三</span>命名審視</h2>
+      <p>你提的五個 command 意圖都對。調整的重點是「掛在哪個 aggregate 上」，其次才是文法。</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>你提的</th><th>建議</th><th>落點</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td class="k">createRole</td><td><code>createRole</code> → <code>RoleCreated</code></td><td>Role</td><td>不變。roleId 由 aggregate 自行生成（既有裁決 D15），建立端點不帶 path id。</td></tr>
+            <tr><td class="k">addPermissionsInRole</td><td><code>addPermissions</code> → <code>RolePermissionsAdded</code><br><span class="path">POST /roles/{roleId}/add-permissions</span></td><td>Role</td><td>方法掛在 Role 上，受詞已經是 Role，後綴多餘。這也符合 EmployeeAccess 的既有命名（<code>grantPrivilege</code> 而非 grantPrivilegeToEmployee）。「in」文法不對，若要保留介詞請用 To／From 成對。批次、帶淨效果集合（D11）。</td></tr>
+            <tr><td class="k">removePermissionsFromRole</td><td><code>removePermissions</code> → <code>RolePermissionsRemoved</code><br><span class="path">POST /roles/{roleId}/remove-permissions</span></td><td>Role</td><td>同上。</td></tr>
+            <tr><td class="k">deleteRole</td><td><code>deleteRole</code> → <code>RoleDeleted</code></td><td>Role</td><td>不變。刪除語意見第七節。</td></tr>
+            <tr><td class="k">assigeRole</td><td><code>assignRoles</code>（既有）</td><td>EmployeeAccess</td><td>拼字是 assign。「誰持有哪些角色」是員工的事實，不是角色的事實，所以落在 EmployeeAccess。既有實作已是批次的 assignRoles／revokeRoles，本輪只補「roleId 必須存在且未刪除」的驗證，放在 usecase 層（比照 D7）。</td></tr>
+            <tr><td class="k">（未列）</td><td><code>revokeRoles</code>（既有）</td><td>EmployeeAccess</td><td>反向操作。沒有它角色一旦指派就拿不掉。</td></tr>
+            <tr><td class="k">（未列）</td><td><code>renameRole</code>、<code>updateRoleDescription</code></td><td>Role</td><td>既有規格 D12／D13。管理 UI 建角色需要名稱與描述。改名不影響任何人的權限，因為員工引用的是 roleId 不是名稱。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="no">四</span>邊界：兩個 aggregate 各守一個事實</h2>
+      <p><b>Role</b> 回答「這個角色是什麼」：名稱、描述、權限集合。<b>EmployeeAccess</b> 回答「這位員工持有什麼」：直接授權的權限，加上持有的 roleId。兩者之間沒有需要同時成立的不變式，關聯只在讀取時合成。這是整個設計的基礎，第五節的同步機制直接從這裡推出來。</p>
+      <pre class="mermaid">
+flowchart LR
+  subgraph W["寫入側：各守自己的不變式"]
+    R["Role aggregate
+name · description · permissions"]
+    E["EmployeeAccess aggregate
+permissions（直接授權）· roles（roleId 集合）"]
+  end
+  subgraph Q["讀取側：合成"]
+    G["getPermissions(userId)
+直接授權 ∪ 每個 roleId 的 permissions"]
+  end
+  E -- "折疊 IAM_GetPermissions-userId" --> G
+  R -- "rehydrate 每個 roleId" --> G
+  G --> C["消費端 context（gRPC）與管理 UI（HTTP）"]
+      </pre>
+    </section>
+
+    <section id="s5">
+      <h2><span class="no">五</span>核心：角色權限變更如何同步到持有者</h2>
+      <p>你點出的問題有三種解法。差別在「角色改一次，系統要做多少事」以及「權限來源會不會混在一起」。</p>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead><tr><th>方案</th><th>做法</th><th>角色改一次的成本</th><th>一致性</th><th>主要風險</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="k">A　複製展開</td>
+              <td>指派時把角色的權限複製進員工的 <code>permissions</code>。角色改動後，由 process manager 查出持有者，逐一對每人發 grant／revoke。</td>
+              <td>N 個 command、N 個事件，N＝持有人數。</td>
+              <td>最終一致，且可能半途失敗，留下一半人已更新的狀態。</td>
+              <td>必須標記每個權限的來源，否則從角色移除某權限會誤刪剛好也被直接授予的人。角色編輯與同時進行的指派有競態。員工的事件流被機械事件淹沒，審計價值下降。</td>
+            </tr>
+            <tr class="reco">
+              <td class="k">B　引用＋查詢時合成<span class="stamp">推薦</span></td>
+              <td>員工只存 roleId。查詢時計算 直接授權 ∪ ⋃ role.permissions。</td>
+              <td>1 個事件（例如 RolePermissionsRemoved）。與持有人數無關。</td>
+              <td>角色部分強一致（每次查詢 rehydrate Role）。指派部分維持既有 projection 的延遲。</td>
+              <td>getPermissions 多 K 次 Role 讀取，K＝該員工的角色數，通常個位數。「誰持有某權限」的反查要改成聯集（第九節階段三）。</td>
+            </tr>
+            <tr>
+              <td class="k">C　B＋變更通知</td>
+              <td>同 B，另在角色變更時發整合事件或推播，讓消費端失效快取。</td>
+              <td>1 個事件＋1 次通知。</td>
+              <td>同 B。</td>
+              <td>消費端確實有快取（見下方「消費端生效延遲」），但那個延遲今天對直接授權同樣存在。為角色單獨加通知層，會讓兩種來源的生效時間不一致，反而難解釋。不建議本輪做。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="verdict">
+        <h3>推薦 B 的理由</h3>
+        <ol>
+          <li><b>每個事實只有一個寫入點。</b>權限清單在 Role，持有關係在 EmployeeAccess。方案 A 讓同一份清單在 N 條 stream 各存一份，之後每次區分「角色來的」與「直接給的」都要靠額外標記維持。</li>
+          <li><b>角色編輯是常數成本。</b>一個角色被 3 個人或 300 個人持有，改起來都一樣，不會產生事件風暴。</li>
+          <li><b>直接授權與角色展開天然分離。</b>從角色移除某權限，不會動到剛好也被直接授予同一權限的人；撤銷角色也不會刪掉直接授權。這不是額外邏輯，是結構的結果。</li>
+          <li><b>刪除角色的語意自然成立。</b>roleId 解析不到就貢獻零權限，正是既有裁決 D9 的 fail-safe deny。</li>
+          <li><b>符合事件溯源的分工。</b>aggregate 守寫入不變式，「有效權限」是衍生的讀取視圖。這也是舊討論 L28 當年猶豫的點，現在把它接起來。</li>
+        </ol>
+      </div>
+
+      <h3>落地位置</h3>
+      <ul>
+        <li>在 EmployeeAccessAggregate 新增 <code>protocol RoleDirectory</code>，一個 port 兩個用途：<code>resolve(roleIds:)</code> 回傳「roleId → 權限集合」的字典，查不到或已刪除的 roleId 不出現在結果裡。getPermissions 用它取權限做聯集；AssignRolesService 用它驗證每個 roleId 都有出現，缺一個就拒絕。adapter 由 RoleAggregate 的 repository 實作，EmployeeAccessAggregate target 不依賴 RoleAggregate target，整合測試可注入假的目錄。</li>
+        <li>注入點有兩個，必須同時改。HTTP 的 ApiHandler 目前在 EmployeeAccessAggregate 內部自行建立 GetPermissionsApplicationService（<span class="path">Sources/EmployeeAccessAggregate/Adapter/ApiHandler.swift</span>），gRPC 的 PermissionsService 也各自建立一份（<span class="path">Sources/IAMContextServer/PermissionsService.swift</span>）。兩者都改成從初始化參數接收 RoleDirectory，由 IAMContextServer 組裝時傳入同一個實例。只改其中一邊，另一邊就不會展開角色。</li>
+        <li>GetPermissionsPresenter 開始折疊 RolesAssigned／RolesRevoked 到 read model 的 <code>roles</code> 欄位。目前這兩個事件是 no-op。</li>
+        <li>GetPermissionsApplicationService 在折疊完後呼叫 RoleDirectory，回傳 <code>permissions ∪ ⋃ resolve(roles).values</code>。解析不到或已刪除的 roleId 自然不在字典裡，直接略過。</li>
+        <li>解析方式用 Role aggregate rehydrate，每個 roleId 一次 stream 讀取。角色部分因此是強一致：改完角色的下一個查詢就生效。角色數量成長到需要時，再改為折疊 <code>$ce-IAMRole</code> 的單一目錄 stream（既有規格 getRoles 用的 projection）並加短 TTL 快取。那是效能優化，不是設計改變。</li>
+        <li>HTTP <code>GET /employee-access/permissions/{userId}</code> 與 gRPC <code>getPermissions</code> 用同一個 application service 類別，但各自建立實例。兩個入口都注入 RoleDirectory 後才算兩邊同時生效。proto 不變，消費端不需改碼。</li>
+      </ul>
+
+      <pre class="mermaid">
+sequenceDiagram
+  participant A as 管理者
+  participant RO as Role aggregate
+  participant K as KurrentDB
+  participant S as GetPermissionsApplicationService
+  participant X as 消費端 context
+  A->>RO: removePermissions(roleId, [p1])
+  RO->>K: 寫入 RolePermissionsRemoved
+  Note over K: 沒有任何 EmployeeAccess 事件被寫入
+  X->>S: gRPC getPermissions(userId)
+  S->>K: 折疊 IAM_GetPermissions-userId 得到 permissions 與 roles
+  S->>K: rehydrate 每個 roleId 的 Role
+  S-->>X: 直接授權 ∪ 角色權限，已不含 p1
+      </pre>
+
+      <h3>消費端生效延遲</h3>
+      <p>IAM 這一端改完角色，下一個查詢就是新結果。但消費端不是每個 request 都來問。Middleware 套件的 <code>CachingPermissionsProvider</code> 是每個 process 內的 TTL 快取，正權限預設 60 秒、空結果 10 秒，有 <code>invalidate</code> 介面但目前沒有任何呼叫點。AuditContext 的 composition root 已經用它包住 gRPC client。</p>
+      <div class="note">
+        這表示今天一筆直接授權被收回，持有者最多還能再用 60 秒。角色編輯的生效延遲與此完全相同，只是一次影響的人數更多。若業務上需要更快的收回，該修的是快取層（縮短 TTL，或由 IAM 廣播失效），而且要對直接授權與角色一起修。這是獨立於角色機制的題目，本報告不納入。
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>位置</th><th>行為</th></tr></thead>
+          <tbody>
+            <tr><td class="path">Middleware/Sources/Middleware/PermissionAuthorization/PermissionMiddleware.swift</td><td>每個命中規則的 request 呼叫 provider 查權限，查不到就 fail-closed。</td></tr>
+            <tr><td class="path">Middleware/Sources/Middleware/PermissionAuthorization/CachingPermissionsProvider.swift</td><td>actor，userId → 權限的 TTL 快取，上限 500 筆；只在 miss 或過期時打上游。</td></tr>
+            <tr><td class="path">AuditContext/Sources/AuditContextServer/main.swift</td><td>啟動時以 CachingPermissionsProvider 包住 IAMContextGRPCClient，之後不再重建。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="no">六</span>事件與查詢清單</h2>
+      <h3>Role（新 target <code>RoleAggregate</code>，stream category <code>IAMRole</code>）</h3>
+      <p>與既有規格相同，六個事件：<code>RoleCreated</code>（roleId、name、description 可選）、<code>RoleRenamed</code>、<code>RoleDescriptionUpdated</code>、<code>RolePermissionsAdded</code>、<code>RolePermissionsRemoved</code>（兩者帶淨效果集合）、<code>RoleDeleted</code>。加權限時在 usecase 層驗證每個 rawValue 存在於 IAMPermissionCatalog 聚合目錄（D7）。</p>
+      <h3>EmployeeAccess（既有 target）</h3>
+      <p>事件不變，RolesAssigned／RolesRevoked 沿用。改動四處：<code>AssignRolesService</code> 經 RoleDirectory 驗證 roleId；GetPermissionsPresenter 折疊 roles；GetPermissionsApplicationService 接 RoleDirectory；ApiHandler 與 PermissionsService 的初始化改為接收 RoleDirectory。</p>
+      <h3>查詢</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>查詢</th><th>來源</th><th>一致性</th><th>階段</th></tr></thead>
+          <tbody>
+            <tr><td class="k">getRoles</td><td>projection <code>$ce-IAMRole</code> 折疊成角色目錄。與既有規格不同：read model 要一併折疊 RolePermissionsAdded／Removed，帶每個角色的權限集合，反查才找得到「含某權限的角色」。</td><td>最終一致</td><td>一</td></tr>
+            <tr><td class="k">getRolePermissions</td><td>Role rehydrate</td><td>強一致</td><td>一</td></tr>
+            <tr><td class="k">getRoleHolders</td><td>projection <code>IAM_GetRoleHolders-&lt;roleId&gt;</code>，折疊 RolesAssigned／RolesRevoked，落在 EmployeeAccess（D16）</td><td>最終一致</td><td>一</td></tr>
+            <tr><td class="k">getPermissions</td><td>既有 read model ＋ 解析器合成</td><td>指派最終一致、角色強一致</td><td>二</td></tr>
+            <tr><td class="k">getPermissionHolders</td><td>直接持有者 ∪ 含該權限之角色的持有者。有外部消費端：OpportunityContext 後端與 mendesky-web 的選派人 modal。</td><td>最終一致</td><td>二（必須與 getPermissions 同時切換）</td></tr>
+            <tr><td class="k">getEffectivePermissions（新）</td><td>同 getPermissions，但回傳來源明細：直接授權、經由哪個角色</td><td>同 getPermissions</td><td>三（可提前，見第十節）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="no">七</span>邊界情境決策</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>情境</th><th>決策</th><th>依據</th></tr></thead>
+          <tbody>
+            <tr><td>刪除仍被持有的角色</td><td>允許。持有者立刻失去該角色帶來的權限。<code>EmployeeAccess.roles</code> 內殘留的 roleId 是惰性引用，不報錯。deleteRole 回應附持有人數，UI 做二次確認。</td><td>D9；不引入跨 aggregate 不變式</td></tr>
+            <tr><td>同一權限同時來自直接授權與角色</td><td>兩者獨立，效果為聯集。任一來源移除不影響另一來源。</td><td>方案 B 的結構性結果</td></tr>
+            <tr><td>同一權限存在於多個角色</td><td>從其中一個角色移除後，只要另一角色仍含該權限，持有者仍有效。</td><td>聯集語意；測試要明確覆蓋</td></tr>
+            <tr><td>角色改名</td><td>無權限影響。</td><td>引用 roleId，不是名稱</td></tr>
+            <tr><td>assignRoles 指到不存在或已刪除的 roleId</td><td>usecase 層拒絕，錯誤碼 <code>roleNotFound</code>。與刪除同時發生而產生的懸空引用，由查詢端略過。</td><td>比照 D7：驗證放 usecase，不放 aggregate</td></tr>
+            <tr><td>歷史資料 <code>roles</code> 內的舊字串（非 roleId）</td><td>解析不到，零權限，不報錯。階段三提供「解析不到的 roleId」清單供清理。</td><td>既有 Non-goal 第四條保留</td></tr>
+            <tr><td>角色內的權限 rawValue 在消費端 catalog 消失</td><td>有效權限多一個沒人用的字串，無害。與直接授權今天的行為相同。</td><td>不在本輪</td></tr>
+            <tr><td>加入已存在或移除不存在的權限，淨效果為空</td><td>拒絕，錯誤碼 <code>permissionsUnchanged</code>。</td><td>D11</td></tr>
+            <tr><td>角色管理端點的授權</td><td>沿用 AdminTokenMiddleware 的 Bearer token。IAM 自身沒有權限 catalog，不走 context-permission 把關。</td><td>D10；<span class="path">Sources/IAMPermissionCatalog/Consume.swift</span> 註記</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s8">
+      <h2><span class="no">八</span>與既有規格的差異</h2>
+      <ul>
+        <li><b>解除 Non-goal 第一、二條。</b>有效權限合成與 assign-roles 驗證納入階段二。</li>
+        <li><b>回歸保護縮小適用範圍。</b>既有規格要求「EmployeeAccess 核心區塊 <code>git diff --stat</code> 必須為空」，只適用階段一。階段二明確改動 GetPermissionsPresenter、GetPermissionsApplicationService、AssignRolesService 三個檔。</li>
+        <li><b>新增介面。</b><code>RoleDirectory</code> port、RoleAggregate 端的 adapter，以及 ApiHandler／PermissionsService 初始化參數的變更，都是既有規格沒有的。</li>
+        <li><b>getRoles 的 read model 多帶 permissions。</b>既有規格只回 roleId、name、description。反查要找「含某權限的角色」，必須在同一個折疊裡帶上權限集合。</li>
+        <li><b>反查跟著切換。</b>getPermissionHolders 改為聯集，與 getPermissions 同一階段上線。原因是 OpportunityContext 後端與 mendesky-web 的選派人 modal 都吃這個端點：若只切 getPermissions，會出現「有權限卻選不到人」的不一致。</li>
+        <li><b>新增查詢。</b>階段三的 getEffectivePermissions 明細與懸空 roleId 清理，既有規格沒有。</li>
+        <li><b>其餘照舊。</b>六個 command、六個 event、三個查詢、D1–D16 全部沿用。registry 狀態要從 ready 改回 draft，走一次 update-spec 回填後再審。</li>
+      </ul>
+    </section>
+
+    <section id="s9">
+      <h2><span class="no">九</span>實作階段與驗收</h2>
+      <p>三個階段有先後依賴：沒有 Role 就沒東西可以合成，沒有合成就沒東西可以反查。</p>
+      <ol class="phases">
+        <li>
+          <h3>角色本體</h3>
+          <p class="goal">照既有規格實作，getPermissions 行為在這一階段完全不變。</p>
+          <ul>
+            <li>新 target <code>RoleAggregate</code>：Package.swift 宣告（比照 EmployeeAccessAggregate 的 plugins 與 resources）、IAMContextServer 註冊 ApiHandler、IAMContextTests 加依賴。</li>
+            <li><span class="path">.ai/contexts/IAMContext/Role/</span> 補 commands、invariants、errors、api、test-scenarios 五份 SSOT。</li>
+            <li>projection：<code>IAM_GetRolesProjection.js</code>、<code>IAM_RoleHoldersProjection.js</code>，並加進 <span class="path">scripts/projection.sh</span>。getRoles 的 presenter 一併折疊 RolePermissionsAdded／Removed（第八節）。</li>
+            <li>驗收：<code>swift build</code> 綠；RoleIntegrationTests 綠；EmployeeAccess 核心區塊 diff 為空。</li>
+          </ul>
+        </li>
+        <li>
+          <h3>合成 <span class="tag seal">本輪重點</span></h3>
+          <p class="goal">角色開始影響有效權限。兩個讀取端同一版切換。切換前先確認每個消費端的權限 catalog 都已登錄（workspace 鐵則 3）。</p>
+          <ul>
+            <li>RoleDirectory port ＋ RoleAggregate 端 adapter；ApiHandler 與 PermissionsService 改為注入；Presenter 折疊 roles；AssignRolesService 經 RoleDirectory 驗證 roleId。</li>
+            <li>getPermissionHolders 改為聯集：直接持有者 ∪ 含該權限之角色的持有者。用 getRoles 目錄（已帶 permissions）找出含該權限的角色，再用 getRoleHolders 取持有者；既有的 department／firm 過濾套用在聯集後的結果上。成本界線：過濾是逐人讀 read model，今天的直接持有者路徑已是如此（<span class="path">Sources/EmployeeAccessAggregate/Adapter/GetPermissionHolders/GetPermissionHoldersApplicationService.swift</span>）；聯集後人數上限是全公司員工數，數百人，可接受。若日後要更快，再加一支帶部門欄位的 role-holders projection，不改設計。</li>
+            <li>驗收測試（swift-testing，接真實 KurrentDB，沿用 <span class="path">Tests/IAMContextTests/IntegrationTestSupport.swift</span> 的 seedActiveProfile）：
+              <ul>
+                <li>createRole → addPermissions → assignRoles → HTTP <code>GET /employee-access/permissions/{userId}</code> 與 gRPC <code>PermissionsService.getPermissions</code> 都含該權限。</li>
+                <li>兩位以上員工持有同一角色，removePermissions 後兩個入口立即都不含該權限，不重啟、不等待；且 <code>$ce-IAMEmployeeAccess</code> 類別 stream 的事件數在角色編輯前後完全相同，證明對任何持有者都沒有扇出。</li>
+                <li>deleteRole 後該角色權限消失，直接授權仍在。</li>
+                <li>直接授權與角色給同一權限，從角色移除後仍有效。</li>
+                <li>兩個角色含同一權限，移除其一仍有效。</li>
+                <li>assignRoles 帶未知 roleId 被拒絕。</li>
+                <li>手動寫入舊字串的 RolesAssigned，getPermissions 不報錯、不多出權限。</li>
+                <li>注入假的 RoleDirectory 時，HTTP 與 gRPC 兩個入口都使用該假目錄，證明兩個注入點都接上。</li>
+                <li>某人只經由角色持有權限 p，getPermissionHolders(p) 列出他；從角色移除 p 後不再列出；帶 department 過濾時結果一致。</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <h3>管理視圖與清理</h3>
+          <p class="goal">讓管理者看得到「為什麼這個人有這個權限」。</p>
+          <ul>
+            <li>getEffectivePermissions：回傳直接授權與每個角色各貢獻的權限。</li>
+            <li>懸空 roleId 清理查詢。</li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+
+    <section id="s10">
+      <h2><span class="no">十</span>待你裁決</h2>
+      <ol>
+        <li><b>刪除有持有者的角色。</b>允許並警示（推薦，維持 D9），或阻擋（必須先對所有持有者 revoke 才能刪）。</li>
+        <li><b>renameRole／updateRoleDescription。</b>保留在階段一（推薦），或延後。</li>
+        <li><b>getEffectivePermissions 明細。</b>放階段二一起做，或留到階段三。若管理 UI 第一版就要顯示權限來源，建議提前。</li>
+        <li><b>舊字串 roles 資料。</b>放著不管（推薦，惰性引用無害），或做一次清理。</li>
+        <li><b>消費端 60 秒快取。</b>接受現狀（推薦，與直接授權一致），或另開題目縮短 TTL／加失效廣播。</li>
+      </ol>
+      <div class="note pending" id="cache-check">
+        <span class="tag ok">已查證</span>　消費端快取存在，細節見第五節「消費端生效延遲」。另查到 permission-holders 反查有兩個外部消費端（OpportunityContext 後端、mendesky-web 前端），已反映在階段二的範圍。
+      </div>
+    </section>
+
+    <footer class="sources">
+      <p>實作狀態（2026-09-24）：階段一（role-aggregate）與階段二（role-permission-composition）皆已在分支 feat/role-aggregate 實作完成。swift build 綠；全套 swift test 103 個通過，含 RoleIntegrationTests 12 個與 RolePermissionCompositionIntegrationTests 9 個；兩階段各經 Gemini 總審 PASS。實作與規格的偏差已回填至兩份規格檔尾「實作回填」段。尚未 commit。</p>
+      <p>驗證：獨立 read-back 7 項 PASS（路徑存在、事實核對、裁決編號比對、HTML 結構）；codex 第二意見 2 BLOCKER、4 WARN 已全部回填：getRoles 帶 permissions、RoleDirectory 取代單一解析器、雙入口注入、零扇出測試改看類別 stream、反查效能界線、gRPC 即時性驗收。</p>
+      <p>本報告依據的檔案（未標 repo 者為 IAMContext 相對路徑）：</p>
+      <ul>
+        <li>docs/tasks/role-aggregate.md、docs/tasks/registry/role-aggregate.json、docs/discussions/2026-08-06-role-aggregate.md</li>
+        <li>Sources/EmployeeAccessAggregate/Entity/EmployeeAccess.swift、Sources/EmployeeAccessAggregate/Entity/Commands/</li>
+        <li>Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/GetPermissionsPresenter.swift、Sources/EmployeeAccessAggregate/Adapter/GetPermissions/GetPermissionsApplicationService.swift</li>
+        <li>Sources/IAMContextServer/PermissionsService.swift、Sources/IAMContextServer/IAMContextServer.swift、proto/PermissionsService.proto</li>
+        <li>projections/IAM_GetPermissionsProjection.js、projections/IAM_PermissionHoldersProjection.js、scripts/projection.sh</li>
+        <li>Sources/IAMPermissionCatalog/Consume.swift、Tests/IAMContextTests/IntegrationTestSupport.swift</li>
+        <li>跨 repo：Middleware/Sources/Middleware/PermissionAuthorization/{PermissionMiddleware,CachingPermissionsProvider}.swift、AuditContext/Sources/AuditContextServer/main.swift、OpportunityContext/Sources/OpportunityContext/IAMClient/IAMHTTPPermissionHoldersClient.swift、mendesky-web/src/app/features/quoting-cases/components/select-allocator-modal/select-allocator-modal.component.ts</li>
+      </ul>
+    </footer>
+  </main>
+</div>

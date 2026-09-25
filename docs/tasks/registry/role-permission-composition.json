@@ -1,0 +1,69 @@
+{
+  "id": "role-permission-composition",
+  "file": "docs/tasks/role-permission-composition.md",
+  "title": "階段二：員工有效權限合成（角色開始影響權限）",
+  "status": "done",
+  "created": "2026-09-24",
+  "depends_on": [
+    "role-aggregate"
+  ],
+  "supersedes": [],
+  "discussion": "docs/2026-09-21-role-mechanism-plan.html",
+  "html_mirror": "",
+  "preconditions": [
+    "file:docs/tasks/role-aggregate.md",
+    "file:docs/tasks/registry/role-aggregate.json",
+    "file:Sources/EmployeeAccessAggregate/Adapter/GetPermissions/GetPermissionsApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/GetPermissionsPresenter.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/PermissionsReadModel.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Port/In/AssignRoles/AssignRolesUsecase.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Service/AssignRolesService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/AssignRoles/AssignRolesApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/GetPermissionHolders/GetPermissionHoldersApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/ApiHandler.swift",
+    "file:Sources/EmployeeAccessAggregate/EmployeeAccessError.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/ApiComponents/ApiComponents+EmployeeAccessApiError.swift",
+    "file:Sources/IAMContextServer/PermissionsService.swift",
+    "file:Sources/IAMContextServer/IAMContextServer.swift",
+    "file:Tests/IAMContextTests/IntegrationTestSupport.swift",
+    "file:Sources/RoleAggregate/Usecase/Port/Out/RoleRepository.swift",
+    "file:Sources/RoleAggregate/Usecase/Projector/GetRoles/GetRolesPresenter.swift"
+  ],
+  "verification": [
+    "swift build",
+    "grep -n \"protocol RoleDirectory\" Sources/EmployeeAccessAggregate/Usecase/Port/Out/RoleDirectory.swift",
+    "grep -n \"case roleNotFound\" Sources/EmployeeAccessAggregate/EmployeeAccessError.swift",
+    "bash scripts/projection.sh",
+    "swift test --filter RolePermissionCompositionIntegrationTests",
+    "swift test --filter GetPermissionsIntegrationTests",
+    "swift test --filter GetPermissionHoldersIntegrationTests",
+    "swift test --filter AssignRolesIntegrationTests",
+    "git diff --stat -- proto/ Sources/Generated/ Sources/EmployeeAccessAggregate/event.yaml Sources/RoleAggregate/Entity Sources/RoleAggregate/Usecase/Port Sources/RoleAggregate/Usecase/Service  # 必須為空"
+  ],
+  "tags": [
+    "feature"
+  ],
+  "status_history": [
+    {
+      "status": "draft",
+      "at": "2026-09-24T00:00:00+08:00",
+      "note": "初稿。依規劃報告 docs/2026-09-21-role-mechanism-plan.html 第五、六、七、八、九節撰寫。RoleDirectory 的 rolesContaining(permission:) 第二方法為本規格新增設計（報告未逐字定義型別落點），用途是避免 EmployeeAccessAggregate 與 RoleAggregate 兩個 target 互相依賴造成 SwiftPM 循環依賴；標記見 spec 介面合約 §a 與已知限制 #4。尚未經 audit-spec 或外部第二意見審查。"
+    },
+    {
+      "status": "ready",
+      "at": "2026-09-24",
+      "note": "audit-spec 完成（4b 通用規則 5/5 PASS、5b 內部一致性 7/7 PASS，含逐一 Read 對照 Sources/ 實際檔案；Codex gpt-5.5/medium 外部審查）。修正 3 項：(1) HIGH：§g GetPermissionHoldersApplicationService 的直接持有者 early-return 會讓「只經由角色持有、無人直接持有」的情境（驗收測試#9）永遠查不到人，已改為讀不到 stream 時視為空陣列並繼續跑角色展開；(2) MEDIUM：§b rolesContaining 的 presenter.execute 呼叫改用 try? 吞錯，避免 projection 未部署時把錯誤往外拋、違背失敗路徑承諾的『回空集合』；(3) LOW：驗收標準的 Package.swift grep 由全檔計數式門檻（Package.swift 既有 2 處無關命中，門檻形同虛設）改為 sed 先擷取 RoleAggregate target 區塊再檢查。另修正一處程式碼註解筆誤（allUserIds/directHolders 混用）與已知限制 #7（依 role-aggregate.md 2026-09-24 修訂，getRoles read model 已含 permissions，非落差）。無待裁決項。"
+    },
+    {
+      "status": "in-progress",
+      "at": "2026-09-24T11:51:05+08:00",
+      "session": "pickup mode B (fork of role-planning session), Codex gpt-5.5 / fallback direct implementation"
+    },
+    {
+      "status": "done",
+      "at": "2026-09-24T12:09:00+08:00",
+      "note": "實作完成（Codex 用量耗盡，fork 直接實作）。swift build 綠；RolePermissionCompositionIntegrationTests 9/9；全套 swift test 103/103（19 suites）；規格 grep 契約全 PASS；回歸 diff 為空；Gemini（agy）Review PASS 0 issue。與規格差異：RoleAggregateDirectory.init(kdbClient:)（Sendable，repository 每次建立）；rolesContaining 與 GetPermissionHolders 直接持有者改窄 catch DDDError.eventsNotFound（對齊階段一）而非 try?；零扇出測試以各持有者 aggregate metadata.version 前後相同證明（非 $ce 類別 stream 計數，避免跨 suite 並行寫入造成 flaky）；規格改動檔案表漏列 RoleIntegrationTests 的 AssignRolesService 呼叫點，已一併更新。"
+    }
+  ],
+  "completed": "2026-09-24"
+}
