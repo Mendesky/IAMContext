@@ -1,10 +1,10 @@
-# Claude Code project guide — IAMContext
+# Codex project guide — IAMContext
 
 This project was bootstrapped by **Genesis v0.1.0-phase1k2** from bundle `057e8202-6f1f-4e2c-b821-3b63d931f5df`. Genesis marks unfilled business logic in generated code with compile-time holes (`#error("GENESIS-TODO: ...")`), so an aggregate with unimplemented domain logic does not build; fill a hole (say the domain logic, the skill/LLM writes it) and its `#error` disappears. Business-logic guidance lives in `.ai/contexts/IAMContext/<Aggregate>/`.
 
 ## How to fill in business logic
 
-Use Claude Code skills to materialise stubs:
+Use Codex skills to materialise stubs:
 
 - `/usecase <UseCase>` — fill the body of `{UC}Service.execute(input:)` and the matching `{Aggregate}+{UC}.swift` command + `when(event:)` overloads.
 - `/readmodel <ReadModel>` — generate read-model projector files. Read models are declared in each aggregate's `projection-model.yaml` (e.g. `Sources/EmployeeAccessAggregate/projection-model.yaml`); the existing projectors under `Usecase/Projector/` show the layout.
