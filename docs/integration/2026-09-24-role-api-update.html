@@ -1,0 +1,349 @@
+<title>IAM 角色 API 更新說明</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --ink: #1B2130;
+    --muted: #5B6474;
+    --rule: #D8DDE5;
+    --accent: #1F4E8C;
+    --accent-soft: #E7EEF9;
+    --seal: #B23F2B;
+    --seal-soft: #F8ECE8;
+    --ok: #1E7B4F;
+    --ok-soft: #E4F3EA;
+    --warn: #9A6700;
+    --warn-soft: #FBF3DE;
+    --code-bg: #EEF1F5;
+    --get: #1E7B4F;
+    --post: #1F4E8C;
+    --del: #B23F2B;
+    --serif: "Noto Serif TC", "Songti TC", "PMingLiU", Georgia, serif;
+    --sans: "Noto Sans TC", "PingFang TC", "Heiti TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161F; --surface: #181E2A; --ink: #E7EBF3; --muted: #9AA4B7; --rule: #2A3345;
+      --accent: #8FB2F2; --accent-soft: #1E2A42; --seal: #E3805F; --seal-soft: #3A2620;
+      --ok: #5CC48E; --ok-soft: #1B2E24; --warn: #E0B24A; --warn-soft: #33301E; --code-bg: #1F2736;
+      --get: #5CC48E; --post: #8FB2F2; --del: #E3805F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161F; --surface: #181E2A; --ink: #E7EBF3; --muted: #9AA4B7; --rule: #2A3345;
+    --accent: #8FB2F2; --accent-soft: #1E2A42; --seal: #E3805F; --seal-soft: #3A2620;
+    --ok: #5CC48E; --ok-soft: #1B2E24; --warn: #E0B24A; --warn-soft: #33301E; --code-bg: #1F2736;
+    --get: #5CC48E; --post: #8FB2F2; --del: #E3805F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15.5px; line-height: 1.75;
+    padding-inline: 20px; padding-block: 0 64px; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .page { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 48px; }
+  @media (min-width: 1080px) { .page { grid-template-columns: 200px minmax(0, 1fr); } .rail { display: block; } }
+
+  header.masthead { grid-column: 1 / -1; padding-block: 44px 28px; border-bottom: 1px solid var(--rule); margin-bottom: 36px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+  .eyebrow b { color: var(--accent); font-weight: 500; }
+  h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(30px, 4.2vw, 44px); line-height: 1.2; margin: 0 0 14px; text-wrap: balance; }
+  .lede { font-size: 17px; max-width: 62ch; color: var(--muted); margin: 0; }
+
+  .rail { display: none; }
+  .rail nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); font-size: 13px; line-height: 1.6; }
+  .rail nav p { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .rail nav ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
+  .rail nav li a { display: block; padding: 4px 0 4px 14px; color: var(--muted); margin-left: -1px; border-left: 1px solid transparent; }
+  .rail nav li a:hover { color: var(--ink); border-left-color: var(--accent); text-decoration: none; }
+
+  main { min-width: 0; max-width: 80ch; }
+  section { margin-bottom: 52px; }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.3; margin: 0 0 18px; padding-top: 6px; text-wrap: balance; }
+  h2 .no { font-family: var(--mono); font-weight: 400; font-size: 13px; color: var(--muted); letter-spacing: .06em; display: block; margin-bottom: 6px; }
+  h3 { font-family: var(--sans); font-weight: 700; font-size: 16px; margin: 30px 0 10px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.4em; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--muted); }
+  code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); border: 1px solid var(--rule); padding: 12px 14px; overflow-x: auto; margin: 10px 0 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .path { font-family: var(--mono); font-size: 12.5px; color: var(--muted); word-break: break-all; }
+
+  .summary { background: var(--surface); border: 1px solid var(--rule); padding: 22px 26px; border-radius: 4px; }
+  .summary ol { margin: 0; padding-left: 1.3em; }
+  .summary li { margin-bottom: 10px; }
+  .summary li:last-child { margin-bottom: 0; }
+
+  .breaking { border-left: 3px solid var(--seal); background: var(--seal-soft); padding: 12px 16px; margin: 16px 0; font-size: 14.5px; }
+  .note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; margin: 16px 0; font-size: 14.5px; }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.55; background: var(--surface); }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 700; font-size: 12.5px; letter-spacing: .04em; color: var(--muted); border-bottom: 2px solid var(--rule); white-space: nowrap; }
+  td.k { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+  td.c { font-family: var(--mono); font-size: 12.5px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .m { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; padding: 1px 7px; border-radius: 3px; border: 1px solid; margin-right: 8px; vertical-align: middle; min-width: 52px; text-align: center; }
+  .m.get { color: var(--get); border-color: var(--get); }
+  .m.post { color: var(--post); border-color: var(--post); }
+  .m.del { color: var(--del); border-color: var(--del); }
+
+  .ep { border-top: 1px solid var(--rule); padding: 18px 0 6px; }
+  .ep:last-child { border-bottom: 1px solid var(--rule); }
+  .ep h3 { margin: 0 0 8px; font-family: var(--mono); font-weight: 500; font-size: 15px; }
+  .ep .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .ep .meta b { color: var(--ink); font-weight: 500; }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; padding: 1px 7px; border-radius: 3px; border: 1px solid var(--rule); color: var(--muted); vertical-align: middle; }
+  .tag.ok { color: var(--ok); border-color: var(--ok); }
+  .tag.warn { color: var(--warn); border-color: var(--warn); }
+  .tag.seal { color: var(--seal); border-color: var(--seal); }
+
+  .sources { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 18px; }
+  @media (max-width: 640px) { body { font-size: 15px; } th, td { padding: 8px 10px; } .summary { padding: 18px; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow"><b>IAMContext</b> · 對接更新說明 · 2026-09-24 · 分支 feat/role-aggregate</p>
+    <h1>角色 API 更新說明</h1>
+    <p class="lede">IAM 新增角色管理 API。查員工權限的結果從此包含角色展開的權限，指派角色開始驗證 roleId。給 console 前端對接用。</p>
+  </header>
+
+  <aside class="rail">
+    <nav aria-label="目錄">
+      <p>目錄</p>
+      <ol>
+        <li><a href="#s1">一頁摘要</a></li>
+        <li><a href="#s2">認證與共用規則</a></li>
+        <li><a href="#s3">新端點</a></li>
+        <li><a href="#s4">既有端點的變化</a></li>
+        <li><a href="#s5">建議的 console 流程</a></li>
+        <li><a href="#s6">錯誤碼總表</a></li>
+        <li><a href="#s7">相容性與部署</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <main>
+    <section id="s1">
+      <h2><span class="no">一</span>一頁摘要</h2>
+      <div class="summary">
+        <ol>
+          <li><b>新增 9 個端點。</b>8 個在 <code>/roles</code> 底下管理角色（建立、清單、改名、改描述、加減權限、刪除、查角色權限），1 個查「誰持有某角色」。</li>
+          <li><b>3 個既有端點行為改變，形狀不變。</b><code>GET /employee-access/permissions/{userId}</code>（含 gRPC 同名方法）回傳的權限現在包含角色展開；<code>assign-roles</code> 開始驗證 roleId；<code>permission-holders</code> 現在包含只經角色持有的人。</li>
+          <li><b>唯一的破壞性變更：</b><code>assign-roles</code> 的 <code>roles</code> 陣列值必須是存在且未刪除的 roleId，否則整包 422 <code>roleNotFound</code>。若 console 目前傳的是自訂角色名稱，切換後會全部失敗。</li>
+          <li><b>不需要重產 client。</b>gRPC proto 沒變；既有 HTTP schema 只有新增（一個端點、一個 query 參數、一個錯誤碼），沒有欄位改名或移除。</li>
+          <li><b>生效時間。</b>角色權限改完，IAM 這端下一個查詢立即反映。經 Middleware 權限快取的其他 context 最多晚 60 秒，與今天直接授權的行為相同。</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="s2">
+      <h2><span class="no">二</span>認證與共用規則</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>規則</th></tr></thead>
+          <tbody>
+            <tr><td>變更類請求（POST、DELETE）</td><td>Header <code>Authorization: Bearer &lt;IAM_ADMIN_API_TOKEN&gt;</code>。由 AdminTokenMiddleware 把關，token 由 IAM 部署環境提供。</td></tr>
+            <tr><td>查詢類請求（GET）</td><td>不需 Bearer token。</td></tr>
+            <tr><td>操作者</td><td>所有變更類端點必帶 Header <code>operatorId</code>（字串），寫進事件供稽核。</td></tr>
+            <tr><td>錯誤回應形狀</td><td><code>{ "error": "&lt;錯誤碼&gt;" }</code>。狀態碼只有 404（找不到 aggregate）、422（業務規則或 payload 不合法）、503（KurrentDB 不可用等基礎設施錯誤）。</td></tr>
+            <tr><td>roleId</td><td>由 IAM 產生的 UUID 字串，建立角色時在回應取得。角色改名不會改 roleId。</td></tr>
+            <tr><td>權限 rawValue</td><td>字串，必須存在於 IAM 的聚合權限目錄（各 context 登錄進來的 permissions.yaml）。加入未知 rawValue 會整批被拒。</td></tr>
+            <tr><td>Base URL</td><td>以環境設定為準。本機開發慣用 HTTP 24202。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s3">
+      <h2><span class="no">三</span>新端點</h2>
+      <p>角色的寫入與「查單一角色權限」是強一致：請求成功後立刻可讀。<code>GET /roles</code> 與「角色持有者」走 projection，寫入後約數百毫秒才反映。</p>
+
+      <div class="ep">
+        <h3><span class="m post">POST</span>/roles</h3>
+        <div class="meta"><span>operationId <b>createRole</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>// request
+{ "name": "審計助理", "description": "審計案件的基本操作權限" }   // description 可省略
+
+// 200
+{ "roleId": "6F1C0A3E-3B7E-4B2E-9A0B-2C4D5E6F7A8B" }</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>錯誤碼</th><th>狀態</th><th>觸發</th></tr></thead><tbody>
+          <tr><td class="c">roleNameRequired</td><td class="num">422</td><td>name 為空或全空白</td></tr>
+          <tr><td class="c">roleNameDuplicated</td><td class="num">422</td><td>已有同名角色（大小寫敏感、完全比對；盡力檢查，極短時間內的同名並發寫入可能都成功）</td></tr>
+          <tr><td class="c">invalidPayload</td><td class="num">422</td><td>body 不是合法 JSON 或缺必填欄位</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m get">GET</span>/roles</h3>
+        <div class="meta"><span>operationId <b>getRoles</b></span><span>Bearer <b>不需</b></span><span>一致性 <b>最終一致</b></span></div>
+        <pre><code>// 200
+[
+  { "roleId": "6F1C…", "name": "審計助理", "description": "…", "permissions": ["AC.BusinessClient.read", "AC.Case.read"] },
+  { "roleId": "9D2B…", "name": "報價主管", "permissions": ["QC.Quotation.approve"] }
+]</code></pre>
+        <p>每筆自帶 <code>permissions</code>，前端可以直接畫「角色 × 權限」矩陣，不必逐一打單角色查詢。順序不保證。projection 未部署或尚無角色時回 <code>[]</code>，不是錯誤。</p>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m post">POST</span>/roles/{roleId}/rename</h3>
+        <div class="meta"><span>operationId <b>renameRole</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>{ "newName": "審計助理（初階）" }        // 200 → { "roleId": "…" }</code></pre>
+        <div class="table-wrap"><table><thead><tr><th>錯誤碼</th><th>狀態</th><th>觸發</th></tr></thead><tbody>
+          <tr><td class="c">roleNameRequired</td><td class="num">422</td><td>newName 為空</td></tr>
+          <tr><td class="c">roleNameDuplicated</td><td class="num">422</td><td>與其他角色同名</td></tr>
+          <tr><td class="c">roleNameUnchanged</td><td class="num">422</td><td>與現名相同</td></tr>
+          <tr><td class="c">aggregateNotFound</td><td class="num">404</td><td>roleId 不存在或已刪除</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m post">POST</span>/roles/{roleId}/update-description</h3>
+        <div class="meta"><span>operationId <b>updateRoleDescription</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>{ "newDescription": "…" }               // 可為 null 表示清空；200 → { "roleId": "…" }</code></pre>
+        <p>錯誤：<code>descriptionUnchanged</code> 422（與現值相同）、<code>aggregateNotFound</code> 404。</p>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m post">POST</span>/roles/{roleId}/add-permissions</h3>
+        <div class="meta"><span>operationId <b>addPermissions</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>{ "permissions": ["AC.Case.read", "AC.Case.edit"] }     // 200 → { "roleId": "…" }</code></pre>
+        <p>批次語意：只記錄「實際新增」的那些。傳進來的全部都已存在時視為無事可做，回 422。</p>
+        <div class="table-wrap"><table><thead><tr><th>錯誤碼</th><th>狀態</th><th>觸發</th></tr></thead><tbody>
+          <tr><td class="c">invalidPermission</td><td class="num">422</td><td>任一 rawValue 不在權限目錄中，整批拒絕</td></tr>
+          <tr><td class="c">permissionsUnchanged</td><td class="num">422</td><td>扣掉已有的之後沒有東西可加</td></tr>
+          <tr><td class="c">aggregateNotFound</td><td class="num">404</td><td>roleId 不存在或已刪除</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m post">POST</span>/roles/{roleId}/remove-permissions</h3>
+        <div class="meta"><span>operationId <b>removePermissions</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>{ "permissions": ["AC.Case.edit"] }                     // 200 → { "roleId": "…" }</code></pre>
+        <p>只記錄「實際移除」的那些。傳進來的全部都不在角色裡時回 422 <code>permissionsUnchanged</code>。其餘錯誤同上。</p>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m del">DELETE</span>/roles/{roleId}</h3>
+        <div class="meta"><span>operationId <b>deleteRole</b></span><span>Bearer <b>必要</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>// 200 → { "roleId": "…" }；404 aggregateNotFound：不存在或已刪除</code></pre>
+        <div class="breaking">
+          <b>刪除不會被持有者擋下。</b>角色一刪，所有持有者立刻失去這個角色帶來的權限；他們身上殘留的 roleId 變成惰性引用，不報錯。IAM 不提供「刪除前必須先撤銷」的保護，請 console 在刪除前呼叫 <code>GET /employee-access/role-holders?role=…</code> 顯示持有人數並二次確認。
+        </div>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m get">GET</span>/roles/{roleId}/permissions</h3>
+        <div class="meta"><span>operationId <b>getRolePermissions</b></span><span>Bearer <b>不需</b></span><span>一致性 <b>強一致</b></span></div>
+        <pre><code>// 200
+["AC.BusinessClient.read", "AC.Case.read"]              // 404 aggregateNotFound：不存在或已刪除</code></pre>
+        <p>與 <code>GET /roles</code> 的差別：這條是即時讀 aggregate，寫入後立刻正確；清單那條有 projection 延遲。剛加完權限要立刻顯示時用這條。</p>
+      </div>
+
+      <div class="ep">
+        <h3><span class="m get">GET</span>/employee-access/role-holders?role={roleId}</h3>
+        <div class="meta"><span>operationId <b>getRoleHolders</b></span><span>Bearer <b>不需</b></span><span>一致性 <b>最終一致</b></span></div>
+        <pre><code>// 200
+["userId-1", "userId-2"]           // 無人持有、角色不存在、projection 未部署 → []</code></pre>
+        <p>回傳的是 userId（與 <code>permission-holders</code> 相同），不是 employeeAccessId。這條掛在 <code>/employee-access</code> 底下，因為持有關係是員工的事實。</p>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="no">四</span>既有端點的變化</h2>
+
+      <h3><span class="m get">GET</span>/employee-access/permissions/{userId}　與 gRPC <code>PermissionsService.getPermissions</code></h3>
+      <p>回傳形狀不變，仍是權限 rawValue 的字串陣列。內容變成 <b>直接授權 ∪ 該員工每個角色的權限</b>，已去重。已刪除或解析不到的 roleId 貢獻零權限，不報錯。員工不存在的行為不變：HTTP 404，gRPC 回空清單。HTTP 與 gRPC 走同一段程式，結果一致。</p>
+      <div class="note">同一個權限同時來自直接授權與角色時，任一來源移除都不影響另一來源。同一權限存在於兩個角色時，撤銷其中一個角色後仍有效。</div>
+
+      <h3><span class="m post">POST</span>/employee-access/{employeeAccessId}/assign-roles</h3>
+      <pre><code>{ "userId": "…", "roles": ["6F1C0A3E-…", "9D2B…"] }     // roles 的值＝roleId</code></pre>
+      <div class="breaking">
+        <b>破壞性變更。</b>欄位名仍叫 <code>roles</code>、型別仍是字串陣列，但每個值必須是存在且未刪除的 roleId。任一個查不到，整包回 422 <code>roleNotFound</code>，不寫入任何事件。roleId 請從 <code>GET /roles</code> 或建立角色的回應取得。
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>錯誤碼</th><th>狀態</th><th>觸發</th></tr></thead><tbody>
+        <tr><td class="c">roleNotFound <span class="tag seal">新增</span></td><td class="num">422</td><td>任一 roleId 在角色目錄中不存在或已刪除</td></tr>
+        <tr><td class="c">roleAlreadyExists</td><td class="num">422</td><td>該員工已持有其中某個 roleId</td></tr>
+        <tr><td class="c">userIdMismatch</td><td class="num">422</td><td>body 的 userId 與該 profile 的 userId 不符</td></tr>
+        <tr><td class="c">aggregateNotFound</td><td class="num">404</td><td>employeeAccessId 不存在</td></tr>
+      </tbody></table></div>
+
+      <h3><span class="m post">POST</span>/employee-access/{employeeAccessId}/revoke-roles</h3>
+      <p>行為不變，不驗證 roleId 是否仍存在（撤銷一個已刪角色的引用是無害的）。錯誤 <code>roleNotExist</code> 422 的意思是「這位員工身上沒有這個角色」，與上面的 <code>roleNotFound</code> 是兩件事。</p>
+
+      <h3><span class="m get">GET</span>/employee-access/permission-holders?permission=…&amp;department=…&amp;firm=…</h3>
+      <p>回傳的 userId 清單現在包含<b>只經由角色持有</b>該權限的人。順序：直接持有者在前，保持原順序；經角色持有者排序後接在後面；已去重。department／firm 過濾套用在合併後的結果上。角色反查那一半走 projection，有數百毫秒延遲；projection 未部署時退化成只回直接持有者，不報錯。</p>
+    </section>
+
+    <section id="s5">
+      <h2><span class="no">五</span>建議的 console 流程</h2>
+      <h3>角色管理頁</h3>
+      <ol>
+        <li>進頁 <code>GET /roles</code>，一次拿到名稱、描述與權限集合，可直接畫矩陣。</li>
+        <li>建立：<code>POST /roles</code> 取得 roleId，接著 <code>add-permissions</code>。建立後清單約數百毫秒才會出現這個角色；建議用回傳的 roleId 先樂觀加進畫面，或延遲重取。</li>
+        <li>編輯權限：以 <code>add-permissions</code>／<code>remove-permissions</code> 送「差集」，不要把整個集合重送。傳全部已存在的東西會得到 422。</li>
+        <li>刪除：先 <code>role-holders?role=</code> 顯示持有人數，二次確認後 <code>DELETE</code>。</li>
+        <li>權限選單的候選值來源是 IAM 的權限目錄，不要讓使用者自由輸入 rawValue。</li>
+      </ol>
+      <h3>員工權限頁</h3>
+      <ol>
+        <li>指派角色：<code>assign-roles</code> 只傳 roleId，選項來自 <code>GET /roles</code>。</li>
+        <li>顯示有效權限：<code>GET /employee-access/permissions/{userId}</code>，結果已含角色展開。</li>
+        <li>要顯示「某權限是直接給的還是來自哪個角色」：目前沒有專用端點（規劃在後續階段）。過渡做法是前端拿 <code>GET /roles</code> 的 permissions 自行對照該員工持有的角色。</li>
+      </ol>
+      <div class="note warn">角色權限改完，該角色所有持有者在 IAM 這端立刻生效，不需要對每個人重新指派。但其他 context 若透過 Middleware 的權限快取取權限，最多再等 60 秒。console 若直接打 IAM 的 HTTP 端點，不受這個快取影響。</div>
+    </section>
+
+    <section id="s6">
+      <h2><span class="no">六</span>錯誤碼總表</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>錯誤碼</th><th>狀態</th><th>出現在</th><th>意思</th></tr></thead>
+          <tbody>
+            <tr><td class="c">roleNameRequired</td><td class="num">422</td><td>createRole、renameRole</td><td>名稱為空</td></tr>
+            <tr><td class="c">roleNameDuplicated</td><td class="num">422</td><td>createRole、renameRole</td><td>與現有角色同名</td></tr>
+            <tr><td class="c">roleNameUnchanged</td><td class="num">422</td><td>renameRole</td><td>新名稱與現名相同</td></tr>
+            <tr><td class="c">descriptionUnchanged</td><td class="num">422</td><td>updateRoleDescription</td><td>描述未變</td></tr>
+            <tr><td class="c">permissionsUnchanged</td><td class="num">422</td><td>addPermissions、removePermissions</td><td>淨效果為空</td></tr>
+            <tr><td class="c">invalidPermission</td><td class="num">422</td><td>addPermissions、removePermissions</td><td>rawValue 不在權限目錄</td></tr>
+            <tr><td class="c">invalidPayload</td><td class="num">422</td><td>所有 POST</td><td>body 不合法</td></tr>
+            <tr><td class="c">aggregateNotFound</td><td class="num">404</td><td>所有帶 id 的端點</td><td>roleId 或 employeeAccessId 不存在／已刪除</td></tr>
+            <tr><td class="c">roleNotFound <span class="tag seal">新增</span></td><td class="num">422</td><td>assignRoles</td><td>roleId 在角色目錄中不存在或已刪除</td></tr>
+            <tr><td class="c">roleAlreadyExists</td><td class="num">422</td><td>assignRoles</td><td>員工已持有該角色</td></tr>
+            <tr><td class="c">roleNotExist</td><td class="num">422</td><td>revokeRoles</td><td>員工身上沒有該角色</td></tr>
+            <tr><td class="c">userIdMismatch</td><td class="num">422</td><td>assignRoles、revokeRoles</td><td>userId 與 profile 不符</td></tr>
+            <tr><td>（無錯誤碼）</td><td class="num">503</td><td>所有端點</td><td>KurrentDB 不可用或其他基礎設施錯誤</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s7">
+      <h2><span class="no">七</span>相容性與部署</h2>
+      <ul>
+        <li><b>歷史角色字串。</b>過去用 <code>assign-roles</code> 寫進員工身上的非 roleId 字串不會被遷移或清理。它們在查權限時貢獻零權限、不報錯，也不會擋住新的指派。若 console 曾把角色名稱當值送出，需要改成先建角色、再用 roleId。</li>
+        <li><b>projection 部署。</b>每個環境上線前要跑一次 <code>bash scripts/projection.sh</code>，部署 IAM_GetRoles 與 IAM_RoleHolders 兩支 projection。沒部署時 <code>GET /roles</code>、<code>role-holders</code> 回空陣列，<code>permission-holders</code> 看不到經角色持有的人。</li>
+        <li><b>gRPC。</b>proto 與產生的 stub 沒變。其他 context 不需改碼，只是回傳內容開始包含角色權限。</li>
+        <li><b>狀態。</b>程式在 IAMContext 分支 <code>feat/role-aggregate</code>，全套 103 個整合測試通過，尚未合併主線與部署。</li>
+      </ul>
+    </section>
+
+    <footer class="sources">
+      <p>本文的端點、schema 與錯誤對照直接取自 IAMContext 原始碼：<span class="path">Sources/RoleAggregate/openapi.yaml</span>、<span class="path">Sources/EmployeeAccessAggregate/openapi.yaml</span>、兩個 target 的 <span class="path">Adapter/ApiHandler.swift</span>、<span class="path">docs/grpc-auth-contract.md</span>。設計背景見 <span class="path">docs/2026-09-21-role-mechanism-plan.html</span>。</p>
+    </footer>
+  </main>
+</div>

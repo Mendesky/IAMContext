@@ -225,6 +225,23 @@ paths:
                   type: string
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/role-holders:
+    get:
+      operationId: getRoleHolders
+      description: '反查：查詢目前持有某 roleId 的所有 userId。無人持有或 role 不存在時回空陣列。'
+      parameters:
+        - $ref: '#/components/parameters/role'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
   /employee-access/scope-check:
     post:
       operationId: checkScope
@@ -270,6 +287,12 @@ components:
         type: string
     permission:
       name: permission
+      in: query
+      required: true
+      schema:
+        type: string
+    role:
+      name: role
       in: query
       required: true
       schema:
@@ -348,6 +371,7 @@ components:
         - userIdMismatch
         - profileAlreadyExists
         - firmRequired
+        - roleNotFound
     GrantPrivilegeRequest:
       type: object
       required:

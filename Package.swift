@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .library(name: "EmployeeAccessAggregate", targets: ["EmployeeAccessAggregate"]),
+        .library(name: "RoleAggregate", targets: ["RoleAggregate"]),
         .executable(name: "IAMContextServer", targets: ["IAMContextServer"]),
         .library(name: "IAMContextShared", targets: ["IAMContextShared"]),
         // permission codegen plugins（給各 context 消費；原 PermissionKit）：
@@ -62,10 +63,32 @@ let package = Package(
                 .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
             ]
         ),
+        .target(
+            name: "RoleAggregate",
+            dependencies: [
+                .product(name: "DDDKit", package: "swift-ddd-kit"),
+                .target(name: "IAMContextShared"),
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .target(name: "IAMPermissionCatalog"),
+                // 階段二（role-permission-composition）：RoleAggregateDirectory 實作 EmployeeAccessAggregate 的
+                // RoleDirectory port。依賴方向 RoleAggregate → EmployeeAccessAggregate 單向，不得反向。
+                .target(name: "EmployeeAccessAggregate"),
+            ],
+            resources: [
+                .process("openapi.yaml"),
+                .process("openapi-generator-config.yaml"),
+            ],
+            plugins: [
+                .plugin(name: "DomainEventGeneratorPlugin", package: "swift-ddd-kit"),
+                .plugin(name: "ModelGeneratorPlugin", package: "swift-ddd-kit"),
+                .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
+            ]
+        ),
         .executableTarget(
             name: "IAMContextServer",
             dependencies: [
                 .target(name: "EmployeeAccessAggregate"),
+                .target(name: "RoleAggregate"),
                 .target(name: "IAMContextShared"),
                 .target(name: "Generated"),
                 .target(name: "IAMPermissionCatalog"),
@@ -148,7 +171,7 @@ let package = Package(
         ),
         .testTarget(
             name: "IAMContextTests",
-            dependencies: ["EmployeeAccessAggregate", "IAMContextShared", "IAMContextServer", "Generated",
+            dependencies: ["EmployeeAccessAggregate", "RoleAggregate", "IAMContextShared", "IAMContextServer", "Generated",
                 "IAMPermissionCatalog",
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "TestUtility", package: "swift-ddd-kit")]

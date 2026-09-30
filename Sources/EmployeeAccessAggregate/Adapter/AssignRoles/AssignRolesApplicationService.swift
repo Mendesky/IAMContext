@@ -29,13 +29,15 @@ package struct AssignRolesApplicationService: ApplicationService {
     package typealias Output = AssignRolesApplicationServiceOutput
 
     private let repository: EmployeeAccessRepository
+    private let roleDirectory: RoleDirectory
 
-    package init(repository: EmployeeAccessRepository) {
+    package init(repository: EmployeeAccessRepository, roleDirectory: RoleDirectory) {
         self.repository = repository
+        self.roleDirectory = roleDirectory
     }
 
     package func execute(input: Input) async throws -> Output {
-        let service = AssignRolesService(repository: repository)
+        let service = AssignRolesService(repository: repository, roleDirectory: roleDirectory)
         _ = try await service.execute(input: .init(
             employeeAccessId: input.employeeAccessId,
             userId: input.userId,

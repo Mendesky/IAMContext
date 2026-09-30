@@ -1,0 +1,60 @@
+{
+  "id": "role-aggregate",
+  "file": "docs/tasks/role-aggregate.md",
+  "title": "Role Aggregate — 角色管理（UI 建立角色與設定權限）",
+  "status": "done",
+  "created": "2026-08-06",
+  "depends_on": [],
+  "supersedes": [],
+  "discussion": "docs/discussions/2026-08-06-role-aggregate.md",
+  "html_mirror": "docs/tasks/role-aggregate.html",
+  "preconditions": [
+    "file:Sources/EmployeeAccessAggregate/openapi.yaml",
+    "file:Sources/IAMPermissionCatalog",
+    "file:scripts/projection.sh",
+    "file:projections/IAM_PermissionHoldersProjection.js"
+  ],
+  "verification": [
+    "swift build",
+    "bash scripts/projection.sh",
+    "swift test --filter RoleIntegrationTests",
+    "git diff --stat -- Sources/EmployeeAccessAggregate/Entity Sources/EmployeeAccessAggregate/Usecase/Port Sources/EmployeeAccessAggregate/event.yaml  # 必須為空",
+    "grep -n \"RolePermissionsAdded\" projections/IAM_GetRolesProjection.js"
+  ],
+  "tags": [
+    "feature"
+  ],
+  "status_history": [
+    {
+      "status": "draft",
+      "at": "2026-08-06T00:00:00+08:00",
+      "note": "初稿。6 個開放問題待與使用者討論定案。fresh-context read-back 9 條 1 輕度缺失已修。"
+    },
+    {
+      "status": "draft",
+      "at": "2026-08-07T00:00:00+08:00",
+      "note": "使用者裁決 6 項（D11–D16）回填：批次權限事件、RoleRenamed、description、Role 前綴、server 生成 roleId、GetRoleHolders 進 v1（落 EmployeeAccessAggregate）。"
+    },
+    {
+      "status": "ready",
+      "at": "2026-08-07T00:00:00+08:00",
+      "note": "audit-spec 完成：4b 機械檢查全 PASS；Codex 外部審查 2 高/2 中/1 低全數修正。複核：HIGH-2（init 先設欄位再 apply）CONFIRMED；HIGH-1（唯一性檢查移 Adapter 層）複核以『無雙依賴先例』質疑，指揮官仲裁採 ApiHandler(kdbClient:) 既有佈線證據（同時持有 kdbClient 與自建 repository）維持修法，佈線已明寫入 spec §7。無未修復高風險。"
+    },
+    {
+      "status": "ready",
+      "at": "2026-09-24",
+      "note": "spec amended: getRoles read model carries permissions (2026-09-21 design review BLOCKER)"
+    },
+    {
+      "status": "in-progress",
+      "at": "2026-09-24T10:49:41+08:00",
+      "session": "pickup mode B via fork; Codex(gpt-5.5) implements per Step, swift build gate each step, Gemini(agy) final review"
+    },
+    {
+      "status": "done",
+      "at": "2026-09-24T11:48:08+08:00",
+      "note": "Codex(gpt-5.5) implemented Steps 0–6; swift build green; 11 contract greps PASS; protected EmployeeAccess diff empty; projections deployed; RoleIntegrationTests 12/12 + full suite 94/94 green. Gemini(agy) review PASS; codex second review flagged 1 medium (read-side try? swallowed KDB errors → fixed: only DDDError.eventsNotFound → [], others → 503), Gemini re-check RESOLVED. Uncommitted on branch feat/role-aggregate."
+    }
+  ],
+  "completed": "2026-09-24"
+}

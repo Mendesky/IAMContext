@@ -11,10 +11,12 @@ import Logging
 import OpenAPIHummingbird
 import ServiceLifecycle
 import EmployeeAccessAggregate
+import RoleAggregate
 
 import IAMContextShared
 
 import struct EmployeeAccessAggregate.ApiHandler
+import struct RoleAggregate.ApiHandler
 
 
 @main
@@ -79,7 +81,12 @@ struct IAMContextServer {
         let debugOverridePermissions: [String]? = debugConfig.fullPermissions
             ? Array(PermissionCatalog.allRawValues).sorted()
             : nil
-        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, debugOverridePermissions: debugOverridePermissions)
+        // 階段二（role-permission-composition）：角色定義出埠。HTTP ApiHandler 與 gRPC PermissionsService
+        // 必須注入**同一個**實例——只接一邊會出現「HTTP 有角色權限、gRPC 沒有」的不一致。
+        let roleDirectory = RoleAggregateDirectory(kdbClient: kdbClient)
+        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverridePermissions: debugOverridePermissions)
+            .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
+        try RoleAggregate.ApiHandler(kdbClient: kdbClient)
             .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
 
         // TODO(Phase 1.m v2): projection subscription wiring
@@ -131,7 +138,7 @@ struct IAMContextServer {
             address: .ipv4(host: "0.0.0.0", port: grpcPort),
             transportSecurity: .plaintext
           ), services: [
-            PermissionsService(kdbClient: kdbClient, debugConfig: debugConfig)
+            PermissionsService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugConfig: debugConfig)
           ], interceptors: grpcInterceptors)
 
         logger.info("starting IAMContextServer on 0.0.0.0:\(port) (HTTP) / 0.0.0.0:\(grpcPort) (gRPC)")

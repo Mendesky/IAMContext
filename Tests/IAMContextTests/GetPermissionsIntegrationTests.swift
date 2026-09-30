@@ -20,7 +20,7 @@ struct GetPermissionsIntegrationTests {
     @Test func get_permissions_unknown_user_throws_notFound() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let userId = await bundle.generateId(for: "userId")
-            let service = GetPermissionsApplicationService(kdbClient: kdbClient)
+            let service = GetPermissionsApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let error = await #expect(throws: ContextError<EmployeeAccessQueryError>.self) {
                 let _: [String] = try await service.execute(input: .init(userId: userId))
             }
@@ -33,7 +33,7 @@ struct GetPermissionsIntegrationTests {
     @Test func getPermissions_handler_unknown_user_returns_empty_success() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let userId = await bundle.generateId(for: "userId")
-            let sut = PermissionsService(kdbClient: kdbClient)
+            let sut = PermissionsService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
             let request = ServerRequest<IAMContext_GetPermissionsRequest>(
                 metadata: [:],
                 message: .with { $0.userID = userId }

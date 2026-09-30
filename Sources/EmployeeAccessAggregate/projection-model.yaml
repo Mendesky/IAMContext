@@ -15,3 +15,8 @@ GetPermissionHolders:
     - PrivilegeGranted
     - PrivilegeRevoked
 
+GetRoleHolders:
+  model: readModel
+  events:
+    - RolesAssigned
+    - RolesRevoked

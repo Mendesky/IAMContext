@@ -16,6 +16,9 @@ package enum EmployeeAccessError: Error, Equatable {
     case profileAlreadyExists  // 同一 employeeAccessId 已有 profile（避免重複建立 → 事件流出現兩個 createdEvent）
     // Added (human-authorized 2026-08-05): create command must carry a non-blank firm.
     case firmRequired  // 建立 profile 時 firm 為 nil 或空字串
+    // Added post-role-permission-composition (2026-09-24): assignRoles 指到不存在或已刪除的 roleId（RoleDirectory 解析不到）。
+    // 與 roleNotExist（撤銷「該員工身上沒有的角色」）語意不同，不共用。
+    case roleNotFound
 }
 
 extension ContextError where ErrorType == EmployeeAccessError {
@@ -51,5 +54,8 @@ extension ContextError where ErrorType == EmployeeAccessError {
     }
     static func firmRequired(function: String = #function, message: String = "") -> Self {
         .init(error: .firmRequired, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func roleNotFound(function: String = #function, message: String = "") -> Self {
+        .init(error: .roleNotFound, in: .class(EmployeeAccess.self, function: function), message: message)
     }
 }

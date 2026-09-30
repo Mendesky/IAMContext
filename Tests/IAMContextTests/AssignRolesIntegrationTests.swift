@@ -22,7 +22,7 @@ struct AssignRolesIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            _ = try await AssignRolesService(repository: repository).execute(input: .init(
+            _ = try await AssignRolesService(repository: repository, roleDirectory: FakeRoleDirectory()).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, roles: ["dev"], operatorId: operatorId
             ))
             let aggregate = try #require(try await repository.find(byId: employeeAccessId))
@@ -38,7 +38,7 @@ struct AssignRolesIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            let usecase = AssignRolesService(repository: repository)
+            let usecase = AssignRolesService(repository: repository, roleDirectory: FakeRoleDirectory())
             _ = try await usecase.execute(input: .init(   // 第一次：成功前置
                 employeeAccessId: employeeAccessId, userId: userId, roles: ["dev"], operatorId: operatorId
             ))
@@ -57,7 +57,7 @@ struct AssignRolesIntegrationTests {
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
-            let usecase = AssignRolesService(repository: repository)
+            let usecase = AssignRolesService(repository: repository, roleDirectory: FakeRoleDirectory())
             let error = await #expect(throws: DDDError.self) {
                 let _: AssignRolesOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: userId, roles: ["dev"], operatorId: operatorId

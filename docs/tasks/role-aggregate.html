@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Role Aggregate — 角色管理 spec</title>
+<style>
+  :root {
+    --ink: #1f2430; --muted: #6b7280; --line: #e5e7eb;
+    --accent: #2563eb; --accent-bg: #eff6ff;
+    --warn-bg: #fffbeb; --warn-line: #f59e0b;
+    --ok-bg: #f0fdf4; --code-bg: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink); line-height: 1.75; margin: 0; background: #fafafa;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; background: #fff;
+          min-height: 100vh; box-shadow: 0 0 24px rgba(0,0,0,.05); }
+  h1 { font-size: 1.7rem; border-bottom: 3px solid var(--accent); padding-bottom: .5rem; }
+  h2 { font-size: 1.3rem; margin-top: 2.5rem; border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
+  h3 { font-size: 1.05rem; margin-top: 1.8rem; color: var(--accent); }
+  h4 { font-size: .95rem; margin-top: 1.4rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .meta code { background: var(--code-bg); padding: .1em .4em; border-radius: 4px; }
+  nav.toc { background: var(--accent-bg); border-radius: 8px; padding: 1rem 1.5rem; margin: 1.5rem 0; }
+  nav.toc ol { margin: .3rem 0 0; padding-left: 1.3rem; }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .45rem .7rem; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; }
+  tr:nth-child(even) td { background: #fcfcfd; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: .86em;
+         background: var(--code-bg); padding: .12em .35em; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+        padding: .9rem 1.1rem; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  .callout { border-left: 4px solid var(--warn-line); background: var(--warn-bg);
+             padding: .7rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .callout.info { border-left-color: var(--accent); background: var(--accent-bg); }
+  .badge { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1em .55em;
+           border-radius: 999px; vertical-align: middle; }
+  .badge.created { background: #dcfce7; color: #166534; }
+  .badge.domain  { background: #dbeafe; color: #1e40af; }
+  .badge.deleted { background: #fee2e2; color: #991b1b; }
+  .badge.inferred{ background: #fef3c7; color: #92400e; }
+  .badge.strong  { background: #dcfce7; color: #166534; }
+  .badge.eventual{ background: #fef3c7; color: #92400e; }
+  ul.check { list-style: none; padding-left: .2rem; }
+  ul.check li::before { content: "☐ "; color: var(--accent); }
+  .footer-note { margin-top: 3rem; color: var(--muted); font-size: .85rem;
+                 border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Role Aggregate — 角色管理（UI 建立角色與設定權限）</h1>
+<p class="meta">
+  status: <strong>draft（決策已鎖定，待 audit）</strong> · created: 2026-08-06 · updated: 2026-08-07（回填使用者 6 項裁決 D11–D16）·
+  正本：<code>docs/tasks/role-aggregate.md</code>（本 HTML 為閱讀用鏡像，內容以 MD 為準）·
+  討論來源：<code>docs/discussions/2026-08-06-role-aggregate.md</code>
+</p>
+
+<nav class="toc">
+  <strong>目錄</strong>
+  <ol>
+    <li><a href="#goal">目標</a></li>
+    <li><a href="#contract">介面合約</a></li>
+    <li><a href="#files">改動檔案</a></li>
+    <li><a href="#steps">實作步驟</a></li>
+    <li><a href="#failure">失敗路徑</a></li>
+    <li><a href="#nochange">不改動的部分 / Non-goals</a></li>
+    <li><a href="#acceptance">驗收標準</a></li>
+    <li><a href="#limits">已知限制</a></li>
+  </ol>
+</nav>
+
+<h2 id="goal">目標</h2>
+<p>IAMContext 目前沒有「角色」的定義主體——role 只是 <code>EmployeeAccess</code> 上的 <code>Set&lt;String&gt;</code> 字串集合，僅有 assign/revoke 兩個操作，無法建立、查詢、編輯、刪除角色本身。本 task 建立 <strong>Role aggregate</strong> 作為角色定義的 SSOT，讓管理者能經 UI 在執行期：建立角色（含描述）、改名、批次增減權限、刪除角色，並查詢角色清單、單一角色的權限、以及某角色的持有者（role holders 反查）。這同時為後續「員工有效權限 = 直接授權 ∪ 角色展開」鋪路（該合成<strong>不在</strong>本 task 範圍，見 Non-goals）。</p>
+
+<h2 id="contract">介面合約（Interface Contract）</h2>
+
+<h3>1. 事件（<code>Sources/RoleAggregate/event.yaml</code>）</h3>
+<table>
+  <tr><th>Event</th><th>kind</th><th>aggregateRootId alias</th><th>properties</th></tr>
+  <tr><td><code>RoleCreated</code></td><td><span class="badge created">createdEvent</span></td><td><code>roleId</code></td><td><code>name: "String"</code>、<code>description: "String?"</code></td></tr>
+  <tr><td><code>RoleRenamed</code></td><td><span class="badge domain">domainEvent</span></td><td><code>roleId</code></td><td><code>newName: "String"</code></td></tr>
+  <tr><td><code>RoleDescriptionUpdated</code></td><td><span class="badge domain">domainEvent</span></td><td><code>roleId</code></td><td><code>newDescription: "String?"</code></td></tr>
+  <tr><td><code>RolePermissionsAdded</code></td><td><span class="badge domain">domainEvent</span></td><td><code>roleId</code></td><td><code>permissions: "Set&lt;String&gt;"</code></td></tr>
+  <tr><td><code>RolePermissionsRemoved</code></td><td><span class="badge domain">domainEvent</span></td><td><code>roleId</code></td><td><code>permissions: "Set&lt;String&gt;"</code></td></tr>
+  <tr><td><code>RoleDeleted</code></td><td><span class="badge deleted">deletedEvent</span></td><td><code>roleId</code></td><td>（無）</td></tr>
+</table>
+<ul>
+  <li>事件帶 <code>Role</code> 前綴（使用者 2026-08-07 裁決 D14）；因權限操作改批次（D11），原名 <code>RolePermissionAdded</code> 正規化為複數 <code>RolePermissionsAdded</code> / <code>RolePermissionsRemoved</code>。</li>
+  <li><strong>批次事件記錄「淨效果」</strong>：Added 只含實際新增（請求 − 當前）、Removed 只含實際移除（請求 ∩ 當前）——replay 精確、不含 no-op 項。</li>
+</ul>
+
+<h3>2. Aggregate（<code>Sources/RoleAggregate/Entity/Role.swift</code>）</h3>
+<pre><code>package class Role: RoleAggregateProtocol {   // protocol 由 plugin 從 event.yaml 生成 [inferred]
+    package let id: String                     // roleId；aggregate 自行生成
+    package var metadata: AggregateRootMetadata = .init()
+    package var name: String?
+    package var description: String?
+    package var permissions: Set&lt;String&gt;?
+    // category："IAM\(Self.self)" → "IAMRole"
+    // → per-aggregate stream "IAMRole-&lt;roleId&gt;"、category stream "$ce-IAMRole"
+}</code></pre>
+<ul>
+  <li><strong>roleId 由 aggregate 自行生成</strong>（D15）：create 的 convenience init <code>Role(name:description:)</code> 內部 <code>id = UUID().uuidString</code>，client 不供給 id；UUID 碰撞可忽略 ⇒ <strong>不做</strong> create 重複檢查。</li>
+  <li><strong>不變量</strong>：<code>name</code> 非 nil 且非空字串（違反 → <code>roleNameRequired</code>）。</li>
+  <li><strong>狀態異動只在 <code>when(event:)</code></strong>；命令方法只 validate + <code>apply(event:)</code>。</li>
+</ul>
+<table>
+  <tr><th>命令</th><th>前置守門（guard）</th><th>emit</th><th>when(event:) 狀態異動</th></tr>
+  <tr><td><code>Role+Rename</code></td><td>newName ≠ 當前，否則 <code>roleNameUnchanged</code></td><td><code>RoleRenamed</code></td><td><code>name = newName</code></td></tr>
+  <tr><td><code>Role+UpdateDescription</code></td><td>值有變，否則 <code>descriptionUnchanged</code></td><td><code>RoleDescriptionUpdated</code></td><td><code>description = newDescription</code></td></tr>
+  <tr><td><code>Role+AddPermissions</code></td><td>淨新增（請求 − 當前）非空，否則 <code>permissionsUnchanged</code></td><td><code>RolePermissionsAdded</code>（淨集合）</td><td><code>permissions.formUnion</code></td></tr>
+  <tr><td><code>Role+RemovePermissions</code></td><td>淨移除（請求 ∩ 當前）非空，否則 <code>permissionsUnchanged</code></td><td><code>RolePermissionsRemoved</code>（淨集合）</td><td><code>permissions.subtract</code></td></tr>
+  <tr><td><code>Role+Delete</code></td><td>—</td><td><code>RoleDeleted</code>（由 <code>repository.delete</code> 觸發，內部 <code>markDelete()</code>；本檔只實作 <code>when(event:)</code>）</td><td>—</td></tr>
+</table>
+<p>建立走 <code>Role(name:description:)</code>：emit <code>RoleCreated</code>，<code>when</code> 設定 name、description、<code>permissions = []</code>。<strong>初始權限不在 create 帶入</strong>——UI 建立後以一次批次 <code>add-permissions</code> 設定。</p>
+
+<h3>3. HTTP API</h3>
+<h4>3a. RoleAggregate 側（<code>Sources/RoleAggregate/openapi.yaml</code>）</h4>
+<table>
+  <tr><th>Method / Path</th><th>operationId</th><th>輸入</th><th>200 回應</th></tr>
+  <tr><td><code>POST /roles</code></td><td><code>createRole</code></td><td>body <code>{name, description?}</code>；header <code>operatorId</code></td><td><code>{roleId}</code>（server 生成 UUID）</td></tr>
+  <tr><td><code>POST /roles/{roleId}/rename</code></td><td><code>renameRole</code></td><td>body <code>{newName}</code>；header <code>operatorId</code></td><td><code>{roleId}</code></td></tr>
+  <tr><td><code>POST /roles/{roleId}/update-description</code></td><td><code>updateRoleDescription</code></td><td>body <code>{newDescription?}</code>；header <code>operatorId</code></td><td><code>{roleId}</code></td></tr>
+  <tr><td><code>POST /roles/{roleId}/add-permissions</code></td><td><code>addPermissions</code></td><td>body <code>{permissions: [String]}</code>；header <code>operatorId</code></td><td><code>{roleId}</code></td></tr>
+  <tr><td><code>POST /roles/{roleId}/remove-permissions</code></td><td><code>removePermissions</code></td><td>body <code>{permissions: [String]}</code>；header <code>operatorId</code></td><td><code>{roleId}</code></td></tr>
+  <tr><td><code>DELETE /roles/{roleId}</code></td><td><code>deleteRole</code></td><td>header <code>operatorId</code></td><td><code>{roleId}</code></td></tr>
+  <tr><td><code>GET /roles</code></td><td><code>getRoles</code></td><td>—</td><td><code>[{roleId, name, description?}]</code></td></tr>
+  <tr><td><code>GET /roles/{roleId}/permissions</code></td><td><code>getRolePermissions</code></td><td>—</td><td><code>[String]</code></td></tr>
+</table>
+<ul>
+  <li><strong>命名衝突迴避</strong>：<code>getPermissions</code> 已被 employee 查詢佔用 → 用 <code>getRolePermissions</code>。</li>
+  <li><strong>錯誤回應</strong>：<code>404</code>（不存在/已刪除）、<code>422</code>（<code>RoleApiError</code>）、<code>503</code>。</li>
+  <li><code>POST /roles</code>（無 path id）與 <code>DELETE</code> 動詞皆無 repo 先例 <span class="badge inferred">inferred</span>；DELETE 的 fallback 為 <code>POST /roles/{roleId}/delete</code>。</li>
+  <li><strong>守門所有權</strong>：POST/DELETE 由 server-level <code>AdminTokenMiddleware</code> 自動守門；GET 放行——本 task 不需、也不得另行設定 per-route 守門。</li>
+</ul>
+<h4>3b. EmployeeAccessAggregate 側（role holders 反查）</h4>
+<table>
+  <tr><th>Method / Path</th><th>operationId</th><th>輸入</th><th>200 回應</th></tr>
+  <tr><td><code>GET /employee-access/role-holders?role=&lt;roleId&gt;</code></td><td><code>getRoleHolders</code></td><td>query <code>role</code>（必填）</td><td><code>[String]</code>（userId 清單）</td></tr>
+</table>
+<ul>
+  <li><strong>放這裡的理由</strong>（D16）：折疊的是 <code>RolesAssigned</code>/<code>RolesRevoked</code>（EmployeeAccess module 內部生成型別）；形狀與 <code>permission-holders</code> 完全鏡像，命名對稱。</li>
+  <li>無人持有或 role 不存在 → <code>[]</code>（不回 404，鏡像 permission-holders）。</li>
+  <li><strong>key 語意</strong>：以 <code>EmployeeAccess.roles</code> 儲存的字串原值分流；慣例自本 task 起 assign-roles 應傳 roleId（歷史名稱字串反查不到，已知限制 #3）。</li>
+</ul>
+
+<h3>4. 查詢一致性語意</h3>
+<table>
+  <tr><th>查詢</th><th>實作路徑</th><th>一致性</th><th>空/缺結果行為</th></tr>
+  <tr><td><code>getRolePermissions</code></td><td><code>RoleRepository.find(byId:)</code> rehydrate 自身 stream</td><td><span class="badge strong">強一致</span></td><td>不存在/已刪除 → <code>404</code>；無權限 → <code>[]</code></td></tr>
+  <tr><td><code>getRoles</code></td><td>projection <code>IAM_GetRolesProjection.js</code>（<code>$ce-IAMRole</code> → <code>linkTo("IAM_GetRoles-all")</code>）+ presenter</td><td><span class="badge eventual">最終一致</span></td><td>無角色 → <code>[]</code>；順序不保證</td></tr>
+  <tr><td><code>getRoleHolders</code></td><td>projection <code>IAM_RoleHoldersProjection.js</code>（<code>$ce-IAMEmployeeAccess</code> → per-role <code>linkTo</code>）+ presenter</td><td><span class="badge eventual">最終一致</span></td><td>無人持有 → <code>[]</code>；順序不保證</td></tr>
+</table>
+<p><code>find(byId:)</code> 對已刪除 aggregate 回 nil（DDDKit <code>hiddingDeleted</code> 預設）→ 刪除後查詢自然 404，fail-safe。</p>
+
+<h3>5. 錯誤型別（<code>Sources/RoleAggregate/RoleError.swift</code>）</h3>
+<pre><code>package enum RoleError: Error, Equatable {
+    case roleNameRequired       // name 空字串（invariant / create 輸入）
+    case roleNameDuplicated     // create/rename：名稱已被使用（best-effort）
+    case roleNameUnchanged      // rename no-op
+    case descriptionUnchanged   // update-description no-op
+    case permissionsUnchanged   // 批次 add/remove 淨效果為空
+    case invalidPermission      // 任一權限不在 catalog（整批拒絕）
+}</code></pre>
+<p>拋出沿用 <code>ContextError&lt;RoleError&gt;</code> factory 慣例。HTTP 映射：<code>RoleError</code> → 422；<code>DDDError.aggregateNotFound</code> → 404；其餘 → 503。</p>
+<div class="callout info">注意：<code>EmployeeAccessError</code> 已有語意相近的 <code>permissionAlreadyExists</code> / <code>roleAlreadyExists</code> 等 case（「該員工已持有該字串」語意）。兩者屬不同 enum、掛在不同泛型特化（<code>ContextError&lt;EmployeeAccessError&gt;</code> vs <code>ContextError&lt;RoleError&gt;</code>）的 extension 上，Swift 型別系統可完全區分，<strong>無衝突、不需改名</strong>。</div>
+<div class="callout">no-op 類錯誤（<code>roleNameUnchanged</code>/<code>descriptionUnchanged</code>/<code>permissionsUnchanged</code>）沿用 <code>departmentUnchanged</code> 精神：未變更即拒絕。<strong>UI 應把這三種 422 視為良性</strong>（畫面已是目標狀態）。</div>
+
+<h3>6. 權限合法性驗證（AddPermissions）</h3>
+<ul>
+  <li>批次中<strong>每一個</strong> permission 必須 ∈ <code>IAMPermissionCatalog</code> 生成的權限 universe；任一不合法 → <code>invalidPermission</code>，<strong>整批原子拒絕</strong>。</li>
+  <li><strong>驗證位置：<code>AddPermissionsUsecase.execute</code> 默認實作</strong>（Port/In 層）——aggregate 不依賴 catalog target。</li>
+  <li><span class="badge inferred">inferred</span> 生成符號名與 visibility 需在實作第一步確認；不足時 fallback 見 MD 正本。</li>
+</ul>
+
+<h3>7. 角色名稱唯一性（best-effort）</h3>
+<p>唯一性檢查在 <strong>Adapter 層的 <code>CreateRoleApplicationService</code> / <code>RenameRoleApplicationService</code></strong> 做——usecase 只持有 <code>RoleRepository</code>，而查 read model 需要 <code>KurrentDBClient</code>；application service 同時持有兩者，寫入前先查 <code>GetRoles</code> read model。<strong>佈線</strong>：兩個依賴皆由 ApiHandler 供給（對照 EmployeeAccess 的 <code>ApiHandler(kdbClient:)</code>——以 kdbClient 建構並持有 repository，分別傳給 mutating/query services）；Create/Rename 的 service 只是兩個依賴一起收（<code>init(repository:kdbClient:)</code>），無新機制。同名（大小寫敏感、完全比對；rename 排除自身）→ <code>roleNameDuplicated</code>。read model 最終一致 ⇒ race window（已知限制 #1）；嚴格唯一（reservation）defer。</p>
+
+<h2 id="files">改動檔案</h2>
+
+<h3>新增（<code>Sources/RoleAggregate/</code>）</h3>
+<table>
+  <tr><th>檔案</th><th>說明</th></tr>
+  <tr><td>5 個 yaml（<code>event</code> / <code>event-generator-config</code> / <code>openapi</code> / <code>openapi-generator-config</code> / <code>projection-model</code>）</td><td>事件 6 個、endpoint 8 個、<code>GetRoles</code> 讀模型（events: Created/Renamed/DescriptionUpdated/Deleted）</td></tr>
+  <tr><td><code>RoleError.swift</code></td><td>error enum + factory（合約 §5）</td></tr>
+  <tr><td><code>Entity/Role.swift</code> + <code>Entity/Commands/Role+{Rename,UpdateDescription,AddPermissions,RemovePermissions,Delete}.swift</code></td><td>aggregate root + 5 命令</td></tr>
+  <tr><td><code>Usecase/Port/Out/RoleRepository.swift</code></td><td><code>EventSourcingRepository</code> wrapper</td></tr>
+  <tr><td><code>Usecase/Port/In/{CreateRole,RenameRole,UpdateRoleDescription,AddPermissions,RemovePermissions,DeleteRole}/</code>（各 Input/Output/Usecase）</td><td>6 個 usecase；AddPermissions 含 catalog 整批驗證（唯一性檢查在 Adapter 層）</td></tr>
+  <tr><td><code>Usecase/Service/*Service.swift</code> ×6</td><td>usecase 具體型別</td></tr>
+  <tr><td><code>Usecase/Projector/GetRoles/{RolesReadModel,GetRolesPresenter}.swift</code></td><td>read model（id 固定 <code>"all"</code>，含 description）+ presenter</td></tr>
+  <tr><td><code>Adapter/ApiHandler.swift</code> + <code>Adapter/ApiComponents/ApiComponents+RoleApiError.swift</code> + 8 個 <code>*ApplicationService.swift</code></td><td>8 個 handler + error 映射 + application services（CreateRole/RenameRole 含名稱唯一性 best-effort）</td></tr>
+  <tr><td><code>projections/IAM_GetRolesProjection.js</code></td><td>KDB projection（<strong>需手動部署</strong>）</td></tr>
+  <tr><td><code>Tests/IAMContextTests/RoleIntegrationTests.swift</code></td><td>整合測試 12 個</td></tr>
+</table>
+
+<h3>新增（EmployeeAccessAggregate 側，role holders）</h3>
+<table>
+  <tr><th>檔案</th><th>說明</th></tr>
+  <tr><td><code>Usecase/Projector/GetRoleHolders/{RoleHoldersReadModel,GetRoleHoldersPresenter}.swift</code></td><td>鏡像 PermissionHolders：id = role 字串、<code>userIds</code>；折疊 <code>RolesAssigned</code>/<code>RolesRevoked</code></td></tr>
+  <tr><td><code>Adapter/GetRoleHolders/GetRoleHoldersApplicationService.swift</code></td><td>無人持有回 <code>[]</code></td></tr>
+  <tr><td><code>projections/IAM_RoleHoldersProjection.js</code></td><td>KDB projection（<strong>需手動部署</strong>；迭代 <code>event.body["roles"]</code>）</td></tr>
+</table>
+
+<h3>修改</h3>
+<table>
+  <tr><th>檔案</th><th>改動描述</th></tr>
+  <tr><td><code>Package.swift</code></td><td>新增 <code>RoleAggregate</code> target（同形 + <code>IAMPermissionCatalog</code> 依賴）；<code>IAMContextServer</code>、<code>IAMContextTests</code> 各加依賴</td></tr>
+  <tr><td><code>Sources/IAMContextServer/IAMContextServer.swift</code></td><td>registerHandlers 之後加一行 <code>RoleAggregate.ApiHandler(kdbClient:).registerHandlers(...)</code></td></tr>
+  <tr><td><code>Sources/EmployeeAccessAggregate/openapi.yaml</code></td><td>新增 <code>role-holders</code> 端點；<strong>既有 paths 一律不動</strong></td></tr>
+  <tr><td><code>Sources/EmployeeAccessAggregate/projection-model.yaml</code></td><td>新增 <code>GetRoleHolders</code> 讀模型定義；既有不動</td></tr>
+  <tr><td><code>Sources/EmployeeAccessAggregate/Adapter/ApiHandler.swift</code></td><td>新增 <code>getRoleHolders</code> method；既有 method 不動</td></tr>
+</table>
+<p>受影響但<strong>不需修改</strong>：<code>scripts/projection.sh</code>（自動掃新 js）、<code>AdminTokenMiddleware</code>（router-level 自動涵蓋）。</p>
+
+<h2 id="steps">實作步驟</h2>
+<h3>Step 0：Package.swift + 骨架</h3>
+<ol>
+  <li>新 target：deps = <code>DDDKit</code>、<code>IAMContextShared</code>、<code>OpenAPIRuntime</code>、<strong><code>IAMPermissionCatalog</code></strong>；plugins = <code>DomainEventGeneratorPlugin</code>、<code>ModelGeneratorPlugin</code>、<code>OpenAPIGenerator</code>。</li>
+  <li><code>IAMContextServer</code>、<code>IAMContextTests</code> deps 加 <code>RoleAggregate</code>。</li>
+  <li>建 5 個 yaml。</li>
+  <li><code>swift build</code> 看 codegen 形狀，<strong>確認 <code>PermissionCatalog</code> 生成符號與 visibility</strong>（此步允許紅）。</li>
+</ol>
+<h3>Step 1：Entity 層</h3>
+<ol>
+  <li><code>Role.swift</code> 三個 init：主 init、<code>Role(name:description:)</code>（生成 <code>UUID().uuidString</code>）、replay 入口。<strong>主 init 先直接初始化狀態欄位再 <code>apply(event:)</code></strong>——DDDKit 的 <code>apply</code> 在 <code>when</code> 之前先跑一次 <code>ensureInvariant()</code>，欄位為 nil 會失敗（對照 <code>EmployeeAccess.init</code> 寫法）。</li>
+  <li><code>ensureInvariant</code>：name 非空。</li>
+  <li>4 個命令 extension（Rename/UpdateDescription/AddPermissions/RemovePermissions）：guard →（批次算淨效果）→ event → <code>apply(event:)</code>；<code>Role+Delete.swift</code> 只實作 <code>when(event: RoleDeleted)</code>（命令路徑走 repository.delete，見 Step 2）。</li>
+</ol>
+<h3>Step 2：Usecase 層</h3>
+<ol>
+  <li><code>RoleRepository</code>：對照 <code>EmployeeAccessRepository</code>。</li>
+  <li><code>CreateRole</code>：name 非空 → <code>Role(name:description:)</code> → save → 回傳生成 roleId（唯一性檢查在 Adapter 層，見 §7 / Step 4）。</li>
+  <li><code>RenameRole</code>：find（nil → aggregateNotFound）→ rename → save（唯一性檢查同樣在 Adapter 層）。</li>
+  <li><code>AddPermissions</code>：整批 catalog 驗證 → find → <code>addPermissions</code>（淨空 → <code>permissionsUnchanged</code>）→ save。</li>
+  <li><code>UpdateRoleDescription</code>/<code>RemovePermissions</code> 同形；<code>DeleteRole</code> 走 <code>repository.delete(byId:external:)</code>——外部審查已確認其內部呼叫 <code>markDelete()</code> 並 emit DeletedEventType，不另寫 mark-delete 命令。</li>
+</ol>
+<h3>Step 3：Projector 層</h3>
+<p><strong>GetRoles</strong>：read model id 固定 <code>"all"</code>；presenter 折疊 Created(append)/Renamed(改 name)/DescriptionUpdated(改 description)/Deleted(remove)。</p>
+<pre><code>fromStreams(["$ce-IAMRole"])
+.when({
+    $init: function(){ return {} },
+    RoleCreated: link, RoleRenamed: link,
+    RoleDescriptionUpdated: link, RoleDeleted: link,
+});
+function link(state, event) {
+    if (!event.isJson) { return; }
+    linkTo("IAM_GetRoles-all", event);
+}</code></pre>
+<p><strong>GetRoleHolders</strong>（EmployeeAccess 側，鏡像 PermissionHolders）：</p>
+<pre><code>fromStreams(["$ce-IAMEmployeeAccess"])
+.when({
+    $init: function(){ return {} },
+    RolesAssigned: handleEvent, RolesRevoked: handleEvent,
+});
+function handleEvent(state, event) {
+    if (!event.isJson) { return; }
+    var roles = event.body["roles"];
+    for (var i = 0; i < roles.length; i++) {
+        linkTo("IAM_GetRoleHolders-" + roles[i], event);
+    }
+}</code></pre>
+<h3>Step 4：Adapter 層</h3>
+<ol>
+  <li>RoleAggregate 8 個 ApplicationService（mutating 接 repository；<strong>CreateRole/RenameRole 另接 kdbClient</strong>——先查 GetRoles read model 做名稱唯一性 best-effort 再呼叫 Service；GetRoles 接 kdbClient；GetRolePermissions 接 repository）。</li>
+  <li>EmployeeAccess 側 <code>GetRoleHoldersApplicationService</code>（接 kdbClient，空 → <code>[]</code>）。</li>
+  <li>錯誤處理三段式：<code>aggregateNotFound</code> → 404；<code>mapToApiError</code> → 422；其餘 → 503。</li>
+</ol>
+<h3>Step 5：Server 掛載</h3>
+<p><code>IAMContextServer.swift</code> 加一行 registerHandlers；gRPC services 陣列<strong>不動</strong>。</p>
+<h3>Step 6：整合測試（12 個）</h3>
+<table>
+  <tr><th>測試</th><th>需 projection？</th></tr>
+  <tr><td><code>create_returns_generated_uuid_roleId</code></td><td>否</td></tr>
+  <tr><td><code>create_add_remove_permissions_batch_roundtrip</code></td><td>否</td></tr>
+  <tr><td><code>rename_updates_name_and_noop_rename_throws</code></td><td>否</td></tr>
+  <tr><td><code>update_description_roundtrip_and_noop_throws</code></td><td>否</td></tr>
+  <tr><td><code>add_batch_with_invalid_permission_rejects_whole_batch</code></td><td>否</td></tr>
+  <tr><td><code>add_batch_net_empty_throws_permissionsUnchanged</code></td><td>否</td></tr>
+  <tr><td><code>remove_partial_batch_removes_only_present</code></td><td>否</td></tr>
+  <tr><td><code>deleted_role_returns_notFound_on_getRolePermissions</code></td><td>否</td></tr>
+  <tr><td><code>getRoles_reflects_create_rename_delete</code></td><td><strong>是</strong></td></tr>
+  <tr><td><code>create_duplicate_name_throws</code></td><td><strong>是</strong></td></tr>
+  <tr><td><code>assign_then_revoke_roles_reflects_in_role_holders</code></td><td><strong>是</strong></td></tr>
+  <tr><td><code>role_holders_unknown_role_returns_empty</code></td><td>否</td></tr>
+</table>
+
+<h2 id="failure">失敗路徑</h2>
+<ul>
+  <li><strong>createRole 空名稱</strong>：<code>roleNameRequired</code> → 422。可恢復。</li>
+  <li><strong>create/rename 撞名</strong>：<code>roleNameDuplicated</code> → 422（best-effort，race window 見已知限制 #1）。</li>
+  <li><strong>no-op</strong>（rename/description/批次淨空）：<code>roleNameUnchanged</code>/<code>descriptionUnchanged</code>/<code>permissionsUnchanged</code> → 422，UI 視為良性。</li>
+  <li><strong>操作不存在的 roleId</strong>：<code>aggregateNotFound</code> → 404。</li>
+  <li><strong>批次含 catalog 外權限</strong>：<code>invalidPermission</code> → 422，<strong>整批原子拒絕</strong>。</li>
+  <li><strong>KurrentDB 不可用</strong>：503。不可恢復（infra）。</li>
+  <li><strong>getRoles / getRoleHolders 而 projection 未部署</strong>：<strong>靜默回空 <code>[]</code></strong>，不是錯誤——部署是驗收前置步驟（已知限制 #2）。</li>
+</ul>
+
+<h2 id="nochange">不改動的部分</h2>
+<ul>
+  <li><code>Sources/EmployeeAccessAggregate/</code> 中除改動表列出的三檔（openapi.yaml / projection-model.yaml / Adapter/ApiHandler.swift 的<strong>新增段落</strong>）與新增 GetRoleHolders 目錄外全部不動——特別是 <code>Entity/</code>、<code>Usecase/Port/</code>、<code>Usecase/Service/</code>、既有兩個 Projector、<code>event.yaml</code>、<code>EmployeeAccessError.swift</code>。</li>
+  <li><code>Sources/Generated/</code>、<code>proto/</code>、gRPC <code>PermissionsService</code> 與 interceptor。</li>
+  <li><code>Sources/IAMPermissionCatalog/</code> 的各 context yaml（只讀 build 產物）。</li>
+  <li><code>AdminTokenMiddleware.swift</code>、<code>BearerTokenServerInterceptor.swift</code>、既有 projections、<code>scripts/projection.sh</code>。</li>
+</ul>
+<h3>Non-goals（行為層）</h3>
+<ul>
+  <li>不包含員工有效權限合成——<code>GET /employee-access/permissions/{userId}</code> 與 gRPC 行為<strong>完全不變</strong>。</li>
+  <li>不包含 <code>assign-roles</code>/<code>revoke-roles</code> 驗證升級（仍接受任意字串；但立下「傳 roleId」慣例）。</li>
+  <li>不包含 role-holders 的 department/firm 過濾（permission-holders 有；v1 先不做）。</li>
+  <li>不包含歷史 <code>EmployeeAccess.roles</code> 字串資料的遷移或對映。</li>
+  <li>不包含前端 UI 與 per-role 細粒度授權（沿用 admin token 守門）。</li>
+</ul>
+
+<h2 id="acceptance">驗收標準</h2>
+<h3>Agent 必做（可機器執行）</h3>
+<p>前置：KurrentDB 於 <code>localhost:2113</code> 運行；標注「需 projection」的 3 個測試需先部署。</p>
+<pre><code># 1. 編譯 gate
+swift build
+
+# 2. 契約符號存在
+grep -n "RoleCreated:" Sources/RoleAggregate/event.yaml
+grep -n "RolePermissionsAdded:" Sources/RoleAggregate/event.yaml
+grep -n "RoleRenamed:" Sources/RoleAggregate/event.yaml
+grep -n "kind: deletedEvent" Sources/RoleAggregate/event.yaml
+grep -n "operationId: getRolePermissions" Sources/RoleAggregate/openapi.yaml
+grep -n "operationId: getRoles" Sources/RoleAggregate/openapi.yaml
+grep -n "operationId: getRoleHolders" Sources/EmployeeAccessAggregate/openapi.yaml
+grep -n 'name: "RoleAggregate"' Package.swift   # target 宣告（依賴完整性由 swift build 把關）
+grep -n "IAM_GetRoles-all" projections/IAM_GetRolesProjection.js
+grep -n "IAM_GetRoleHolders-" projections/IAM_RoleHoldersProjection.js
+
+# 3. 回歸保護：EmployeeAccess 核心不可動區塊零 diff
+git diff --stat -- Sources/EmployeeAccessAggregate/Entity \
+                   Sources/EmployeeAccessAggregate/Usecase/Port \
+                   Sources/EmployeeAccessAggregate/Usecase/Service \
+                   Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions \
+                   Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissionHolders \
+                   Sources/EmployeeAccessAggregate/event.yaml \
+                   Sources/EmployeeAccessAggregate/EmployeeAccessError.swift   # 必須輸出為空
+grep -n "operationId: getPermissions" Sources/EmployeeAccessAggregate/openapi.yaml
+grep -n "operationId: getPermissionHolders" Sources/EmployeeAccessAggregate/openapi.yaml
+
+# 4. 部署 projection 後跑整合測試
+bash scripts/projection.sh
+swift test --filter RoleIntegrationTests</code></pre>
+<ul class="check">
+  <li><code>swift build</code> 綠（含 codegen plugins）</li>
+  <li>上列 grep 全數命中；步驟 3 的 <code>git diff --stat</code> 輸出為空</li>
+  <li><code>swift test --filter RoleIntegrationTests</code> 全綠（12 個測試）</li>
+</ul>
+<h3>Human 補做（需要人類介入）</h3>
+<ul class="check">
+  <li><code>IAM_ADMIN_API_TOKEN=&lt;token&gt; IAM_GRPC_AUTH_TOKEN=&lt;token&gt; swift run IAMContextServer</code>（24202；auth env 未設會 fail-closed 拒絕啟動），變更請求帶 Bearer token，curl golden path：<code>POST /roles</code>（拿 UUID）→ rename → update-description → 批次 add ×2 → 查得 2 筆 → 批次 remove ×1 → 剩 1 筆 → DELETE → 404。預期無 5xx。</li>
+  <li>未帶 Bearer token 打 <code>POST /roles</code> → 預期 401。</li>
+  <li>部署 projection 後：建角色 → 1 秒內 <code>GET /roles</code> 出現（含 name/description）；改名後更新；刪除後消失。</li>
+  <li>assign-roles 指派 roleId 給測試員工 → <code>role-holders</code> 出現該 userId；revoke 後消失。</li>
+  <li>KDB 管理介面確認 <code>IAM_GetRoles-all</code>、<code>IAM_GetRoleHolders-&lt;roleId&gt;</code> 有 link 事件、<code>$ce-IAMRole</code> 正常累積。</li>
+</ul>
+
+<h2 id="limits">已知限制</h2>
+<ol>
+  <li><strong>名稱唯一性 best-effort</strong>：read model 最終一致 ⇒ race window（create/rename）；嚴格唯一（reservation）defer。</li>
+  <li><strong>getRoles / getRoleHolders 最終一致</strong>：projection lag 數百 ms；<strong>未部署時回空清單而非錯誤</strong>——部署是上線前必要人工步驟。</li>
+  <li><strong>role holders 以字串原值分流</strong>：歷史資料若存名稱字串，用 roleId 反查不到；慣例自本 task 起 assign-roles 傳 roleId。刪除仍被持有的角色不阻擋、不影響有效權限；後續合成 task 以 fail-safe deny 處理（討論檔 D9）。</li>
+  <li><strong>no-op 回 422</strong>：UI 重送會看到 422，需視為良性。</li>
+  <li><strong>[inferred] 待實作首步驗證</strong>：<code>PermissionCatalog</code> 生成符號與 visibility；<code>POST /roles</code> 與 <code>DELETE</code> 動詞支援；<code>event-generator-config.yaml</code> 欄位形狀。（DDDKit delete 流程已由外部審查確認，移出 inferred。）</li>
+  <li><strong>依賴關係</strong>：無前置 task。後續（不阻塞）：有效權限合成、assign-roles 驗證與歷史資料對映、role-holders 過濾、UI。</li>
+</ol>
+
+<p class="footer-note">
+  本檔為 <code>docs/tasks/role-aggregate.md</code> 的閱讀用 HTML 鏡像（2026-08-07 更新，回填 D11–D16）。兩檔如有出入，以 MD 為準。
+  決策紀錄見 <code>docs/discussions/2026-08-06-role-aggregate.md</code>。
+</p>
+
+</div>
+</body>
+</html>

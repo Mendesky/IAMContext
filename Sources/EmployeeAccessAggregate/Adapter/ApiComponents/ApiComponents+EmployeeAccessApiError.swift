@@ -23,6 +23,8 @@ extension Components.Schemas.EmployeeAccessApiError {
         case .profileAlreadyExists: self = .profileAlreadyExists
         // 2026-08-05: 建檔必填欄位驗證（human-authorized）→ 客戶端錯誤，走 422。
         case .firmRequired: self = .firmRequired
+        // 2026-09-24（role-permission-composition）：assignRoles 的 roleId 存在性驗證 → 客戶端錯誤，走 422。
+        case .roleNotFound: self = .roleNotFound
         }
     }
 }

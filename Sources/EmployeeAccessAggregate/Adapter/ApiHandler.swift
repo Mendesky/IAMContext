@@ -7,6 +7,8 @@ import IAMContextShared
 package struct ApiHandler: APIProtocol {
 
     private let kdbClient: KurrentDBClient
+    /// 角色定義出埠（階段二）。由 IAMContextServer 注入 RoleAggregateDirectory；與 gRPC PermissionsService 共用同一實例。
+    private let roleDirectory: RoleDirectory
     private var repository: EmployeeAccessRepository {
         return .init(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
     }
@@ -15,8 +17,9 @@ package struct ApiHandler: APIProtocol {
     /// Set by IAMContextServer when IAM_DEBUG_FULL_PERMISSIONS=1 is active.
     package let debugOverridePermissions: [String]?
 
-    package init(kdbClient: KurrentDBClient, debugOverridePermissions: [String]? = nil) {
+    package init(kdbClient: KurrentDBClient, roleDirectory: RoleDirectory, debugOverridePermissions: [String]? = nil) {
         self.kdbClient = kdbClient
+        self.roleDirectory = roleDirectory
         self.debugOverridePermissions = debugOverridePermissions
     }
 
@@ -94,7 +97,7 @@ package struct ApiHandler: APIProtocol {
             operatorId: operatorId
         )
 
-        let service = AssignRolesApplicationService(repository: repository)
+        let service = AssignRolesApplicationService(repository: repository, roleDirectory: roleDirectory)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
@@ -224,7 +227,7 @@ package struct ApiHandler: APIProtocol {
     package func getPermissions(_ input: Operations.getPermissions.Input) async throws -> Operations.getPermissions.Output {
         let userId = input.path.userId
 
-        let service = GetPermissionsApplicationService(kdbClient: kdbClient, debugOverridePermissions: debugOverridePermissions)
+        let service = GetPermissionsApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverridePermissions: debugOverridePermissions)
         let asInput = GetPermissionsApplicationServiceInput(
             userId: userId
         )
@@ -246,9 +249,21 @@ package struct ApiHandler: APIProtocol {
         let department = input.query.department
         let firm = input.query.firm
 
-        let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient)
+        let service = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory)
         do {
             let output = try await service.execute(input: .init(permission: permission, department: department, firm: firm))
+            return .ok(.init(body: .json(output)))
+        } catch {
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
+    package func getRoleHolders(_ input: Operations.getRoleHolders.Input) async throws -> Operations.getRoleHolders.Output {
+        let role = input.query.role
+
+        let service = GetRoleHoldersApplicationService(kdbClient: kdbClient)
+        do {
+            let output = try await service.execute(input: .init(role: role))
             return .ok(.init(body: .json(output)))
         } catch {
             return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))

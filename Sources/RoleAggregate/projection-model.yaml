@@ -1,0 +1,9 @@
+GetRoles:
+  model: readModel
+  events:
+    - RoleCreated
+    - RoleRenamed
+    - RoleDescriptionUpdated
+    - RolePermissionsAdded
+    - RolePermissionsRemoved
+    - RoleDeleted
