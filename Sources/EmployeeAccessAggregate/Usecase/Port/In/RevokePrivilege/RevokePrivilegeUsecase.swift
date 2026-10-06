@@ -3,6 +3,7 @@ import IAMContextShared
 
 package protocol RevokePrivilegeUsecase: Usecase where Input == RevokePrivilegeInput, Output == RevokePrivilegeOutput {
     var repository: EmployeeAccessRepository { get }
+    var effectivePermissionsReader: EffectivePermissionsReader { get }
 }
 
 extension RevokePrivilegeUsecase {
@@ -11,7 +12,13 @@ extension RevokePrivilegeUsecase {
             throw DDDError.aggregateNotFound(usecase: self, aggregateRootType: EmployeeAccess.self, aggregateRootId: input.employeeAccessId)
         }
         do {
-            try employeeAccess.revokePrivilege(employeeAccessId: input.employeeAccessId, userId: input.userId, permissions: input.permissions)
+            let notDirect = Set(input.permissions).subtracting(employeeAccess.permissions ?? [])
+            var heldViaOtherSources: Set<String> = []
+            if !notDirect.isEmpty {
+                let effective = try await effectivePermissionsReader.effectivePermissions(employeeAccessId: input.employeeAccessId)
+                heldViaOtherSources = notDirect.intersection(effective)
+            }
+            try employeeAccess.revokePrivilege(employeeAccessId: input.employeeAccessId, userId: input.userId, permissions: input.permissions, heldViaOtherSources: heldViaOtherSources)
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
             return .init(id: employeeAccess.id, message: nil)
         } catch let error as ContextError<EmployeeAccessError> {

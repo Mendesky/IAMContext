@@ -3,11 +3,15 @@ import Foundation
 import KurrentDB
 import IAMContextShared
 import protocol EmployeeAccessAggregate.RoleDirectory
+import struct EmployeeAccessAggregate.LogPosition
+import struct EmployeeAccessAggregate.TimelineEntry
+import enum EmployeeAccessAggregate.PermissionTimelineError
 
-/// `RoleDirectory` 的生產實作（docs/tasks/role-permission-composition.md §b）。
+/// `RoleDirectory` 的生產實作（docs/tasks/permission-timeline-composition.md §b）。
 ///
 /// - `resolve`：對每個 roleId rehydrate Role aggregate（強一致）；`find(byId:)` 對不存在／已刪除回 nil → 略過。
-/// - `rolesContaining`：折疊 `IAM_GetRoles-all`（GetRoles projection，最終一致）。
+/// - `history`：直接讀角色原始 stream，提供權限時間軸重播所需事件（強一致）。
+/// - `rolesEverContaining`：掃描 `IAM_GetRoles-all` 的新增權限事件，找出任何時候含過權限的角色（最終一致）。
 ///
 /// 只持有 `KurrentDBClient`（Sendable），repository 與 presenter 每次呼叫時建立——
 /// 與 ApiHandler 的 `repository` computed property 同一模式，避免把非 Sendable 的
@@ -34,15 +38,55 @@ package struct RoleAggregateDirectory: RoleDirectory {
         return result
     }
 
-    package func rolesContaining(permission: String) async throws -> Set<String> {
-        let presenter = GetRolesPresenter(coordinator: .init(client: kdbClient, eventMapper: RoleAggregateEventMapper()))
-        // 與階段一 GetRolesApplicationService 同一窄 catch：只把「read model 尚無事件」
-        //（stream 不存在／projection 未部署）視為空集合；其餘錯誤（KurrentDB 不可用等）向上拋。
-        do {
-            guard let output = try await presenter.execute(input: .init()) else { return [] }
-            return Set(output.readModel.roles.filter { $0.permissions.contains(permission) }.map(\.roleId))
-        } catch let error as DDDError where error.code == .eventsNotFound {
-            return []
+    package func history(ofRoles roleIds: Set<String>) async throws -> [TimelineEntry] {
+        let mapper = RoleAggregateEventMapper()
+        var entries: [TimelineEntry] = []
+        for roleId in roleIds.sorted() {
+            let streamName = Role.getStreamName(id: roleId)
+            do {
+                let responses = try await kdbClient.streams(specified: streamName).read {
+                    $0.direction = .forward
+                    $0.revision = .start
+                }
+                for try await response in responses {
+                    guard case let .event(readEvent) = response else {
+                        throw PermissionTimelineError.unresolvableEvent(stream: streamName)
+                    }
+                    let record = readEvent.record
+                    guard let event = try mapper.mapping(eventData: record) else {
+                        throw PermissionTimelineError.unmappedEvent(stream: streamName, eventType: record.eventType)
+                    }
+                    let position = LogPosition(commit: record.position.commit, prepare: record.position.prepare)
+                    switch event {
+                    case is RoleCreated:
+                        entries.append(.init(position: position, event: .roleCreated(roleId: roleId)))
+                    case let added as RolePermissionsAdded:
+                        entries.append(.init(position: position, event: .rolePermissionsAdded(roleId: roleId, permissions: added.permissions)))
+                    case let removed as RolePermissionsRemoved:
+                        entries.append(.init(position: position, event: .rolePermissionsRemoved(roleId: roleId, permissions: removed.permissions)))
+                    case is RoleDeleted:
+                        entries.append(.init(position: position, event: .roleDeleted(roleId: roleId)))
+                    case is RoleRenamed, is RoleDescriptionUpdated:
+                        continue
+                    default:
+                        throw PermissionTimelineError.unhandledEvent(stream: streamName, eventType: record.eventType)
+                    }
+                }
+            } catch KurrentError.resourceNotFound(_) {
+                continue
+            }
         }
+        return entries
     }
+
+    package func rolesEverContaining(permission: String) async throws -> Set<String> {
+        let presenter = GetRolesPresenter(coordinator: .init(client: kdbClient, eventMapper: RoleAggregateEventMapper()))
+        guard let fetched = try await presenter.coordinator.fetchEvents(byId: GetRolesInput().id) else { return [] }
+        var roleIds: Set<String> = []
+        for case let event as RolePermissionsAdded in fetched.events where event.permissions.contains(permission) {
+            roleIds.insert(event.roleId)
+        }
+        return roleIds
+    }
+
 }

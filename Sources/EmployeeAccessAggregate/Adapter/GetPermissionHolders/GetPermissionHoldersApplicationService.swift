@@ -1,5 +1,4 @@
 import Foundation
-import DDDKit
 import KurrentDB
 import IAMContextShared
 
@@ -22,7 +21,7 @@ package struct GetPermissionHoldersApplicationService: ApplicationService {
     package typealias Output = [String]
 
     private let kdbClient: KurrentDBClient
-    /// 角色定義出埠（階段二 role-permission-composition §g）：反查「含此權限的角色」，把角色持有者併進結果。
+    /// 角色定義出埠：提供反查候選人與逐人重播所需的角色歷史。
     private let roleDirectory: RoleDirectory
 
     package init(kdbClient: KurrentDBClient, roleDirectory: RoleDirectory) {
@@ -31,44 +30,27 @@ package struct GetPermissionHoldersApplicationService: ApplicationService {
     }
 
     package func execute(input: Input) async throws -> Output {
-        // 1. 直接持有者。KDB stream `IAM_GetPermissionHolders-<permission>` 尚無任何事件（權限從未被直接 grant）
-        //    → presenter.execute 回 nil 或 DDDError(.eventsNotFound)；兩者皆代表「零位直接持有者」。
-        //    階段二把原本的 early return 拿掉：直接持有者為空仍要往下跑角色展開，否則「只經由角色持有」的人永遠查不到。
-        //    與階段一 GetRoles／GetRoleHolders 同一窄 catch：其餘錯誤（KurrentDB 不可用等）向上拋，由 ApiHandler 映射成 503。
-        let presenter = GetPermissionHoldersPresenter(
-            coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper())
-        )
-        let directHolders: [String]
-        do {
-            directHolders = try await presenter.execute(input: .init(permission: input.permission))?.readModel.userIds ?? []
-        } catch let error as DDDError where error.code == .eventsNotFound {
-            directHolders = []
-        }
+        let timeline = PermissionTimelineService(kdbClient: kdbClient, roleDirectory: roleDirectory)
 
-        // 2. 含此權限的角色（GetRoles 目錄，最終一致）→ 3. 每個角色的持有者（GetRoleHolders projection，同 target）。
-        let roleIds = try await roleDirectory.rolesContaining(permission: input.permission)
-        var roleHolderIds: Set<String> = []
-        if !roleIds.isEmpty {
-            let roleHoldersService = GetRoleHoldersApplicationService(kdbClient: kdbClient)
-            for roleId in roleIds.sorted() {
-                roleHolderIds.formUnion(try await roleHoldersService.execute(input: .init(role: roleId)))
-            }
-        }
+        // 1. 候選人（超集合）：曾被直接授予者 ∪ 曾持有「任何時候含過該權限的角色」者。
+        let candidates = try await timeline.candidateUserIds(permission: input.permission)
 
-        // 4. 聯集：直接持有者保留原順序，只經由角色持有的人排序後接在後面（去重、順序可重現）。
-        let allUserIds = directHolders + roleHolderIds.subtracting(directHolders).sorted()
+        // 2. 每位候選人重播（與 getPermissions 同一套規則）；只留下有效權限含此權限者。
+        //    被個別撤銷、或角色已移除／刪除該權限的人在這裡被濾掉。
+        let effectiveByUser = try await timeline.effectivePermissions(userIds: candidates)
+        let holders = candidates.filter { effectiveByUser[$0]?.contains(input.permission) == true }
 
         // 若未指定任何過濾條件，直接回傳全體持有者（向後相容）。
         guard input.department != nil || input.firm != nil else {
-            return allUserIds
+            return holders
         }
 
-        // 依部門和/或所別過濾：並行查各 userId 的 PermissionsReadModel，取其 department/firm 欄位比對。
+        // 依部門和/或所別過濾：逐一查各 userId 的 PermissionsReadModel，取其 department/firm 欄位比對。
         let permissionsPresenter = GetPermissionsPresenter(
             coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper())
         )
         var filtered: [String] = []
-        for userId in allUserIds {
+        for userId in holders {
             guard let result = try? await permissionsPresenter.execute(input: .init(userId: userId)) else {
                 continue
             }

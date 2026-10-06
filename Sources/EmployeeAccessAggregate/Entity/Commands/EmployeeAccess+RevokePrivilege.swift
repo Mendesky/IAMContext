@@ -2,10 +2,10 @@ import DDDKit
 import Foundation
 import IAMContextShared
 extension EmployeeAccess {
-    package func revokePrivilege(employeeAccessId: String, userId: String, permissions: [String]) throws {
-        // PRECONDITION (from bundle): permissions all exist in user.permissions
-        // domain-fill: precondition — 要撤銷的 permission 任一不存在於 self.permissions → permissionNotExist
-        if let missing = permissions.first(where: { !(self.permissions ?? []).contains($0) }) {
+    package func revokePrivilege(employeeAccessId: String, userId: String, permissions: [String], heldViaOtherSources: Set<String> = []) throws {
+        // PRECONDITION: permissions must exist in direct grants or in effective permissions from other sources.
+        let direct = self.permissions ?? []
+        if let missing = permissions.first(where: { !direct.contains($0) && !heldViaOtherSources.contains($0) }) {
             throw ContextError<EmployeeAccessError>.permissionNotExist(function: #function, message: "permission \(missing) does not exist for user")
         }
         // IDENTITY GUARD (code review 2026-06-12): event 的 userId 必須等於本 profile 的 self.userId，不可信任請求值。

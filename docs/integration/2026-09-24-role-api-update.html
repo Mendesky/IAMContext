@@ -117,7 +117,7 @@
 
 <div class="page">
   <header class="masthead">
-    <p class="eyebrow"><b>IAMContext</b> · 對接更新說明 · 2026-09-24 · 分支 feat/role-aggregate</p>
+    <p class="eyebrow"><b>IAMContext</b> · 對接更新說明 · 2026-09-24 · 更新 2026-09-30：權限依事件順序重播、可個別撤銷角色權限 · 分支 feat/role-aggregate</p>
     <h1>角色 API 更新說明</h1>
     <p class="lede">IAM 新增角色管理 API。查員工權限的結果從此包含角色展開的權限，指派角色開始驗證 roleId。給 console 前端對接用。</p>
   </header>
@@ -143,7 +143,7 @@
       <div class="summary">
         <ol>
           <li><b>新增 9 個端點。</b>8 個在 <code>/roles</code> 底下管理角色（建立、清單、改名、改描述、加減權限、刪除、查角色權限），1 個查「誰持有某角色」。</li>
-          <li><b>3 個既有端點行為改變，形狀不變。</b><code>GET /employee-access/permissions/{userId}</code>（含 gRPC 同名方法）回傳的權限現在包含角色展開；<code>assign-roles</code> 開始驗證 roleId；<code>permission-holders</code> 現在包含只經角色持有的人。</li>
+          <li><b>5 個既有端點行為改變，形狀不變。</b><code>GET /employee-access/permissions/{userId}</code>（含 gRPC 同名方法）回傳的權限現在依事件發生順序重播算出，包含角色帶來的權限；<code>assign-roles</code> 開始驗證 roleId；<code>permission-holders</code> 與有效權限同一套規則判定持有者；<code>revoke-privilege</code> 現在可撤銷只來自角色的權限；<code>grant-privilege</code> 現在可再授予「直接授權還在帳上、但已因角色移除而失效」的權限。</li>
           <li><b>唯一的破壞性變更：</b><code>assign-roles</code> 的 <code>roles</code> 陣列值必須是存在且未刪除的 roleId，否則整包 422 <code>roleNotFound</code>。若 console 目前傳的是自訂角色名稱，切換後會全部失敗。</li>
           <li><b>不需要重產 client。</b>gRPC proto 沒變；既有 HTTP schema 只有新增（一個端點、一個 query 參數、一個錯誤碼），沒有欄位改名或移除。</li>
           <li><b>生效時間。</b>角色權限改完，IAM 這端下一個查詢立即反映。經 Middleware 權限快取的其他 context 最多晚 60 秒，與今天直接授權的行為相同。</li>
@@ -184,7 +184,7 @@
         <div class="table-wrap"><table><thead><tr><th>錯誤碼</th><th>狀態</th><th>觸發</th></tr></thead><tbody>
           <tr><td class="c">roleNameRequired</td><td class="num">422</td><td>name 為空或全空白</td></tr>
           <tr><td class="c">roleNameDuplicated</td><td class="num">422</td><td>已有同名角色（大小寫敏感、完全比對；盡力檢查，極短時間內的同名並發寫入可能都成功）</td></tr>
-          <tr><td class="c">invalidPayload</td><td class="num">422</td><td>body 不是合法 JSON 或缺必填欄位</td></tr>
+          <tr><td>（無錯誤碼）</td><td class="num">500</td><td>body 不是合法 JSON 或缺必填欄位。由 OpenAPI 解碼層在進入 handler 前回應，所有 POST 端點都一樣，屬既有行為；請前端送出前自行檢查必填欄位</td></tr>
         </tbody></table></div>
       </div>
 
@@ -267,8 +267,20 @@
       <h2><span class="no">四</span>既有端點的變化</h2>
 
       <h3><span class="m get">GET</span>/employee-access/permissions/{userId}　與 gRPC <code>PermissionsService.getPermissions</code></h3>
-      <p>回傳形狀不變，仍是權限 rawValue 的字串陣列。內容變成 <b>直接授權 ∪ 該員工每個角色的權限</b>，已去重。已刪除或解析不到的 roleId 貢獻零權限，不報錯。員工不存在的行為不變：HTTP 404，gRPC 回空清單。HTTP 與 gRPC 走同一段程式，結果一致。</p>
-      <div class="note">同一個權限同時來自直接授權與角色時，任一來源移除都不影響另一來源。同一權限存在於兩個角色時，撤銷其中一個角色後仍有效。</div>
+      <p>回傳形狀不變，仍是權限 rawValue 的字串陣列。內容是<b>把該員工的事件與他持有過的每個角色的事件依發生順序重播的結果，最新的事件說了算</b>，已去重。已刪除或解析不到的 roleId 貢獻零權限，不報錯。員工不存在的行為不變：HTTP 404，gRPC 回空清單。HTTP 與 gRPC 走同一段程式，結果一致。</p>
+      <div class="note">
+        <ul>
+          <li>同一個權限同時來自直接授權與角色時，角色被撤銷、移除該權限或刪除，這個權限會一起消失。直接授權不保留。</li>
+          <li>同一個權限存在於兩個角色時，其中一個被撤銷、移除該權限或刪除，另一個角色仍供應它。</li>
+          <li>對個人撤銷的權限，之後只要再被直接授予、重新指派角色、或角色再次加入該權限，就會回來。</li>
+        </ul>
+      </div>
+
+      <h3><span class="m post">POST</span>/employee-access/{employeeAccessId}/revoke-privilege</h3>
+      <p><b>行為改變。</b>撤銷只來自角色的權限，現在回 200，原本是 422 <code>permissionNotExist</code>。之後該員工的有效權限不含它，HTTP 與 gRPC 一致；經 projection 約有數百毫秒延遲，經 Middleware 快取的消費端最多再晚 60 秒。錯誤碼不變：422 <code>permissionNotExist</code>（該權限既不在直接授權、也不在有效權限）、422 <code>userIdMismatch</code>、404 <code>aggregateNotFound</code>、503。</p>
+
+      <h3><span class="m post">POST</span>/employee-access/{employeeAccessId}/grant-privilege</h3>
+      <p><b>行為改變。</b>權限在直接授權裡、但已因角色被撤銷、移除該權限或刪除而不在有效權限時，現在可以再授予，原本是 422 <code>permissionAlreadyExists</code>；授予後有效權限含它。權限真的已在有效權限時，仍回 422 <code>permissionAlreadyExists</code>。其餘錯誤碼不變：422 <code>userIdMismatch</code>、404 <code>aggregateNotFound</code>、503。</p>
 
       <h3><span class="m post">POST</span>/employee-access/{employeeAccessId}/assign-roles</h3>
       <pre><code>{ "userId": "…", "roles": ["6F1C0A3E-…", "9D2B…"] }     // roles 的值＝roleId</code></pre>
@@ -286,7 +298,7 @@
       <p>行為不變，不驗證 roleId 是否仍存在（撤銷一個已刪角色的引用是無害的）。錯誤 <code>roleNotExist</code> 422 的意思是「這位員工身上沒有這個角色」，與上面的 <code>roleNotFound</code> 是兩件事。</p>
 
       <h3><span class="m get">GET</span>/employee-access/permission-holders?permission=…&amp;department=…&amp;firm=…</h3>
-      <p>回傳的 userId 清單現在包含<b>只經由角色持有</b>該權限的人。順序：直接持有者在前，保持原順序；經角色持有者排序後接在後面；已去重。department／firm 過濾套用在合併後的結果上。角色反查那一半走 projection，有數百毫秒延遲；projection 未部署時退化成只回直接持有者，不報錯。</p>
+      <p>回傳的 userId 清單現在包含<b>只經由角色持有</b>該權限的人。持有者以與 <code>getPermissions</code> 相同的重播結果判定：被個別撤銷、或角色已移除或刪除該權限的人不會出現。順序：直接持有者在前，保持原順序；經角色持有者排序後接在後面；已去重。department／firm 過濾套用在合併後的結果上。角色反查那一半走 projection，有數百毫秒延遲；projection 未部署時退化成只回直接持有者，不報錯。</p>
     </section>
 
     <section id="s5">
@@ -320,7 +332,7 @@
             <tr><td class="c">descriptionUnchanged</td><td class="num">422</td><td>updateRoleDescription</td><td>描述未變</td></tr>
             <tr><td class="c">permissionsUnchanged</td><td class="num">422</td><td>addPermissions、removePermissions</td><td>淨效果為空</td></tr>
             <tr><td class="c">invalidPermission</td><td class="num">422</td><td>addPermissions、removePermissions</td><td>rawValue 不在權限目錄</td></tr>
-            <tr><td class="c">invalidPayload</td><td class="num">422</td><td>所有 POST</td><td>body 不合法</td></tr>
+            <tr><td>（無錯誤碼）</td><td class="num">500</td><td>所有 POST</td><td>body 不是合法 JSON 或缺必填欄位（解碼層回應，屬既有行為）。<code>invalidPayload</code> 雖在錯誤列舉裡，實務上不會出現</td></tr>
             <tr><td class="c">aggregateNotFound</td><td class="num">404</td><td>所有帶 id 的端點</td><td>roleId 或 employeeAccessId 不存在／已刪除</td></tr>
             <tr><td class="c">roleNotFound <span class="tag seal">新增</span></td><td class="num">422</td><td>assignRoles</td><td>roleId 在角色目錄中不存在或已刪除</td></tr>
             <tr><td class="c">roleAlreadyExists</td><td class="num">422</td><td>assignRoles</td><td>員工已持有該角色</td></tr>
@@ -337,8 +349,9 @@
       <ul>
         <li><b>歷史角色字串。</b>過去用 <code>assign-roles</code> 寫進員工身上的非 roleId 字串不會被遷移或清理。它們在查權限時貢獻零權限、不報錯，也不會擋住新的指派。若 console 曾把角色名稱當值送出，需要改成先建角色、再用 roleId。</li>
         <li><b>projection 部署。</b>每個環境上線前要跑一次 <code>bash scripts/projection.sh</code>，部署 IAM_GetRoles 與 IAM_RoleHolders 兩支 projection。沒部署時 <code>GET /roles</code>、<code>role-holders</code> 回空陣列，<code>permission-holders</code> 看不到經角色持有的人。</li>
+        <li><b>既有資料的權限差異。</b>既有資料不需遷移。但角色曾移除某位員工同時直接持有的權限時，那位員工的有效權限會與舊版的聯集結果不同：新版會失去該權限。</li>
         <li><b>gRPC。</b>proto 與產生的 stub 沒變。其他 context 不需改碼，只是回傳內容開始包含角色權限。</li>
-        <li><b>狀態。</b>程式在 IAMContext 分支 <code>feat/role-aggregate</code>，全套 103 個整合測試通過，尚未合併主線與部署。</li>
+        <li><b>狀態。</b>程式在 IAMContext 分支 <code>feat/role-aggregate</code>，全套 157 個測試通過，尚未合併主線與部署。</li>
       </ul>
     </section>
 

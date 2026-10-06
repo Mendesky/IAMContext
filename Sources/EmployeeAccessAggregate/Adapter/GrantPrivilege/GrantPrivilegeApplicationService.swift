@@ -1,4 +1,5 @@
 import Foundation
+import KurrentDB
 import IAMContextShared
 
 package struct GrantPrivilegeApplicationServiceInput {
@@ -29,13 +30,15 @@ package struct GrantPrivilegeApplicationService: ApplicationService {
     package typealias Output = GrantPrivilegeApplicationServiceOutput
 
     private let repository: EmployeeAccessRepository
+    private let effectivePermissionsReader: EffectivePermissionsReader
 
-    package init(repository: EmployeeAccessRepository) {
+    package init(repository: EmployeeAccessRepository, kdbClient: KurrentDBClient, roleDirectory: RoleDirectory) {
         self.repository = repository
+        self.effectivePermissionsReader = PermissionTimelineService(kdbClient: kdbClient, roleDirectory: roleDirectory)
     }
 
     package func execute(input: Input) async throws -> Output {
-        let service = GrantPrivilegeService(repository: repository)
+        let service = GrantPrivilegeService(repository: repository, effectivePermissionsReader: effectivePermissionsReader)
         _ = try await service.execute(input: .init(
             employeeAccessId: input.employeeAccessId,
             userId: input.userId,

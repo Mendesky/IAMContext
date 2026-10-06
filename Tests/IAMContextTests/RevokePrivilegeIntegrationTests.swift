@@ -9,6 +9,9 @@ import IAMContextShared
 struct RevokePrivilegeIntegrationTests {
     let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
     let repository: EmployeeAccessRepository
+    private var timeline: PermissionTimelineService {
+        PermissionTimelineService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
+    }
 
     init() {
         self.repository = EmployeeAccessRepository(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
@@ -21,11 +24,11 @@ struct RevokePrivilegeIntegrationTests {
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
             ))
 
-            _ = try await RevokePrivilegeService(repository: repository).execute(input: .init(
+            _ = try await RevokePrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
             ))
             let aggregate = try #require(try await repository.find(byId: employeeAccessId))
@@ -41,7 +44,7 @@ struct RevokePrivilegeIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            let usecase = RevokePrivilegeService(repository: repository)
+            let usecase = RevokePrivilegeService(repository: repository, effectivePermissionsReader: timeline)
             let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
                 let _: RevokePrivilegeOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: userId, permissions: ["custom:new"], operatorId: operatorId
@@ -57,7 +60,7 @@ struct RevokePrivilegeIntegrationTests {
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
-            let usecase = RevokePrivilegeService(repository: repository)
+            let usecase = RevokePrivilegeService(repository: repository, effectivePermissionsReader: timeline)
             let error = await #expect(throws: DDDError.self) {
                 let _: RevokePrivilegeOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: userId, permissions: ["it:read"], operatorId: operatorId
