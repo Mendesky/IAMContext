@@ -8,7 +8,7 @@ package protocol CreateRoleUsecase: Usecase where Input == CreateRoleInput, Outp
 extension CreateRoleUsecase {
     package func execute(input: CreateRoleInput) async throws -> CreateRoleOutput {
         do {
-            guard !input.name.isEmpty else {
+            guard !input.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ContextError<RoleError>.roleNameRequired(function: #function, message: "role name must be present and non-empty")
             }
             let role = try Role(name: input.name, description: input.description)

@@ -42,7 +42,7 @@ package class Role: RoleAggregateProtocol {   // protocol 由 plugin 從 event.y
 ```
 
 - **roleId 由 aggregate 自行生成**（D15）：create 用的 convenience init `Role(name:description:)` 內部 `id = UUID().uuidString`，client 不供給 id；因 UUID 碰撞機率可忽略，**不做** create 重複檢查（對照 `CreateUserAccessProfileUsecase` 的 duplicate guard——那是 client 供給 id 才需要的）。
-- **不變量**（`ensureInvariant`）：`name` 非 nil 且非空字串（違反 → `ContextError<RoleError>.roleNameRequired`）。
+- **不變量**（`ensureInvariant`）：`name` 非 nil 且去除前後空白後非空（違反 → `ContextError<RoleError>.roleNameRequired`）。
 - **狀態異動只在 `when(event:)`**；命令方法只 validate + `apply(event:)`（repo 鐵則，對照 `EmployeeAccess+TransferDepartment` 的命令方法與 `when(event:)` 分工）。
 
 命令（`Entity/Commands/`，每命令一檔）：
@@ -102,7 +102,7 @@ package class Role: RoleAggregateProtocol {   // protocol 由 plugin 從 event.y
 
 ```swift
 package enum RoleError: Error, Equatable {
-    case roleNameRequired       // name 空字串（invariant / create 輸入）
+    case roleNameRequired       // name 空字串或全空白（invariant / create 輸入）
     case roleNameDuplicated     // create/rename：名稱已被其他角色使用（best-effort，見 §7）
     case roleNameUnchanged      // rename no-op
     case descriptionUnchanged   // update-description no-op
@@ -211,7 +211,7 @@ no-op 類錯誤（`roleNameUnchanged` / `descriptionUnchanged` / `permissionsUnc
 
 1. `RoleRepository.swift`：對照 `EmployeeAccessRepository`——`EventSourcingRepository` wrapper，`StorageCoordinator = KurrentStorageCoordinator<Role>`。
 2. `CreateRoleUsecase.execute` 默認實作：
-   a. `name` 非空驗證（空 → `roleNameRequired`）
+   a. `name` 非空驗證（空或全空白 → `roleNameRequired`）
    b. `Role(name:description:)`（roleId 於此生成）→ `repository.save(aggregateRoot:userId: input.operatorId)` → Output 回傳生成的 roleId
    （名稱唯一性檢查**不在** usecase——它只持有 repository，拿不到 kdbClient；檢查位置在 Adapter 層，見 §7 與 Step 4。）
 3. `RenameRoleUsecase.execute`：find（nil → aggregateNotFound）→ `role.rename(...)` → save（唯一性檢查同樣在 Adapter 層）。

@@ -49,7 +49,7 @@ package class Role: RoleAggregateProtocol {
     }
 
     package func ensureInvariant() throws {
-        guard let name, !name.isEmpty else {
+        guard let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ContextError<RoleError>.roleNameRequired(function: #function, message: "role name must be present and non-empty")
         }
     }
