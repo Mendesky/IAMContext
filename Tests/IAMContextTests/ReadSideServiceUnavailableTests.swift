@@ -104,12 +104,19 @@ private func makeUnreachableKurrentDBClient() throws -> KurrentDBClient {
 
 /// 讓 OS 配一個暫用 port 後立刻關掉——這個 port 此刻保證沒人在聽（不寫死 1、9 之類「應該沒人用」的號碼）。
 private func unusedLocalPort() throws -> UInt32 {
+    // Linux（Glibc）的 SOCK_STREAM 是 __socket_type 列舉，要轉成 Int32；macOS 直接是 Int32。
+    #if os(Linux)
+    let fd = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+    #else
     let fd = socket(AF_INET, SOCK_STREAM, 0)
+    #endif
     guard fd >= 0 else { throw PortLookupFailure(reason: "socket() failed, errno=\(errno)") }
     defer { close(fd) }
 
     var address = sockaddr_in()
-    address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+    #if !os(Linux)
+    address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)   // sin_len 只有 BSD／macOS 有
+    #endif
     address.sin_family = sa_family_t(AF_INET)
     address.sin_port = 0   // 由 OS 挑
     address.sin_addr.s_addr = inet_addr("127.0.0.1")
