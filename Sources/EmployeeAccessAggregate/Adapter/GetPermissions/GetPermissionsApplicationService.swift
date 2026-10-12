@@ -15,7 +15,7 @@ package struct GetPermissionsApplicationService: ApplicationService {
     package typealias Output = [String]
 
     private let kdbClient: KurrentDBClient
-    /// 角色定義出埠（階段二）：把 read model 內的 roleId 解析成權限集合並與直接授權聯集。
+    /// 角色定義出埠：提供時間軸重播所需的角色歷史。
     private let roleDirectory: RoleDirectory
 
     /// When non-nil, the service bypasses the per-user read-model lookup and returns this
@@ -37,20 +37,14 @@ package struct GetPermissionsApplicationService: ApplicationService {
             return overrides
         }
 
-        // /presenter-fill: 透過 GetPermissionsPresenter（projector）抓 read model，map readModel.permissions → Output。
-        let presenter = GetPermissionsPresenter(coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper()))
-        guard let readModel = try await presenter.execute(input: .init(userId: input.userId))?.readModel else {
+        // 有效權限 = 員工事件與其持有過的角色事件依全域位置重播的結果（D2、D3）。
+        let timeline = PermissionTimelineService(kdbClient: kdbClient, roleDirectory: roleDirectory)
+        guard let permissions = try await timeline.effectivePermissions(userId: input.userId) else {
             throw ContextError<EmployeeAccessQueryError>(
                 error: .notFound,
                 in: .struct(GetPermissionsApplicationService.self, function: #function),
-                message: "read model not found for \(input.userId)"
+                message: "employee event stream not found for \(input.userId)"
             )
-        }
-        // 階段二：有效權限 = 直接授權 ∪ ⋃ 角色權限。解析不到／已刪除的 roleId 不在字典裡 → 貢獻零權限、不報錯。
-        var permissions = Set(readModel.permissions ?? [])
-        let roleGrants = try await roleDirectory.resolve(roleIds: readModel.roles)
-        for grantedPermissions in roleGrants.values {
-            permissions.formUnion(grantedPermissions)
         }
         return Array(permissions)
     }

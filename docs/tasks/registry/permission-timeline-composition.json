@@ -1,0 +1,100 @@
+{
+  "id": "permission-timeline-composition",
+  "file": "docs/tasks/permission-timeline-composition.md",
+  "title": "員工有效權限時間軸重播（可對個人移除來自角色的權限）",
+  "status": "done",
+  "created": "2026-09-30",
+  "depends_on": [
+    "role-permission-composition"
+  ],
+  "supersedes": [],
+  "discussion": "docs/discussions/2026-09-30-permission-timeline-composition.md",
+  "html_mirror": "",
+  "preconditions": [
+    "file:docs/tasks/role-permission-composition.md",
+    "file:docs/tasks/registry/role-permission-composition.json",
+    "file:docs/discussions/2026-09-30-permission-timeline-composition.md",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Port/Out/RoleDirectory.swift",
+    "file:Sources/RoleAggregate/Adapter/RoleDirectory/RoleAggregateDirectory.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/GetPermissions/GetPermissionsApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/GetPermissionHolders/GetPermissionHoldersApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/GetPermissionsPresenter.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Projector/GetPermissions/PermissionsReadModel.swift",
+    "file:Sources/EmployeeAccessAggregate/Entity/Commands/EmployeeAccess+RevokePrivilege.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Port/In/RevokePrivilege/RevokePrivilegeUsecase.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Service/RevokePrivilegeService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/RevokePrivilege/RevokePrivilegeApplicationService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/ApiHandler.swift",
+    "file:Sources/EmployeeAccessAggregate/event.yaml",
+    "file:Sources/RoleAggregate/event.yaml",
+    "file:Sources/IAMContextServer/IAMContextServer.swift",
+    "file:Sources/IAMContextServer/PermissionsService.swift",
+    "file:projections/IAM_GetPermissionsProjection.js",
+    "file:projections/IAM_PermissionHoldersProjection.js",
+    "file:projections/IAM_RoleHoldersProjection.js",
+    "file:projections/IAM_GetRolesProjection.js",
+    "file:scripts/projection.sh",
+    "file:docs/integration/2026-09-24-role-api-update.html",
+    "file:.ai/contexts/IAMContext/EmployeeAccess/commands.md",
+    "file:.ai/contexts/IAMContext/EmployeeAccess/errors.md",
+    "file:.ai/contexts/IAMContext/EmployeeAccess/test-scenarios.md",
+    "file:Tests/IAMContextTests/IntegrationTestSupport.swift",
+    "file:Tests/IAMContextTests/FakeRoleDirectory.swift",
+    "file:Tests/IAMContextTests/RolePermissionCompositionIntegrationTests.swift",
+    "file:Tests/IAMContextTests/RevokePrivilegeIntegrationTests.swift",
+    "file:Tests/IAMContextTests/GetPermissionHoldersIntegrationTests.swift",
+    "file:Tests/IAMContextTests/ReadSideServiceUnavailableTests.swift",
+    "file:Sources/EmployeeAccessAggregate/Entity/Commands/EmployeeAccess+GrantPrivilege.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Port/In/GrantPrivilege/GrantPrivilegeUsecase.swift",
+    "file:Sources/EmployeeAccessAggregate/Usecase/Service/GrantPrivilegeService.swift",
+    "file:Sources/EmployeeAccessAggregate/Adapter/GrantPrivilege/GrantPrivilegeApplicationService.swift",
+    "file:Tests/IAMContextTests/GrantPrivilegeIntegrationTests.swift",
+    "file:Tests/IAMContextTests/RoleApiHandlerIntegrationTests.swift"
+  ],
+  "verification": [
+    "/usr/bin/swift build",
+    "/usr/bin/swift build --build-tests",
+    "/usr/bin/grep -n \"package enum PermissionTimelineError\" Sources/EmployeeAccessAggregate/Entity/PermissionTimeline/PermissionTimeline.swift",
+    "/usr/bin/grep -n \"func history(ofRoles\" Sources/EmployeeAccessAggregate/Usecase/Port/Out/RoleDirectory.swift",
+    "/usr/bin/grep -n \"func rolesEverContaining(permission:\" Sources/EmployeeAccessAggregate/Usecase/Port/Out/RoleDirectory.swift",
+    "/usr/bin/grep -n \"lapsedDirectGrants\" Sources/EmployeeAccessAggregate/Entity/Commands/EmployeeAccess+GrantPrivilege.swift",
+    "! /usr/bin/grep -rn \"rolesContaining\" Sources Tests",
+    "! /usr/bin/grep -rn \"import RoleAggregate\" Sources/EmployeeAccessAggregate",
+    "! /usr/bin/grep -rnE \"(Grant|Revoke)PrivilegeService\\(repository: [A-Za-z]+\\)\" Sources Tests",
+    "/usr/bin/swift test --filter PermissionTimelineTests",
+    "/usr/bin/swift test --filter RolePermissionCompositionIntegrationTests",
+    "/usr/bin/swift test --filter RevokePrivilegeIntegrationTests",
+    "/usr/bin/swift test --filter GrantPrivilegeIntegrationTests",
+    "/usr/bin/swift test --filter GetPermissionHoldersIntegrationTests",
+    "/usr/bin/swift test --filter GetPermissionsIntegrationTests",
+    "/usr/bin/swift test",
+    "test -z \"$(/usr/bin/git diff --stat -- proto/ Sources/Generated/ projections/ Package.swift Sources/IAMContextServer/ Sources/EmployeeAccessAggregate/event.yaml Sources/EmployeeAccessAggregate/openapi.yaml Sources/EmployeeAccessAggregate/EmployeeAccessError.swift Sources/RoleAggregate/event.yaml Sources/RoleAggregate/openapi.yaml Sources/RoleAggregate/RoleError.swift)\"",
+    "完整可執行腳本見 spec「驗收標準 › Agent 必做」（退出碼判斷；一律 /usr/bin/ 絕對路徑，git diff 也會被包裝）"
+  ],
+  "tags": [
+    "feature"
+  ],
+  "status_history": [
+    {
+      "status": "draft",
+      "at": "2026-09-30T00:00:00+08:00",
+      "note": "初稿。D1–D8 依使用者 2026-09-30 對話逐條確認，見 docs/discussions/2026-09-30-permission-timeline-composition.md。實作前提 P-a（KurrentDB 全域位置：link 事件取 record 的原始位置，DDDKit coordinator 丟掉位置故需直接讀 KurrentDBClient）、P-b（角色刪除為 append RoleDeleted，原始事件仍可讀）、P-c（擴充 RoleDirectory port）已查證並附 file:line 與本機 KurrentDB 25.1.1.2828 實測；重播引擎已以獨立 swiftc 驗 30 個檢查點。[inferred] 項目彙整於 spec 已知限制 #11。尚未經 audit-spec 或外部第二意見審查。"
+    },
+    {
+      "status": "ready",
+      "at": "2026-09-30",
+      "note": "audit-spec 完成（4b 通用規則 5/5、5b 內部一致性 7/7，修正後全 PASS；修正前 R1/R2/C2/C4/C5/C6 為 FAIL；skill 實有 12 項）。步驟 1：依使用者指示把 grantPrivilege 前置條件對齊有效權限納入本 task（[inferred] I-11，介面合約 §g-2；新增整合測試 #25；全 repo 斷言 permissionAlreadyExists／permissionNotExist 的既有測試只有 grant_existing_privilege_throws 與 revoke_missing_privilege_throws，兩者在新規則下仍成立）。修正：(1) HIGH fail-closed：mapper 回 nil 被 continue、ReadResponse.event 的 resourceNotFound 與 stream 不存在混淆、switch default 吞事件三處會靜默丟事件，改為 PermissionTimelineError 三層＋事件型別處置總表（I-12，新增測試 #26、#27）；(2) HIGH 驗收：scripts/projection.sh 是 delete＋create 的破壞性重建不可當已部署檢查、grep 無命中退出碼 1、RoleAggregate diff 無基線可比、git diff 被包裝，改為退出碼腳本＋Step 0 基線＋非破壞性 projection 檢查；(3) MEDIUM：全部 line 號錨點改語意錨點、P-a/P-b 補原始 stream 身分與角色 payload 前提、失敗路徑『永遠是一致快照』的不實敘述更正、mentionedRoleIds 去 default、readEmployeeEntries 區分『不存在』與『無權限事件』、單元測試補 U16–U18、Human 補做加 fail-closed 上線掃描、>= 2 計數門檻改精確錨點；(4) Codex gpt-5.5/medium 外部審查 0 高 3 中 2 低：採納 4（角色側不與 save 原子化、Step 0 用 /usr/bin/git、registry 驗收檢查、department/firm 過濾 try? 列入已知限制 #14），駁回 1（TimelineEvent 具名 import，完整實作副本編譯證明不需要）。APFS 副本依規格實作：swift build --build-tests 綠、全套 swift test 綠（含新寫 #13/#21/#24/#25/#26/#27）。無待裁決項。"
+    },
+    {
+      "status": "in-progress",
+      "at": "2026-09-30T00:00:00+08:00",
+      "session": "pickup fork：Codex 實作（用量不足時 fork 自行實作）→ /usr/bin/swift gate → Gemini 總審"
+    },
+    {
+      "status": "done",
+      "at": "2026-09-30T00:00:00+08:00",
+      "note": "pickup 完成：Steps 1–7 由 Codex 實作（Step 7 中途用量耗盡，fork 接手審查並修 #19 斷言範圍、收緊 #27），Step 8 由 fork 實作；規格驗收腳本 ALL PASS（66 項）；全套 157 tests passed（基線 124 + 33）；Gemini 總審 PASS 0 issue（僅註解用字建議，已修）。"
+    }
+  ],
+  "completed": "2026-09-30"
+}

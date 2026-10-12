@@ -18,6 +18,9 @@ import IAMContextShared
 struct GetPermissionHoldersIntegrationTests {
     let kdbClient: KurrentDBClient = makeTestKurrentDBClient()
     let repository: EmployeeAccessRepository
+    private var timeline: PermissionTimelineService {
+        PermissionTimelineService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
+    }
 
     init() {
         self.repository = EmployeeAccessRepository(
@@ -45,10 +48,10 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId2, userId: userId2, operatorId: operatorId, repository: repository)
 
             // 兩個 userId 都 grant 同一個 permission
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId2, userId: userId2, permissions: [permission], operatorId: operatorId
             ))
 
@@ -56,7 +59,7 @@ struct GetPermissionHoldersIntegrationTests {
             try await Task.sleep(for: .milliseconds(500))
 
             // revoke userId1 的 permission
-            _ = try await RevokePrivilegeService(repository: repository).execute(input: .init(
+            _ = try await RevokePrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
 
@@ -96,10 +99,10 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId1, userId: userId1, operatorId: operatorId, department: "資訊部門", repository: repository)
             try await seedActiveProfile(employeeAccessId: eaId2, userId: userId2, operatorId: operatorId, department: "業務部門", repository: repository)
 
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId2, userId: userId2, permissions: [permission], operatorId: operatorId
             ))
 
@@ -127,10 +130,10 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId1, userId: userId1, operatorId: operatorId, firm: "台北所", repository: repository)
             try await seedActiveProfile(employeeAccessId: eaId2, userId: userId2, operatorId: operatorId, firm: "台中所", repository: repository)
 
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId2, userId: userId2, permissions: [permission], operatorId: operatorId
             ))
 
@@ -158,10 +161,10 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId1, userId: userId1, operatorId: operatorId, firm: "台北所", repository: repository)
             try await seedActiveProfile(employeeAccessId: eaId2, userId: userId2, operatorId: operatorId, firm: "台中所", repository: repository)
 
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId2, userId: userId2, permissions: [permission], operatorId: operatorId
             ))
 
@@ -199,7 +202,7 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId3, userId: userId3, operatorId: operatorId, department: "資訊部門", firm: "台中所", repository: repository)
 
             for (eaId, userId) in [(eaId1, userId1), (eaId2, userId2), (eaId3, userId3)] {
-                _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+                _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                     employeeAccessId: eaId, userId: userId, permissions: [permission], operatorId: operatorId
                 ))
             }
@@ -230,10 +233,10 @@ struct GetPermissionHoldersIntegrationTests {
             try await seedActiveProfile(employeeAccessId: eaId1, userId: userId1, operatorId: operatorId, department: "資訊部門", repository: repository)
             try await seedActiveProfile(employeeAccessId: eaId2, userId: userId2, operatorId: operatorId, department: "業務部門", repository: repository)
 
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId1, userId: userId1, permissions: [permission], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId2, userId: userId2, permissions: [permission], operatorId: operatorId
             ))
 
@@ -264,7 +267,7 @@ struct GetPermissionHoldersIntegrationTests {
 
             // 建檔在「資訊部門 / 台北所」並授權
             try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: operatorId, department: "資訊部門", firm: "台北所", repository: repository)
-            _ = try await GrantPrivilegeService(repository: repository).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, permissions: [permission], operatorId: operatorId
             ))
 

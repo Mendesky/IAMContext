@@ -43,7 +43,7 @@ package struct ApiHandler: APIProtocol {
             operatorId: operatorId
         )
 
-        let service = GrantPrivilegeApplicationService(repository: repository)
+        let service = GrantPrivilegeApplicationService(repository: repository, kdbClient: kdbClient, roleDirectory: roleDirectory)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
@@ -70,7 +70,7 @@ package struct ApiHandler: APIProtocol {
             operatorId: operatorId
         )
 
-        let service = RevokePrivilegeApplicationService(repository: repository)
+        let service = RevokePrivilegeApplicationService(repository: repository, kdbClient: kdbClient, roleDirectory: roleDirectory)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))

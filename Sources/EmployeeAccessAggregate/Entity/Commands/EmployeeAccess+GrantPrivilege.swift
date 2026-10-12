@@ -2,10 +2,10 @@ import DDDKit
 import Foundation
 import IAMContextShared
 extension EmployeeAccess {
-    package func grantPrivilege(employeeAccessId: String, userId: String, permissions: [String]) throws {
-        // PRECONDITION (from bundle): permissions not already in user.permissions
-        // domain-fill: precondition — 要授予的 permission 任一已存在於 self.permissions → permissionAlreadyExists
-        guard !permissions.contains(where: { (self.permissions ?? []).contains($0) }) else {
+    package func grantPrivilege(employeeAccessId: String, userId: String, permissions: [String], lapsedDirectGrants: Set<String> = []) throws {
+        // PRECONDITION: permissions cannot be both directly granted and still effective.
+        let direct = self.permissions ?? []
+        guard !permissions.contains(where: { direct.contains($0) && !lapsedDirectGrants.contains($0) }) else {
             throw ContextError<EmployeeAccessError>.permissionAlreadyExists(function: #function, message: "permission already granted to user")
         }
         // IDENTITY GUARD (code review 2026-06-12): aggregate 由 employeeAccessId 載入，event 的 userId 必須是這個

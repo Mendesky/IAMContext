@@ -3,6 +3,7 @@ import IAMContextShared
 
 package protocol GrantPrivilegeUsecase: Usecase where Input == GrantPrivilegeInput, Output == GrantPrivilegeOutput {
     var repository: EmployeeAccessRepository { get }
+    var effectivePermissionsReader: EffectivePermissionsReader { get }
 }
 
 extension GrantPrivilegeUsecase {
@@ -11,7 +12,13 @@ extension GrantPrivilegeUsecase {
             throw DDDError.aggregateNotFound(usecase: self, aggregateRootType: EmployeeAccess.self, aggregateRootId: input.employeeAccessId)
         }
         do {
-            try employeeAccess.grantPrivilege(employeeAccessId: input.employeeAccessId, userId: input.userId, permissions: input.permissions)
+            let alreadyDirect = Set(input.permissions).intersection(employeeAccess.permissions ?? [])
+            var lapsedDirectGrants: Set<String> = []
+            if !alreadyDirect.isEmpty {
+                let effective = try await effectivePermissionsReader.effectivePermissions(employeeAccessId: input.employeeAccessId)
+                lapsedDirectGrants = alreadyDirect.subtracting(effective)
+            }
+            try employeeAccess.grantPrivilege(employeeAccessId: input.employeeAccessId, userId: input.userId, permissions: input.permissions, lapsedDirectGrants: lapsedDirectGrants)
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
             return .init(id: employeeAccess.id, message: nil)
         } catch let error as ContextError<EmployeeAccessError> {
