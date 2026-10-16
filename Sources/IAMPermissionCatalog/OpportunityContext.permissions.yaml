@@ -607,3 +607,6 @@ permissions:
   - slot: Annotating
     operationId: getAnnotations
     description: "取得指定訪談表的全部劃記與留言串（依 operator 白名單身分回傳可見範圍），非白名單者一律回 404"
+  - slot: OpportunityContext
+    operationId: notifyPerformanceSubmission
+    description: "建立業績——把本 grouping 底下符合資格的案件通知業績統計系統（潛客＝已建檔、所客／一次性＝已成交）；只送事實，業績由人在業績登錄系統補完"
