@@ -405,6 +405,9 @@ permissions:
     operationId: changeCollaboratorRole
     description: "調整既有 collaborator 的角色（editor ↔ viewer），owner 角色不可變更"
   - slot: QuotingCaseGrouping
+    operationId: editClientDocumentTitle
+    description: "編輯「其他」客戶文件的檔案標題"
+  - slot: QuotingCaseGrouping
     operationId: editClientSource
     description: "修改 quotingCaseGrouping 的客戶來源資訊（clientSource + referer + staffId + clientSourceDescription 原子覆寫）"
   - slot: QuotingCaseGrouping
