@@ -444,9 +444,6 @@ permissions:
     operationId: getClientDocuments
     description: "取得整個 grouping 的客戶文件清單（不含 mediaLink），每筆自帶 quotingCaseId"
   - slot: QuotingCaseGrouping
-    operationId: getClientDocumentsZipDownload
-    description: "把指定 quotingCase 的所有客戶文件打包成單一 zip 下載（總量上限 500MB）"
-  - slot: QuotingCaseGrouping
     operationId: getClientSource
     description: "取得 quotingCaseGrouping 的客戶來源資訊"
   - slot: QuotingCaseGrouping
