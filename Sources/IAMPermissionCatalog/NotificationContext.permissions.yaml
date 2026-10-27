@@ -1,0 +1,18 @@
+context: NotificationContext
+serverPrefix: /notification-context
+permissions:
+  - slot: MailCcRule
+    operationId: listMailCcRules
+    description: 查詢通知信 Cc 規則
+  - slot: MailCcRule
+    operationId: createMailCcRule
+    description: 建立通知信 Cc 規則
+  - slot: MailCcRule
+    operationId: getMailCcRule
+    description: 查詢單筆通知信 Cc 規則
+  - slot: MailCcRule
+    operationId: replaceMailCcRule
+    description: 修改通知信 Cc 規則
+  - slot: MailCcRule
+    operationId: deleteMailCcRule
+    description: 刪除通知信 Cc 規則
