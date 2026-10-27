@@ -517,7 +517,7 @@ permissions:
     description: "上傳客戶文件到指定 quotingCase（限 50MB）；documentId 由後端產生並回傳。不受案件階段限制"
   - slot: QuotingCaseGrouping
     operationId: uploadRiskControlDocument
-    description: "上傳或換掉指定 quotingCase 的新客戶風控表（PDF/JPEG/PNG，限 3MB；只有潛客）"
+    description: "上傳或換掉指定 quotingCase 的新客戶風控表（PDF/JPEG/PNG，限 10MB；只有潛客）"
   - slot: QuotingCaseGrouping
     operationId: uploadReplyForm
     description: "上傳同意函（PDF/JPEG/PNG，限 20MB）；documentId 由後端產生並回傳"
