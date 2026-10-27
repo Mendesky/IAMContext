@@ -498,6 +498,9 @@ permissions:
     operationId: removeReplyForm
     description: "移除同意函；後端同步在 GCS 標記刪除"
   - slot: QuotingCaseGrouping
+    operationId: removeRiskControlDocument
+    description: "刪除指定 quotingCase 的新客戶風控表（只有潛客；群組成交後不能刪）"
+  - slot: QuotingCaseGrouping
     operationId: renameQuotingBundle
     description: "修改指定 quotingBundle 的名稱"
   - slot: QuotingCaseGrouping
@@ -514,7 +517,7 @@ permissions:
     description: "上傳客戶文件到指定 quotingCase（限 50MB）；documentId 由後端產生並回傳。不受案件階段限制"
   - slot: QuotingCaseGrouping
     operationId: uploadRiskControlDocument
-    description: "上傳或換掉指定 quotingCase 的新客戶風控表（PDF/JPEG/PNG，限 3MB；只有潛客，不可刪除）"
+    description: "上傳或換掉指定 quotingCase 的新客戶風控表（PDF/JPEG/PNG，限 3MB；只有潛客）"
   - slot: QuotingCaseGrouping
     operationId: uploadReplyForm
     description: "上傳同意函（PDF/JPEG/PNG，限 20MB）；documentId 由後端產生並回傳"
