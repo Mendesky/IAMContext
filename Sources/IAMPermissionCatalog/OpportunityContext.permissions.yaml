@@ -550,38 +550,38 @@ permissions:
     description: "讀取已建檔案件各稅種的代繳方式（訪談表代繳稅金卡）"
   - slot: Handover
     operationId: getRelatedBusinesses
-    description: "讀取已建檔案件的關係企業清單（訪談表 P4-5；2026-10 起取代 CRC RelatedBusiness.getRelatedBusinesses）"
+    description: "讀取已建檔案件的關係企業清單（訪談表 P4-5）"
   - slot: Handover
     operationId: editRelatedBusinesses
     description: "新增／換公司／改名／改關係／改說明／刪除關係企業（訪談表 P4-5；六支寫入共用同一權限）"
-  # 訪談表（2026-10 起取代 CRC HandoverDocument）：每張卡一組讀寫（使用者 2026-10-28 裁定）
+  # 訪談表：每張卡一組讀寫（使用者 2026-10-28 裁定）
   - slot: Handover
     operationId: getInterviewRevenue
-    description: "讀取訪談表的預估今年營業額、去年營業額（P2-4 營運資料；沒改過回報價的值；取代 CRC HandoverDocument.getBusinessClientOperationInfo）"
+    description: "讀取訪談表的預估今年營業額、去年營業額（P2-4 營運資料；沒改過回報價的值）"
   - slot: Handover
     operationId: changeInterviewRevenue
     description: "修改訪談表的預估今年營業額、去年營業額（P2-4；只改訪談表、不改報價；兩支寫入共用）"
   - slot: Handover
     operationId: getInterviewHeadcountOfWithholding
-    description: "讀取訪談表的扣繳人數（P3-3；沒改過回報價的值；取代 CRC HandoverDocument.getHeadcountOfWithholding）"
+    description: "讀取訪談表的扣繳人數（P3-3；沒改過回報價的值）"
   - slot: Handover
     operationId: changeInterviewHeadcountOfWithholding
     description: "修改訪談表的扣繳人數（P3-3；只改訪談表、不改報價）"
   - slot: Handover
     operationId: getInterviewMaintainers
-    description: "讀取訪談表的訪談人、熟悉人員／會計師（P4-1；取代 CRC HandoverDocument.getHandoverDocumentMaintainer）"
+    description: "讀取訪談表的訪談人、熟悉人員／會計師（P4-1）"
   - slot: Handover
     operationId: changeInterviewMaintainers
     description: "修改訪談表的訪談人、熟悉人員／會計師（P4-1；兩支寫入共用）"
   - slot: Handover
     operationId: getBusinessScopeAndProducts
-    description: "讀取訪談表的營業項目及產品（P4-3；取代 CRC HandoverDocument.getBusinessScopeAndProducts）"
+    description: "讀取訪談表的營業項目及產品（P4-3）"
   - slot: Handover
     operationId: changeBusinessScopeAndProducts
     description: "修改訪談表的營業項目及產品（P4-3）"
   - slot: Handover
     operationId: getClientSituations
-    description: "讀取訪談表的客戶狀況及注意事項（P4-4；取代 CRC HandoverDocument.getBusinessClientSituation）"
+    description: "讀取訪談表的客戶狀況及注意事項（P4-4）"
   - slot: Handover
     operationId: changeClientSituations
     description: "修改訪談表的客戶狀況及注意事項（P4-4；四段共用）"
