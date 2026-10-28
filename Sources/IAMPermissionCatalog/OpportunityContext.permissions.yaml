@@ -549,6 +549,12 @@ permissions:
     operationId: getTaxRemitters
     description: "讀取已建檔案件各稅種的代繳方式（訪談表代繳稅金卡）"
   - slot: Handover
+    operationId: getRelatedBusinesses
+    description: "讀取已建檔案件的關係企業清單（訪談表 P4-5；2026-10 起取代 CRC RelatedBusiness.getRelatedBusinesses）"
+  - slot: Handover
+    operationId: editRelatedBusinesses
+    description: "新增／換公司／改名／改關係／改說明／刪除關係企業（訪談表 P4-5；六支寫入共用同一權限）"
+  - slot: Handover
     operationId: getEinvoicePlatform
     description: "讀取電子發票整合服務平台設定（useEinvoice / 帳號 / 字軌起訖；不含密碼明文）"
   - slot: Handover
