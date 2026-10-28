@@ -249,6 +249,9 @@ permissions:
     operationId: closeQuotingCasesDeal
     description: "對 grouping 內所有 quotingCase 一次性結算成交/未成交（α 模型）"
   - slot: OpportunityContext
+    operationId: createCustomerHandover
+    description: "建檔（新建客戶資料）：把已成交的 quotingCase 交付並建立 Handover（客戶身分），接著初始化 CRC 訪談表、在 AC 建客戶"
+  - slot: OpportunityContext
     operationId: createQuotingCaseGrouping
     description: "建立 QuotingCaseGrouping，依 customerEstablishmentStatus discriminator 分流 established/establishing/unestablished 三種建立情境"
   - slot: OpportunityContext
