@@ -496,7 +496,7 @@ permissions:
     description: "移除同意函；後端同步在 GCS 標記刪除"
   - slot: QuotingCaseGrouping
     operationId: removeRiskControlDocument
-    description: "刪除指定 quotingCase 的新客戶風控表（只有潛客；群組成交後不能刪）"
+    description: "刪除指定 quotingCase 的新客戶風控表（只有潛客；成交後、建檔後也可以刪）"
   - slot: QuotingCaseGrouping
     operationId: renameQuotingBundle
     description: "修改指定 quotingBundle 的名稱"
