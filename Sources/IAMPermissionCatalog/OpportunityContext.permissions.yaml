@@ -249,6 +249,9 @@ permissions:
     operationId: closeQuotingCasesDeal
     description: "對 grouping 內所有 quotingCase 一次性結算成交/未成交（α 模型）"
   - slot: OpportunityContext
+    operationId: createCustomerHandover
+    description: "建檔（新建客戶資料）：把已成交的 quotingCase 交付並建立 Handover（客戶身分與訪談表），接著在 AC 建客戶"
+  - slot: OpportunityContext
     operationId: createQuotingCaseGrouping
     description: "建立 QuotingCaseGrouping，依 customerEstablishmentStatus discriminator 分流 established/establishing/unestablished 三種建立情境"
   - slot: OpportunityContext
@@ -545,6 +548,43 @@ permissions:
   - slot: Handover
     operationId: getTaxRemitters
     description: "讀取已建檔案件各稅種的代繳方式（訪談表代繳稅金卡）"
+  - slot: Handover
+    operationId: getRelatedBusinesses
+    description: "讀取已建檔案件的關係企業清單（訪談表 P4-5）"
+  - slot: Handover
+    operationId: editRelatedBusinesses
+    description: "新增／換公司／改名／改關係／改說明／刪除關係企業（訪談表 P4-5；六支寫入共用同一權限）"
+  # 訪談表：每張卡一組讀寫（使用者 2026-10-28 裁定）
+  - slot: Handover
+    operationId: getHandoverRevenue
+    description: "讀取訪談表的預估今年營業額、去年營業額（P2-4 營運資料；沒改過回報價的值）"
+  - slot: Handover
+    operationId: editHandoverRevenue
+    description: "修改訪談表的預估今年營業額、去年營業額（P2-4；只改訪談表、不改報價；兩支寫入共用）"
+  - slot: Handover
+    operationId: getHandoverHeadcountOfWithholding
+    description: "讀取訪談表的扣繳人數（P3-3；沒改過回報價的值）"
+  - slot: Handover
+    operationId: editHandoverHeadcountOfWithholding
+    description: "修改訪談表的扣繳人數（P3-3；只改訪談表、不改報價）"
+  - slot: Handover
+    operationId: getHandoverMaintainers
+    description: "讀取訪談表的訪談人、熟悉人員／會計師（P4-1）"
+  - slot: Handover
+    operationId: editHandoverMaintainers
+    description: "修改訪談表的訪談人、熟悉人員／會計師（P4-1；兩支寫入共用）"
+  - slot: Handover
+    operationId: getBusinessScopeAndProducts
+    description: "讀取訪談表的營業項目及產品（P4-3）"
+  - slot: Handover
+    operationId: editBusinessScopeAndProducts
+    description: "修改訪談表的營業項目及產品（P4-3）"
+  - slot: Handover
+    operationId: getClientSituations
+    description: "讀取訪談表的客戶狀況及注意事項（P4-4）"
+  - slot: Handover
+    operationId: editClientSituations
+    description: "修改訪談表的客戶狀況及注意事項（P4-4；四段共用）"
   - slot: Handover
     operationId: getEinvoicePlatform
     description: "讀取電子發票整合服務平台設定（useEinvoice / 帳號 / 字軌起訖；不含密碼明文）"
