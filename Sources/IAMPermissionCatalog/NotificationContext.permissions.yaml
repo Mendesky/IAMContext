@@ -16,3 +16,15 @@ permissions:
   - slot: MailCcRule
     operationId: deleteMailCcRule
     description: 刪除通知信 Cc 規則
+  - slot: opportunity
+    operationId: registerSource
+    description: 註冊 opportunity 的通知 capability 與初始定義
+  - slot: opportunity
+    operationId: readDefinitions
+    description: 查詢 opportunity 的通知定義、模板與待處理的 fact bundle
+  - slot: opportunity
+    operationId: writeDefinitions
+    description: 在 console 編輯 opportunity 的通知定義與模板（managedBy console）
+  - slot: opportunity
+    operationId: externalWriteDefinitions
+    description: 由外部系統寫入 opportunity 的通知定義與模板（managedBy external）
