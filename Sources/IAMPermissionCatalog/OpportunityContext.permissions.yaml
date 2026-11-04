@@ -614,6 +614,28 @@ permissions:
   - slot: Handover
     operationId: allocateForChiayi
     description: "[data-level] 嘉義所(chiayi)分配人員：已建檔時自動成為該所案件檢視者"
+  # ── [data-level] 每個所的「可分配目標」（服務項目分配，2026-10-28 規格 §E.1）────────────
+  # 持有 AllocateTo<所> 者，可以把服務項目分到該所的部門（誰能當分配人員仍由上面的 AllocateFor 決定）。
+  # 不綁任何 HTTP endpoint（所以不列入 rules.yaml）；由 OC 的分配 Usecase 經 Port/Out 檢查。
+  # 康達、捷達優不建（使用者已確認）。
+  - slot: Handover
+    operationId: allocateToMain
+    description: "[data-level] 可把服務項目分到總所(main)的部門"
+  - slot: Handover
+    operationId: allocateToTaipei
+    description: "[data-level] 可把服務項目分到台北所(taipei)的部門"
+  - slot: Handover
+    operationId: allocateToTaoyuan
+    description: "[data-level] 可把服務項目分到桃園所(taoyuan)的部門"
+  - slot: Handover
+    operationId: allocateToTaichung
+    description: "[data-level] 可把服務項目分到台中所(taichung)的部門"
+  - slot: Handover
+    operationId: allocateToChanghua
+    description: "[data-level] 可把服務項目分到彰化所(changhua)的部門"
+  - slot: Handover
+    operationId: allocateToChiayi
+    description: "[data-level] 可把服務項目分到嘉義所(chiayi)的部門"
   # ── 訪談表管理（五個資料範圍，各一個專屬權限）──────────────────────
   # 使用者 2026-09-22 裁定：新 read model 用新權限；全所必須是特定權限，組內與所內也不同。
   # 故端點拆成五條路徑（權限中介層以 method ＋ path 對規則，無法依 query 值分流）。
