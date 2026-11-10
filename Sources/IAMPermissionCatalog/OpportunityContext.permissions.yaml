@@ -256,7 +256,7 @@ permissions:
     description: "建立 QuotingCaseGrouping，依 customerEstablishmentStatus discriminator 分流 established/establishing/unestablished 三種建立情境"
   - slot: OpportunityContext
     operationId: createExistingClientQuotingCaseGrouping
-    description: "建立所客報價單（quotingType=existingClient）QuotingCaseGrouping；前導頁只收統編／業績來源（不收帳務類型）"
+    description: "建立所客報價單（quotingType=existingClient）QuotingCaseGrouping；前導頁只收統編（不收帳務類型）"
   - slot: OpportunityContext
     operationId: createOneTimeQuotingCaseGrouping
     description: "建立一次性報價單（quotingType=oneTime，使用者可見名稱「一次性專案報價案件」）QuotingCaseGrouping；政府標案、對象為機構；收核准設立日期（必填）與資本額（依 organizationType 二擇一），clientSource 用潛客那組"
@@ -325,7 +325,7 @@ permissions:
     description: "撤銷封存，解除 grouping 的 archived 狀態並恢復 mutating 能力"
   - slot: OpportunityContext
     operationId: withdrawQuotingCaseAssignment
-    description: "退回整案分配：清空 grouping 的 designatedUser / assignedUser / belongedUser，並連動清除該 grouping 下所有 handover 的 assignment"
+    description: "取消分配並退件：清掉集團各公司的項目分配、撤分配人員、撤回完成建檔（一次做完）"
   - slot: Quotation
     operationId: addContractNoteByUser
     description: "新增 user-added contract note。noteId 由後端產生 UUID 回給前端；非 idempotent"
@@ -400,7 +400,7 @@ permissions:
     description: "在指定的 quotingCaseGrouping 下新增 quotingBundle；quotingBundleId 由後端生成並回傳"
   - slot: QuotingCaseGrouping
     operationId: assignDesignatedUser
-    description: "指定 / 改派案件分配人員（designatedUser）；POST 指定與 PUT 改派共用同一權限（set 語意，一個 grouping 恆只有一個 designatedUser）"
+    description: "指定案件分配人員（designatedUser）；POST 與 PUT 共用同一權限，一個 grouping 只有一位分配人員，已有另一位時不能改派（要先取消分配並退件）"
   - slot: QuotingCaseGrouping
     operationId: backfillQuotation
     description: "上傳回補報價檔案（PDF，限 20MB）；backfilledQuotationId 由後端產生並回傳"
@@ -529,19 +529,19 @@ permissions:
     description: "上傳 markdown 內嵌圖（jpeg/png，限 5MB），回 documentId"
   - slot: Handover
     operationId: getHandoverAssignment
-    description: "查詢指定 Handover 目前的分配狀態（departments / assignedMembers / belongedMembers）"
+    description: "查詢指定 Handover 目前的分配狀態（有項目分到的組、歸屬人）與逐項的分配明細"
   - slot: Handover
     operationId: editBelongedMember
-    description: "EditBelongedMember：以 set 語意覆蓋指定 Handover 的歸屬組員，並同步移除/新增對應的 belongedUser collaborator"
+    description: "依服務項目歸屬：把組內的項目指定給歸屬人員（每項都要有人、不可清空）"
   - slot: Handover
     operationId: assignDepartment
-    description: "將部門指派給已建檔案件的 Handover"
+    description: "依服務項目分配：把公司每個可分配的項目分到某所某部門，可同時指定或清空歸屬人"
   - slot: Handover
     operationId: editEinvoicePlatformCredential
     description: "填寫 / 覆寫電子發票整合服務平台的帳號、密碼與字軌起訖號碼"
   - slot: Handover
     operationId: assignStaffMember
-    description: "將人員指派給已建檔案件的 Handover"
+    description: "組長身分（不綁 endpoint）：某所某部門今天在職、又持有此權限的人就是該組組長"
   - slot: Handover
     operationId: editTaxRemitter
     description: "設定已建檔案件各稅種的代繳方式（訪談表代繳稅金卡；五個稅種共用同一權限）"
@@ -614,7 +614,7 @@ permissions:
   - slot: Handover
     operationId: allocateForChiayi
     description: "[data-level] 嘉義所(chiayi)分配人員：已建檔時自動成為該所案件檢視者"
-  # ── [data-level] 每個所的「可分配目標」（服務項目分配，2026-10-28 規格 §E.1）────────────
+  # ── [data-level] 每個所的「可分配目標」（依服務項目分配）────────────
   # 持有 AllocateTo<所> 者，可以把服務項目分到該所的部門（誰能當分配人員仍由上面的 AllocateFor 決定）。
   # 不綁任何 HTTP endpoint（所以不列入 rules.yaml）；由 OC 的分配 Usecase 經 Port/Out 檢查。
   # 康達、捷達優不建（使用者已確認）。
