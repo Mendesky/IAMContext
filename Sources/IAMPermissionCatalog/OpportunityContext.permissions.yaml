@@ -687,3 +687,6 @@ permissions:
   - slot: OpportunityContext
     operationId: notifyPerformanceSubmission
     description: "建立業績——把本 grouping 底下符合資格的案件通知業績統計系統（潛客＝已建檔、所客／一次性＝已成交）；只送事實，業績由人在業績登錄系統補完"
+  - slot: OpportunityContext
+    operationId: transferStaffCases
+    description: "離職轉移：把某人在報價案件上的 owner 與共編身分轉給另一人（含已封存的）；先預覽再執行。只給 console 代操作，授權給開發團隊（AI 部門）"
