@@ -39,6 +39,9 @@ permissions:
     operationId: addPayrollSupportOperation
     description: "新增一筆薪資人力支援作業（payrollSupportOperation）serviceItem；workItem 可選 5 種；含 monthlyPayrollReviewOperation 時須提供 payrollHeadcount（> 0）"
   - slot: Quoting
+    operationId: addIndustrialInnovationUndistributedEarningsFiling
+    description: "新增一筆產業創新條例第23條之3申報（industrialInnovationUndistributedEarningsFiling）serviceItem；workItem 固定，startDate（未分配盈餘年度）為必填；潛客與行號不可新增"
+  - slot: Quoting
     operationId: addProvisionalIncomeTaxAudit
     description: "新增一筆暫繳簽證（provisionalIncomeTaxAudit）serviceItem；workItem 固定，startDate（服務年度）為必填；同 bundle 與記帳暫繳申報互斥"
   - slot: Quoting
