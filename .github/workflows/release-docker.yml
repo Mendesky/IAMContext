@@ -7,6 +7,7 @@ on:
 
 env:
   IMAGE: asia-east1-docker.pkg.dev/ai-jiabao-com/mendesky/iam-context
+  BUILDX_CACHE_DIR: /tmp/buildx-cache/iam-context
 
 concurrency:
   group: release-docker-${{ github.ref }}
@@ -69,6 +70,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # build cache 存在 self-hosted runner 本機(對齊 OC release-docker.yml):不經 GitHub Actions Cache,
+      # GitHub 服務中斷時不會讓已 push 的 release 被標成失敗。第一次跑時快取還不存在,只在有內容時才帶 cache-from
+      - name: Prepare buildx local cache
+        id: buildx-cache
+        run: |
+          mkdir -p "$BUILDX_CACHE_DIR"
+          if [ -f "$BUILDX_CACHE_DIR/index.json" ]; then
+            echo "from=type=local,src=$BUILDX_CACHE_DIR" >> "$GITHUB_OUTPUT"
+          fi
+
       # latest 只在非預發布 tag(名稱不含 '-')時推,beta/dev 不蓋 latest
       - name: Docker metadata (image tags)
         id: meta
@@ -88,5 +99,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           ssh: default
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: ${{ steps.buildx-cache.outputs.from }}
+          cache-to: type=local,dest=${{ env.BUILDX_CACHE_DIR }},mode=max,ignore-error=true
