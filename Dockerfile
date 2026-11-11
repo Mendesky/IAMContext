@@ -18,7 +18,12 @@ COPY . /workspace
 # IAMContext's deps are all public https packages (no private git@github.com: SSH deps like Middleware),
 # so the SSH mount is a no-op here — kept for pipeline uniformity with the other contexts
 # (build all with `docker build --ssh default -t ...`).
-RUN --mount=type=ssh swift build -c release --static-swift-stdlib
+# Not --static-swift-stdlib: the runtime stage below is swift:slim, which
+# already ships the full Swift runtime, so static linking buys nothing here
+# and --static-swift-stdlib + Foundation is currently broken on Linux
+# (undefined ICU references linking libFoundationInternationalization.a —
+# https://github.com/swiftlang/swift-package-manager/issues/10564).
+RUN --mount=type=ssh swift build -c release
 
 # set up the dist folder
 WORKDIR /dist
@@ -26,9 +31,11 @@ WORKDIR /dist
 # copy the app executable file to dist
 RUN cp ${BUILD_FOLDER}/${APP_NAME} ./
 
-# copy the resources in all targets what has the postfix with ".resources" to dist
+# copy every target's resource bundle to dist. Swift 6.4+'s build system (Swift Build)
+# emits them as `<Package>_<Target>.bundle`; `Bundle.module` looks for that exact
+# name next to the executable and traps at first use if it is missing.
 # (e.g. EmployeeAccessAggregate's processed openapi.yaml bundle).
-RUN find -L ${BUILD_FOLDER}/ -regex '.*\.resources$' -exec cp -Ra {} ./ \;
+RUN find -L ${BUILD_FOLDER}/ -regex '.*\.bundle$' -exec cp -Ra {} ./ \;
 
 #------- package -------
 # runtime 與 builder 同版：swift:slim 會跟著 latest 漂，執行期 runtime 與編譯期 toolchain 不同版沒有保證。
