@@ -284,4 +284,24 @@ package struct ApiHandler: APIProtocol {
         }
     }
 
+    package func checkPermissionHolders(_ input: Operations.checkPermissionHolders.Input) async throws -> Operations.checkPermissionHolders.Output {
+        guard case let .json(payload) = input.body else {
+            return .unprocessableContent(.init(body: .json(.init(error: .invalidPayload))))
+        }
+        // permission 為空字串或空白 → 422：沒有「持有空白權限」可判斷，視為呼叫端送錯。
+        guard !payload.permission.isBlank else {
+            return .unprocessableContent(.init(body: .json(.init(error: .invalidPayload))))
+        }
+
+        // 刻意不傳 debugOverridePermissions：與 getPermissionHolders 相同，IAM_DEBUG_FULL_PERMISSIONS 不影響持有者判斷
+        // （OpportunityContext 依賴這點，見 IAMContextServer/DebugConfig.swift）。
+        let service = CheckPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory)
+        do {
+            let output = try await service.execute(input: .init(permission: payload.permission, userIds: payload.userIds))
+            return .ok(.init(body: .json(.init(holders: output.holders))))
+        } catch {
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
 }
