@@ -11,7 +11,7 @@ import RoleAggregate
 // 這裡補另一半：KurrentDB 不可用（或 role directory 出錯）時，HTTP 層回 503 而不是被誤當空清單。
 //
 // 做法：建一個指向「本機沒人聽的 port」的 KurrentDBClient。連線被拒是立即失敗，不需要靠 sleep 等逾時，
-// 也不需要 KurrentDB 在跑——這個檔案的前三個測試與本機 KDB 狀態完全無關。
+// 也不需要 KurrentDB 在跑——這個檔案的前四個測試與本機 KDB 狀態完全無關。
 @Suite(.serialized)
 struct ReadSideServiceUnavailableTests {
 
@@ -54,6 +54,26 @@ struct ReadSideServiceUnavailableTests {
         )
 
         let output = try await handler.getPermissionHolders(.init(query: .init(permission: "Nope.Not.Real")))
+
+        guard case .serviceUnavailable(let response) = output else {
+            Issue.record("expected 503, got \(output)")
+            return
+        }
+        #expect(try response.body.json.error == .serviceUnavailable)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func check_permission_holders_returns_503_when_kurrentdb_is_unreachable() async throws {
+        let handler = EmployeeAccessAggregate.ApiHandler(
+            kdbClient: try makeUnreachableKurrentDBClient(),
+            roleDirectory: FakeRoleDirectory()
+        )
+
+        // userIds 非空才會讀員工 stream（空清單直接回 200，不碰 KDB）。
+        let output = try await handler.checkPermissionHolders(.init(
+            headers: .init(operatorId: "any-operator"),
+            body: .json(.init(permission: "Nope.Not.Real", userIds: ["any-user-1", "any-user-2"]))
+        ))
 
         guard case .serviceUnavailable(let response) = output else {
             Issue.record("expected 503, got \(output)")

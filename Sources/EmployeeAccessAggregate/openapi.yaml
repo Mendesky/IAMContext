@@ -265,6 +265,29 @@ paths:
           $ref: '#/components/responses/UnprocessableEntityError'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/permission-holder-check:
+    post:
+      operationId: checkPermissionHolders
+      description: '持有者判斷：回傳 userIds 之中，目前持有指定 permission 者（去重，順序不保證）。判斷規則與 getPermissionHolders 相同（逐人重播權限時間軸：被個別撤銷、或角色已移除該權限者不算持有），只是範圍限縮在給定的 userIds，不掃全體候選人。不受 IAM_DEBUG_FULL_PERMISSIONS 影響（與 getPermissionHolders 相同）。不存在於 IAM 的 userId 靜默排除，不報錯。空 userIds 回空陣列。permission 為空字串或空白回 422。'
+      parameters:
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckPermissionHoldersRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckPermissionHoldersResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
 components:
   parameters:
     employeeAccessId:
@@ -488,6 +511,30 @@ components:
       properties:
         inScope:
           description: 'userIds 之中，屬於該範圍者。去重，順序不保證。'
+          type: array
+          items:
+            type: string
+    CheckPermissionHoldersRequest:
+      type: object
+      required:
+        - permission
+        - userIds
+      properties:
+        permission:
+          description: '要判斷的 permission rawValue。空字串或空白回 422。'
+          type: string
+        userIds:
+          description: '要判斷的對象，可為空陣列（回傳空 holders，非錯誤）。'
+          type: array
+          items:
+            type: string
+    CheckPermissionHoldersResponse:
+      type: object
+      required:
+        - holders
+      properties:
+        holders:
+          description: 'userIds 之中，目前持有該 permission 者。去重，順序不保證。不存在於 IAM 的 userId 不會出現。'
           type: array
           items:
             type: string

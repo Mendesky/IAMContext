@@ -26,7 +26,14 @@ struct AdminTokenMiddleware<Context: RequestContext>: RouterMiddleware {
     /// 暴露面評估（2026-09-03 決策）：既有的唯讀 GET `permission-holders?permission=&firm=&department=`
     /// 已能回答同樣的組織歸屬問題、且額外洩露權限持有狀況，故放行 scope-check 不新增暴露類別。
     /// 「IAM 唯讀面整體是否該加認證」是更大的獨立議題，不在此處理。
-    static var readOnlyPostPaths: Set<String> { ["/employee-access/scope-check"] }
+    ///
+    /// `permission-holder-check` 同理：唯讀判斷（回「這些 userId 之中誰目前持有該權限」），輸入是
+    /// userId 清單故用 POST，不改動任何授權資料；呼叫端同樣是 OpportunityContext，不該為此持有 admin token。
+    /// 暴露面評估：既有的唯讀 GET `permission-holders?permission=` 已回答同樣的問題
+    /// （且回的是全體持有者，範圍更大），故放行 permission-holder-check 不新增暴露類別。
+    static var readOnlyPostPaths: Set<String> {
+        ["/employee-access/scope-check", "/employee-access/permission-holder-check"]
+    }
 
     let expectedToken: String
 

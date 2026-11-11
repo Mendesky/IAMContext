@@ -16,6 +16,11 @@ import Hummingbird
         #expect(Middleware.readOnlyPostPaths.contains("/employee-access/scope-check"))
     }
 
+    /// 持有者判斷（唯讀，OpportunityContext 呼叫）免 admin token。
+    @Test func whitelist_contains_permission_holder_check() {
+        #expect(Middleware.readOnlyPostPaths.contains("/employee-access/permission-holder-check"))
+    }
+
     /// 回歸鎖：白名單只能有唯讀查詢端點。任何變更端點（grant / revoke / assign / promote /
     /// transfer / create-profile）一旦被加進來，就等於免 token 可改授權資料 —— 這條必須擋住。
     @Test func whitelist_excludes_every_mutating_endpoint() {
@@ -40,6 +45,6 @@ import Hummingbird
 
     /// 名單維持最小：新增項目時應同步更新本測試，強迫審視「這條真的是唯讀嗎」。
     @Test func whitelist_is_exactly_the_reviewed_set() {
-        #expect(Middleware.readOnlyPostPaths == ["/employee-access/scope-check"])
+        #expect(Middleware.readOnlyPostPaths == ["/employee-access/scope-check", "/employee-access/permission-holder-check"])
     }
 }
