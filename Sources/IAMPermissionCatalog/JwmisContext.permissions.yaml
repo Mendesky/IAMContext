@@ -1,0 +1,17 @@
+context: JwmisContext
+serverPrefix: /jwmis-context
+
+# 上傳只有一條路由 POST /imports/{kind}；以下三個 operationId 是「每種 kind 一個」的權限名，
+# 不對應 openapi 的 operationId（kind：customers／existing-clients／invoice-issuance）。
+# JwmisContext 是 Go，不用 PermissionGenPlugin；token 上傳時以字串比對 IAM GetPermissions 的回傳。
+# 查詢端點只要求登入，不入 catalog。
+permissions:
+  - slot: Import
+    operationId: uploadCustomers
+    description: 上傳客戶資料（customers）
+  - slot: Import
+    operationId: uploadExistingClients
+    description: 上傳既有所客資料（existing-clients）
+  - slot: Import
+    operationId: uploadInvoiceIssuance
+    description: 上傳發票開立資料（invoice-issuance）
