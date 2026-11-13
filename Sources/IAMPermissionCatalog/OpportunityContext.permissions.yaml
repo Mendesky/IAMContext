@@ -436,13 +436,13 @@ permissions:
     description: "修改指定 quotingCase 的統一編號"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseCompanyName
-    description: "修改指定 quotingCase 的正式公司名（companyName），deliver 階段寫入"
+    description: "修改指定 quotingCase 的公司名稱（companyName）；已設立未封存可改，設立中／新設立建檔後才可改"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseEstablishmentApprovalDate
     description: "修改指定 quotingCase 的設立核准日；只有 established 類型可呼叫"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseName
-    description: "修改指定 quotingCase 的案件識別名（quotingCaseName）"
+    description: "修改指定 quotingCase 的案件名稱（quotingCaseName）；只有設立中／新設立有案件名稱"
   - slot: QuotingCaseGrouping
     operationId: editQuotingFirm
     description: "修改 quotingCaseGrouping 所屬的報價事務所"
