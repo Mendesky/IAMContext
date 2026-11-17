@@ -433,13 +433,13 @@ permissions:
     description: "修改 contact 的關係描述"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseBusinessId
-    description: "修改指定 quotingCase 的統一編號"
+    description: "修改指定 quotingCase 的統一編號；只有設立中／新設立建檔後可改（已設立建案時就定下來）"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseCompanyName
     description: "修改指定 quotingCase 的公司名稱（companyName）；已設立未封存可改，設立中／新設立建檔後才可改"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseEstablishmentApprovalDate
-    description: "修改指定 quotingCase 的設立核准日；只有 established 類型可呼叫"
+    description: "修改指定 quotingCase 的設立核准日；只有設立中／新設立建檔後可改（已設立建案時就定下來）"
   - slot: QuotingCaseGrouping
     operationId: editQuotingCaseName
     description: "修改指定 quotingCase 的案件名稱（quotingCaseName）；只有設立中／新設立有案件名稱"
