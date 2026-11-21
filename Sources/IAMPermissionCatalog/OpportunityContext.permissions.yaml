@@ -478,7 +478,10 @@ permissions:
     description: "取得已上傳的同意函清單（不含 mediaLink）"
   - slot: QuotingCaseGrouping
     operationId: openQuotingCaseGrouping
-    description: "使用者主動立案，須帶入 serialNumber（報價單編號），通過五道 guard"
+    description: "使用者主動立案（草稿 → 已立案），須帶入合併報價單編號與每家公司的報價單編號；須通過資格、定價完整性與回補報價單等 guard（見 QuotingCaseGrouping+Open.swift）"
+  - slot: QuotingCaseGrouping
+    operationId: cancelQuotingCaseGroupingOpen
+    description: "退回草稿：已立案 grouping 整個退回可編輯狀態，編號保留"
   - slot: QuotingCaseGrouping
     operationId: priceServiceItems
     description: "對指定 quotingBundle 內的 serviceItem 批次定價（跨 AQ + CRQ）"
@@ -697,6 +700,9 @@ permissions:
   - slot: OpportunityContext
     operationId: notifyPerformanceSubmission
     description: "建立業績——把本 grouping 底下符合資格的案件通知業績統計系統（潛客＝已建檔、所客／一次性＝已成交）；只送事實，業績由人在業績登錄系統補完"
+  - slot: OpportunityContext
+    operationId: reviewQuotingPricing
+    description: "審核報價折數（全域權限，不看案件角色）：同意、退回、以前一關審核人身分取消送審、查看我的審核清單（是不是輪到你由聚合比對被指派的審核人；權限名與是否按級別拆兩條待 IAM 同事對齊）"
   - slot: OpportunityContext
     operationId: transferStaffCases
     description: "離職轉移：把某人在報價案件上的 owner 與共編身分轉給另一人（含已封存的）；先預覽再執行。只給 console 代操作，授權給開發團隊（AI 部門）"

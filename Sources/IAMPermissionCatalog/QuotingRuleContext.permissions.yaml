@@ -1,0 +1,14 @@
+context: QuotingRuleContext
+# QuotingRuleContext 不開 HTTP：沒有 endpoint 權限、沒有 rules.yaml，serverPrefix 省略（catalog 解析時預設 ""）。
+# 本檔是 QRC 權限的 SSOT；IAMContext/Sources/IAMPermissionCatalog/ 放逐字複本（byte-identical）。
+
+permissions:
+  # ── [data-level] 報價折扣審核級別 ───────────────────────────────────────────────
+  # 持有者 ＝ 該級主管。QRC 評估報價規劃時依此消掉開立者自己這一級和以下；OC 依此找候選簽核人、核准時驗權。
+  # ⚠️ 資料層面權限，不綁任何 endpoint（故沒有 rules.yaml）。rawValue 要與 rules/review-levels/ 新版各級的 iam_permission 一致。
+  - slot: ReviewLevel
+    operationId: second
+    description: "[data-level] 報價折扣審核第二級主管（rules/review-levels key: second）"
+  - slot: ReviewLevel
+    operationId: first
+    description: "[data-level] 報價折扣審核第一級主管（rules/review-levels key: first）"
