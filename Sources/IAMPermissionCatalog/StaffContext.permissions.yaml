@@ -61,3 +61,22 @@ permissions:
   - slot: StaffContext
     operationId: getCpaStaffs
     description: 查詢會計師員工
+  # ── ReviewerSettingAggregate module（slot = ReviewerSetting）──
+  - slot: ReviewerSetting
+    operationId: listReviewerSettings
+    description: 查詢審核主管設定清單與問題標記
+  - slot: ReviewerSetting
+    operationId: previewReviewerCandidates
+    description: 預覽送審者各級審核主管的候選、預設與往上鏈
+  - slot: ReviewerSetting
+    operationId: assignReviewerCandidates
+    description: 設定某範圍某級審核主管的候選名單與預設
+  - slot: ReviewerSetting
+    operationId: clearReviewerCandidates
+    description: 清除某範圍某級審核主管的候選名單
+  - slot: ReviewerSetting
+    operationId: assignReviewerLeaders
+    description: 設定組 leader 或所主管覆寫
+  - slot: ReviewerSetting
+    operationId: clearReviewerLeaders
+    description: 清除組 leader 或所主管覆寫
