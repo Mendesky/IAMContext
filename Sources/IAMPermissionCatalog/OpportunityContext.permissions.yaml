@@ -288,6 +288,9 @@ permissions:
     operationId: getQuotationPdfPreview
     description: "取得報價單 PDF 預覽，渲染為 PNG 回 base64 字串陣列（每頁一張）"
   - slot: OpportunityContext
+    operationId: editQuotationDate
+    description: "設定報價單日期（PDF 上印的日期、下載與送業績檔名的日期）：帶日期＝自訂、不帶＝改回依系統預設（報價階段最後一次修改）；成交後不能改。授權對象同改字級（editFontSize）"
+  - slot: OpportunityContext
     operationId: getQuotingCaseGroupingAggregateRootIds
     description: "用 groupingId 一次撈齊該 grouping 名下所有 aggregate root id（Quotation/AuditQuoting/CompanyRegistrationQuoting）"
   - slot: OpportunityContext
