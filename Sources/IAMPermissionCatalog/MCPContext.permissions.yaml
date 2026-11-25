@@ -1,0 +1,19 @@
+# MCPContext 的 IAM 權限（SSOT）。
+# IAMContext/Sources/IAMPermissionCatalog/MCPContext.permissions.yaml 要是本檔逐字相同的快照（「權限快照同步」PR；本 repo 的測試不檢查另一個 repo）。
+# rawValue = <context>.<slot>.<Pascal(operationId)>；工具權限的 operationId = 工具名稱 snake_case → camelCase。
+# 只有 catalog、沒有 rules：預定 A4 起由 MCP 自己在 tools/call 換證前查 IAM（介面規格 I6），不走 PermissionKit 路由規則
+# （設計文件 2026-11-25-mcp-iam-permission-design.md §1）。目前尚未檢查。
+# MCP_ALLOWED_USER_IDS 名單內的使用者不檢查這些權限（過渡期）。
+context: MCPContext
+serverPrefix: ""
+
+permissions:
+  - slot: Connector
+    operationId: useConnector
+    description: 使用 Claude connector：登入連線和每次工具呼叫都要有這個權限；各工具另需各自的權限
+  - slot: Tools
+    operationId: listMyQuotes
+    description: Claude connector 工具（另需 UseConnector）：列出登入者自己建立或在協作名單上的報價（可含已封存的），含主要客戶的名稱（已設立的公司才有）和統一編號、狀態、服務項目、費用、最後編輯時間（list_my_quotes）
+  - slot: Tools
+    operationId: lookupBusinessRegistration
+    description: Claude connector 工具（另需 UseConnector）：用任何統一編號查商工登記公開資料（不限自己的客戶），含公司名稱、設立日期、資本額、組織型態、負責人姓名（lookup_business_registration）
