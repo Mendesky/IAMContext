@@ -9,7 +9,8 @@ import IAMPermissionCatalog
 /// （claude-connector/plans/2026-11-25-mcp-iam-interfaces.md）。預定由 MCP 的 tools/call 檢查（A4）、
 /// IdentityContext client policy 的 `required_permission`（B1）、console 的授權畫面（A3 跑 gen:iam 之後）引用；
 /// 本 PR 合併時都還沒上線。
-/// 快照同步時改名或漏掉其中一個，這裡會失敗。MCPContext 之後新增工具時，快照多出權限不會讓這裡失敗。
+/// 快照同步時改名或漏掉其中一個，這裡會失敗。MCPContext 之後新增工具時，凍結值的檢查不會因為多出權限而失敗；
+/// 格式和說明的檢查則套用到 MCPContext 的每一條權限（包括新增的）。
 ///
 /// 快照和上游 SSOT 是否逐字相同，這裡不檢查（看不到上游 repo），要手動跑
 /// `bash scripts/diff-permission-snapshots.sh MCPContext`。

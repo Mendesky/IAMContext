@@ -7,35 +7,45 @@
 #   REF 環境變數指定上游的 branch、tag 或 commit，預設 main。從上游開發分支同步時，記得把 REF 設成那個分支。
 #
 # 需要 gh 已登入、能讀上游 repo。只透過 GitHub API 讀檔，不連任何環境。
-# exit：0 全部相同；1 有差異（且沒有錯誤）；2 用法錯誤、快照不存在或取檔失敗（優先於 1）。
-# 每個 context 都會比對完才結束，最後一行印總結。
+# exit：0 全部相同；1 有差異（且沒有任何錯誤）；
+#       2 無法比對：用法錯誤（REF、context、SOURCES 表格式）、缺 gh、快照不存在、上游不是檔案或讀不到、cmp／diff 出錯。2 優先於 1。
+# 開始比對後，每個 context 都會比對完才結束，最後一行印總結（相同或有差異印到 stdout，無法比對印到 stderr）。
+# 比對開始前的用法錯誤直接 exit 2，不印總結。
 # 相容 macOS 內建 bash 3.2。
 set -eo pipefail
-set -f  # context 名稱不做 glob 展開
+set -f            # context 名稱不做 glob 展開
+export LC_ALL=C   # REF 白名單的字元範圍只比 ASCII
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 REF="${REF:-main}"
 
-# context|上游 repo|上游 SSOT 路徑。其他 context 的 SSOT 路徑確認後再加進來。
+# context|上游 repo|上游 SSOT 路徑。其他 context 的 SSOT 路徑確認後再加進來。欄位內不能有 |。
 SOURCES="
 MCPContext|Mendesky/MCPContext|Sources/MendeskyTools/MCPContext.permissions.yaml
 "
 
 case "${REF}" in
-    "" | *[!A-Za-z0-9._/-]*)
-        echo "REF 只能含英數字和 . _ / -：${REF}" >&2
+    "" | -* | /* | *..* | *[!A-Za-z0-9._/-]*)
+        echo "REF 只能含英數字和 . _ / -，不能以 - 或 / 開頭、不能含 ..：${REF}" >&2
         exit 2
         ;;
 esac
 
+# 表上每個非空列都要剛好三個欄位，否則是表本身寫錯。
+bad_rows="$(awk -F'|' 'NF > 0 && NF != 3' <<< "${SOURCES}")"
+if [ -n "${bad_rows}" ]; then
+    printf 'SOURCES 表格式錯誤（要剛好三個欄位）：\n%s\n' "${bad_rows}" >&2
+    exit 2
+fi
+
 lookup() {
-    echo "${SOURCES}" | awk -F'|' -v c="$1" 'NF == 3 && $1 == c { print; exit }'
+    C="$1" awk -F'|' 'NF == 3 && $1 == ENVIRON["C"] { print }' <<< "${SOURCES}"
 }
 
 if [ "$#" -eq 0 ]; then
-    set -- $(echo "${SOURCES}" | awk -F'|' 'NF == 3 { print $1 }')
+    set -- $(awk -F'|' 'NF == 3 { print $1 }' <<< "${SOURCES}")
     if [ "$#" -eq 0 ]; then
-        echo "SOURCES 表沒有任何有效的列" >&2
+        echo "SOURCES 表沒有任何列" >&2
         exit 2
     fi
 fi
@@ -50,32 +60,43 @@ failed=0
 for context in "$@"; do
     row="$(lookup "${context}")"
     if [ -z "${row}" ]; then
-        echo "${context}：SOURCES 表上沒有這個 context" >&2
+        printf '%s：SOURCES 表上沒有這個 context\n' "${context}" >&2
         failed=1
         continue
     fi
-    upstream_repo="$(echo "${row}" | cut -d'|' -f2)"
-    upstream_path="$(echo "${row}" | cut -d'|' -f3)"
+    upstream_repo="$(printf '%s\n' "${row}" | cut -d'|' -f2)"
+    upstream_path="$(printf '%s\n' "${row}" | cut -d'|' -f3)"
     snapshot_rel="Sources/IAMPermissionCatalog/${context}.permissions.yaml"
     snapshot="${REPO}/${snapshot_rel}"
     upstream="${TMP}/${context}.permissions.yaml"
     label="${upstream_repo}@${REF}:${upstream_path}"
+    endpoint="repos/${upstream_repo}/contents/${upstream_path}"
 
     if [ ! -f "${snapshot}" ]; then
-        echo "${context}：找不到快照 ${snapshot_rel}" >&2
+        printf '%s：找不到快照 %s\n' "${context}" "${snapshot_rel}" >&2
         failed=1
         continue
     fi
-    # ref 用 -f 傳，由 gh 編碼成 query string。gh 在 HTTP 錯誤時 exit 非 0。
-    if ! gh api --method GET -H "Accept: application/vnd.github.raw" \
-        "repos/${upstream_repo}/contents/${upstream_path}" -f ref="${REF}" > "${upstream}"; then
-        echo "${context}：讀不到 ${label}" >&2
+    # 先確認上游路徑是檔案（目錄回 JSON 陣列，symlink、submodule 回其他 type），再取原始內容。
+    # ref 用 -f 傳，由 gh 編碼成 query string；gh 在 HTTP 錯誤時 exit 非 0。
+    kind="$(gh api --method GET "${endpoint}" -f ref="${REF}" \
+        --jq 'if type == "object" then .type else "dir" end')" || kind=""
+    if [ -z "${kind}" ]; then
+        printf '%s：讀不到 %s\n' "${context}" "${label}" >&2
+        failed=1
+        continue
+    elif [ "${kind}" != "file" ]; then
+        printf '%s：%s 不是檔案（%s）\n' "${context}" "${label}" "${kind}" >&2
         failed=1
         continue
     fi
-    # 路徑若是目錄，API 回 JSON 清單而不是檔案內容；空內容也當成取檔失敗。
-    if [ ! -s "${upstream}" ] || [ "$(head -c 1 "${upstream}")" = "[" ]; then
-        echo "${context}：${label} 不是有內容的檔案" >&2
+    if ! gh api --method GET -H "Accept: application/vnd.github.raw" "${endpoint}" -f ref="${REF}" > "${upstream}"; then
+        printf '%s：讀不到 %s\n' "${context}" "${label}" >&2
+        failed=1
+        continue
+    fi
+    if [ ! -s "${upstream}" ]; then
+        printf '%s：%s 是空的\n' "${context}" "${label}" >&2
         failed=1
         continue
     fi
@@ -84,15 +105,21 @@ for context in "$@"; do
     cmp -s "${upstream}" "${snapshot}" || rc=$?
     case "${rc}" in
         0)
-            echo "${context}：相同（${label}）"
+            printf '%s：相同（%s）\n' "${context}" "${label}"
             ;;
         1)
-            echo "${context}：不同（- 上游、+ 快照）"
-            diff -u --label "${label}" --label "${snapshot_rel}" "${upstream}" "${snapshot}" || true
-            differ=1
+            printf '%s：不同（- 上游、+ 快照）\n' "${context}"
+            drc=0
+            diff -u --label "${label}" --label "${snapshot_rel}" "${upstream}" "${snapshot}" || drc=$?
+            if [ "${drc}" -eq 1 ]; then
+                differ=1
+            else
+                printf '%s：diff 出錯（exit %s）\n' "${context}" "${drc}" >&2
+                failed=1
+            fi
             ;;
         *)
-            echo "${context}：比對失敗（cmp exit ${rc}）" >&2
+            printf '%s：比對失敗（cmp exit %s）\n' "${context}" "${rc}" >&2
             failed=1
             ;;
     esac
