@@ -10,7 +10,7 @@
 # exit：0 全部相同；1 有差異（且沒有任何錯誤）；
 #       2 無法比對：用法錯誤（REF、context、SOURCES 表格式）、缺 gh、快照不存在、上游不是檔案或讀不到、cmp／diff 出錯。2 優先於 1。
 # 開始比對後，每個 context 都會比對完才結束，最後一行印總結（相同或有差異印到 stdout，無法比對印到 stderr）。
-# 比對開始前的用法錯誤直接 exit 2，不印總結。
+# 比對開始前的錯誤（REF、SOURCES 表、缺 gh、建不了暫存目錄）直接 exit 2，不印總結。
 # 相容 macOS 內建 bash 3.2。
 set -eo pipefail
 set -f            # context 名稱不做 glob 展開
@@ -31,10 +31,10 @@ case "${REF}" in
         ;;
 esac
 
-# 表上每個非空列都要剛好三個欄位，否則是表本身寫錯。
-bad_rows="$(awk -F'|' 'NF > 0 && NF != 3' <<< "${SOURCES}")"
+# 表上每個非空列都要剛好三個非空欄位，context 不能重複，否則是表本身寫錯。
+bad_rows="$(awk -F'|' 'NF > 0 && (NF != 3 || $1 == "" || $2 == "" || $3 == "" || seen[$1]++)' <<< "${SOURCES}")"
 if [ -n "${bad_rows}" ]; then
-    printf 'SOURCES 表格式錯誤（要剛好三個欄位）：\n%s\n' "${bad_rows}" >&2
+    printf 'SOURCES 表格式錯誤（要剛好三個非空欄位、context 不能重複）：\n%s\n' "${bad_rows}" >&2
     exit 2
 fi
 
@@ -114,7 +114,8 @@ for context in "$@"; do
             if [ "${drc}" -eq 1 ]; then
                 differ=1
             else
-                printf '%s：diff 出錯（exit %s）\n' "${context}" "${drc}" >&2
+                # 0 表示 cmp 和 diff 結論不一致，其他值是 diff 本身出錯；兩者都不能下結論。
+                printf '%s：diff 結果和 cmp 不一致或出錯（diff exit %s）\n' "${context}" "${drc}" >&2
                 failed=1
             fi
             ;;
