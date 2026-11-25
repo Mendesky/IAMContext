@@ -26,43 +26,61 @@ NC='\033[0m' # No Color
 # 決定後的位址放在 KDB_URL。
 kdb_target_error() {
     printf '%b錯誤: %s%b\n' "$RED" "$1" "$NC" >&2
-    cat >&2 <<'EOF'
+    cat >&2 <<'USAGE_EOF'
 目標 KurrentDB 必須明確指定，沒有預設位址。在 repo 根目錄執行：
   KDB_URL=http://<host>:<port> bash scripts/projection.sh
   KDB_PORT=<port> [KDB_HOST=<host>] bash scripts/projection.sh   （KDB_HOST 省略時是 localhost）
 兩者都給時以 KDB_URL 為準。
-EOF
+USAGE_EOF
     exit 2
 }
 
+# 主機：名稱、IPv4，或加中括號的 IPv6（例如 [::1]）
+KDB_HOST_RE='^([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])$'
+# 基底網址：http(s)://<主機>[:<port>]，後面不能再有東西（路徑、?、#、@ 帳密都會讓 curl 連到別處或別的端點）
+KDB_BASE_URL_RE='^https?://([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])(:([0-9]{1,5}))?$'
+
+is_kdb_port() {
+    case "$1" in
+        ''|*[!0123456789]*) return 1 ;;
+    esac
+    [ "${#1}" -le 5 ] && [ $((10#$1)) -ge 1 ] && [ $((10#$1)) -le 65535 ]
+}
+
+is_kdb_base_url() {
+    local LC_ALL=C
+    [[ $1 =~ $KDB_BASE_URL_RE ]] || return 1
+    [ -z "${BASH_REMATCH[3]}" ] || is_kdb_port "${BASH_REMATCH[3]}"
+}
+
 require_kdb_target() {
-    if [ -n "${KDB_URL:-}" ]; then
-        case "$KDB_URL" in
-            *[[:space:]]*) kdb_target_error "KDB_URL 不能含空白" ;;
-            http://?*|https://?*) ;;
-            *) kdb_target_error "KDB_URL 要以 http:// 或 https:// 開頭，後面接 <host>:<port>" ;;
-        esac
+    local LC_ALL=C
+    if [ -n "${KDB_URL+set}" ]; then
+        [ -n "$KDB_URL" ] || kdb_target_error "KDB_URL 有設但是空的"
+        is_kdb_base_url "$KDB_URL" || kdb_target_error "KDB_URL 必須是 http(s)://<host>[:<port>]，後面不能有路徑、?、#、@ 或空白；IPv6 要加中括號"
         return 0
     fi
-    if [ -z "${KDB_PORT:-}" ]; then
-        if [ -n "${KDB_HOST:-}" ]; then
-            kdb_target_error "只設了 KDB_HOST，還要設 KDB_PORT（或改用 KDB_URL）"
-        fi
+    if [ -z "${KDB_PORT+set}" ]; then
+        [ -z "${KDB_HOST+set}" ] || kdb_target_error "只設了 KDB_HOST，還要設 KDB_PORT（或改用 KDB_URL）"
         kdb_target_error "沒有指定目標 KDB（KDB_URL 或 KDB_PORT）"
     fi
-    case "$KDB_PORT" in
-        *[!0-9]*) kdb_target_error "KDB_PORT 必須是 1-65535 的數字" ;;
-    esac
-    if [ "${#KDB_PORT}" -gt 5 ] || [ $((10#$KDB_PORT)) -lt 1 ] || [ $((10#$KDB_PORT)) -gt 65535 ]; then
-        kdb_target_error "KDB_PORT 必須是 1-65535 的數字"
+    is_kdb_port "$KDB_PORT" || kdb_target_error "KDB_PORT 必須是 1-65535 的數字"
+    local host=localhost
+    if [ -n "${KDB_HOST+set}" ]; then
+        [ -n "$KDB_HOST" ] || kdb_target_error "KDB_HOST 有設但是空的（省略 KDB_HOST 才是 localhost）"
+        [[ $KDB_HOST =~ $KDB_HOST_RE ]] || kdb_target_error "KDB_HOST 只能是主機名稱、IPv4 或加中括號的 IPv6（例如 [::1]），完整網址請用 KDB_URL"
+        host=$KDB_HOST
     fi
-    local host="${KDB_HOST:-localhost}"
-    case "$host" in
-        *[/[:space:]]*) kdb_target_error "KDB_HOST 只能是主機名稱或 IP，不能含 / 或空白（完整網址請用 KDB_URL）" ;;
-    esac
     KDB_URL="http://${host}:$((10#$KDB_PORT))"
 }
 
+# 這支 script 不接受參數：不管給什麼（例如 status、--help、某支 projection 的名稱），它都會把
+# projections/ 底下的 projection 全部 disable → delete → 重建，所以有參數就拒絕，免得誤以為只是查詢。
+if [ "$#" -gt 0 ]; then
+    printf '%b錯誤: 這支 script 不接受參數（收到 %s 個）%b\n' "$RED" "$#" "$NC" >&2
+    echo "它會把 projections/ 底下的 projection 全部 disable → delete → 重建；只想動其中一支請手動操作。" >&2
+    exit 2
+fi
 require_kdb_target
 
 # 檢查 jq 是否安裝
