@@ -58,6 +58,9 @@ IAM_GRPC_AUTH_TOKEN=<shared-token> swift run IAMContextServer
 
 1. **KurrentDB** 跑在 `localhost:2113`。
 2. **GetPermissions projection 已部署**（`projections/IAM_GetPermissionsProjection.js`），否則讀端點永遠 404。
+   在 repo 根目錄執行 `KDB_URL=http://<host>:<port> bash scripts/projection.sh`（或 `KDB_PORT=<port>`，可加 `KDB_HOST`，
+   省略時是 `localhost`）。script 沒有預設位址，沒指定就拒絕執行；它會把 `projections/` 下已存在的 projection 全部
+   disable → delete → 重建。
 
 啟動後驗證：
 

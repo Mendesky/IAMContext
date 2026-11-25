@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# 覆寫目標 KDB：KDB_HOST=172.16.1.39 KDB_PORT=12113 ./projection.sh（或 KDB_URL=http://<host>:<port> 全覆寫）
+# 目標 KDB 一定要明確指定，沒有預設位址（沒指定就拒絕執行）。在 repo 根目錄執行：
+#   KDB_URL=http://<host>:<port> bash scripts/projection.sh
+#   KDB_PORT=<port> [KDB_HOST=<host>] bash scripts/projection.sh   （KDB_HOST 省略時是 localhost）
+# 兩者都給時以 KDB_URL 為準。
 
 set -euo pipefail
 
 # 配置
-KDB_HOST="${KDB_HOST:-localhost}"
-KDB_PORT="${KDB_PORT:-2113}"
-KDB_URL="${KDB_URL:-http://${KDB_HOST}:${KDB_PORT}}"
+# 目標 KDB（KDB_URL）由 require_kdb_target 決定，沒有預設值，見檔頭。
 KDB_USER="admin"
 KDB_PASS="changeit"
 PROJECTIONS_DIR="projections"
@@ -19,6 +20,50 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# 沒有明確指定目標 KDB 就拒絕執行。以前沒設時連 localhost:2113（本機或共用的 KurrentDB），
+# 忘了設就會對錯的 DB 做 delete／重建，所以不再有任何預設位址。
+# 決定後的位址放在 KDB_URL。
+kdb_target_error() {
+    printf '%b錯誤: %s%b\n' "$RED" "$1" "$NC" >&2
+    cat >&2 <<'EOF'
+目標 KurrentDB 必須明確指定，沒有預設位址。在 repo 根目錄執行：
+  KDB_URL=http://<host>:<port> bash scripts/projection.sh
+  KDB_PORT=<port> [KDB_HOST=<host>] bash scripts/projection.sh   （KDB_HOST 省略時是 localhost）
+兩者都給時以 KDB_URL 為準。
+EOF
+    exit 2
+}
+
+require_kdb_target() {
+    if [ -n "${KDB_URL:-}" ]; then
+        case "$KDB_URL" in
+            *[[:space:]]*) kdb_target_error "KDB_URL 不能含空白" ;;
+            http://?*|https://?*) ;;
+            *) kdb_target_error "KDB_URL 要以 http:// 或 https:// 開頭，後面接 <host>:<port>" ;;
+        esac
+        return 0
+    fi
+    if [ -z "${KDB_PORT:-}" ]; then
+        if [ -n "${KDB_HOST:-}" ]; then
+            kdb_target_error "只設了 KDB_HOST，還要設 KDB_PORT（或改用 KDB_URL）"
+        fi
+        kdb_target_error "沒有指定目標 KDB（KDB_URL 或 KDB_PORT）"
+    fi
+    case "$KDB_PORT" in
+        *[!0-9]*) kdb_target_error "KDB_PORT 必須是 1-65535 的數字" ;;
+    esac
+    if [ "${#KDB_PORT}" -gt 5 ] || [ $((10#$KDB_PORT)) -lt 1 ] || [ $((10#$KDB_PORT)) -gt 65535 ]; then
+        kdb_target_error "KDB_PORT 必須是 1-65535 的數字"
+    fi
+    local host="${KDB_HOST:-localhost}"
+    case "$host" in
+        *[/[:space:]]*) kdb_target_error "KDB_HOST 只能是主機名稱或 IP，不能含 / 或空白（完整網址請用 KDB_URL）" ;;
+    esac
+    KDB_URL="http://${host}:$((10#$KDB_PORT))"
+}
+
+require_kdb_target
 
 # 檢查 jq 是否安裝
 if ! command -v jq &> /dev/null; then
