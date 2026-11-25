@@ -2,7 +2,7 @@
 # 目標 KDB 一定要明確指定，沒有預設位址（沒指定就拒絕執行）。在 repo 根目錄執行：
 #   KDB_URL=http://<host>:<port> bash scripts/projection.sh
 #   KDB_PORT=<port> [KDB_HOST=<host>] bash scripts/projection.sh   （KDB_HOST 省略時是 localhost）
-# 兩者都給時以 KDB_URL 為準。
+# 兩者都給時以 KDB_URL 為準。不接受任何參數（會把 projections/ 下的 projection 全部重建），有參數就 exit 2。
 
 set -euo pipefail
 
