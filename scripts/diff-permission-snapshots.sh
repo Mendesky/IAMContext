@@ -22,6 +22,7 @@ REF="${REF:-main}"
 # context|上游 repo|上游 SSOT 路徑。其他 context 的 SSOT 路徑確認後再加進來。欄位內不能有 |。
 SOURCES="
 MCPContext|Mendesky/MCPContext|Sources/MendeskyTools/MCPContext.permissions.yaml
+VersionManagementContext|Mendesky/VersionManagementContext|Sources/VMCAuthorization/VersionManagementContext.permissions.yaml
 "
 
 case "${REF}" in

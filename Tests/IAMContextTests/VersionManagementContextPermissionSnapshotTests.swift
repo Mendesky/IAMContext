@@ -13,7 +13,8 @@ import IAMPermissionCatalog
 /// VMC 開了權限檢查之後，使用者打憑證路由一律 403（application token 和沒登入本來就是 401）。
 /// VMC 之後新增權限時，凍結值的檢查不會因為多出權限而失敗；格式和說明的檢查則套用到每一條權限（包括新增的）。
 ///
-/// 快照和上游 SSOT 是否逐字相同，這裡不檢查（看不到上游 repo）。
+/// 快照和上游 SSOT 是否逐字相同，這裡不檢查（看不到上游 repo），要手動跑
+/// `bash scripts/diff-permission-snapshots.sh VersionManagementContext`。
 @Suite struct VersionManagementContextPermissionSnapshotTests {
     static let frozen: Set<String> = [
         "VersionManagementContext.Product.GetProductApplication",
