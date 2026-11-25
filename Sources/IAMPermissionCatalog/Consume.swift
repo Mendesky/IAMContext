@@ -6,7 +6,8 @@
 //
 // ⚠️ yaml 來源與 drift：各 context 的 yaml 目前是「手動複製的快照」（與該 context repo 的 SSOT
 // byte-identical，例如 OpportunityContext/Sources/OCServer/OpportunityContext.permissions.yaml）——
-// 上游改動不會自動同步；正式同步機制留待部署期定案。驗 drift：直接 diff 兩份檔案。
+// 上游改動不會自動同步；正式同步機制留待部署期定案。驗 drift：直接 diff 兩份檔案
+//（已登記上游路徑的 context 可跑 scripts/diff-permission-snapshots.sh，目前只有 MCPContext）。
 // 注意：IAM 自身沒有 catalog（grant/revoke 為 admin-only，不走 context-permission 把關），
 // 所以本 target 只放「其他 context」的 yaml。
 public enum IAMPermissionCatalogSmoke {
