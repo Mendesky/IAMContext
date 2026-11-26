@@ -8,7 +8,7 @@
 // 例如 OpportunityContext/Sources/OCServer/OpportunityContext.permissions.yaml；有時取自上游的開發分支，
 // 所以不一定和上游 main 相同，OC 目前就不同）——上游改動不會自動同步、也沒有自動檢查；
 // 正式同步機制留待部署期定案。驗 drift：直接 diff 兩份檔案
-//（已登記上游路徑的 context 可手動跑 scripts/diff-permission-snapshots.sh，目前是 MCPContext、VersionManagementContext 和 OIDCContext）。
+//（已登記上游路徑的 context 可手動跑 scripts/diff-permission-snapshots.sh，目前是 MCPContext 和 OIDCContext）。
 // 注意：IAM 自身沒有 catalog（grant/revoke 為 admin-only，不走 context-permission 把關），
 // 所以本 target 只放「其他 context」的 yaml。
 public enum IAMPermissionCatalogSmoke {
