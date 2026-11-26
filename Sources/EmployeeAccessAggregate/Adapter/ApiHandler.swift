@@ -16,11 +16,23 @@ package struct ApiHandler: APIProtocol {
     /// When non-nil, getPermissions bypasses per-user lookup and returns this fixed set.
     /// Set by IAMContextServer when IAM_DEBUG_FULL_PERMISSIONS=1 is active.
     package let debugOverridePermissions: [String]?
+    /// IAM_DEBUG_FULL_PERMISSIONS 開啟時，getPermissionGrantScopes 回這份（每個範圍化權限都是 company）。
+    package let debugOverrideGrantScopes: [PermissionGrantScopes]?
+    /// 哪些權限是範圍化的、允許哪些範圍種類。IAMContextServer 從權限清單建好注入（2026-11-25 設計文件 D7）。
+    private let grantScopePolicy: GrantScopePolicy
 
-    package init(kdbClient: KurrentDBClient, roleDirectory: RoleDirectory, debugOverridePermissions: [String]? = nil) {
+    package init(
+        kdbClient: KurrentDBClient,
+        roleDirectory: RoleDirectory,
+        grantScopePolicy: GrantScopePolicy,
+        debugOverridePermissions: [String]? = nil,
+        debugOverrideGrantScopes: [PermissionGrantScopes]? = nil
+    ) {
         self.kdbClient = kdbClient
         self.roleDirectory = roleDirectory
+        self.grantScopePolicy = grantScopePolicy
         self.debugOverridePermissions = debugOverridePermissions
+        self.debugOverrideGrantScopes = debugOverrideGrantScopes
     }
 
     private func mapToApiError(_ error: Error) -> Components.Schemas.EmployeeAccessApiError? {
@@ -40,10 +52,39 @@ package struct ApiHandler: APIProtocol {
             employeeAccessId: employeeAccessId,
             userId: payload.userId,
             permissions: payload.permissions,
+            grantScopes: (payload.grantScopes?.additionalProperties ?? [:]).mapValues { $0.map(GrantScope.init(dto:)) },
             operatorId: operatorId
         )
 
-        let service = GrantPrivilegeApplicationService(repository: repository, kdbClient: kdbClient, roleDirectory: roleDirectory)
+        let service = GrantPrivilegeApplicationService(repository: repository, kdbClient: kdbClient, roleDirectory: roleDirectory, grantScopePolicy: grantScopePolicy)
+        do {
+            let output = try await service.execute(input: asInput)
+            return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
+        } catch let error as DDDError where error.code == .aggregateNotFound {
+            return .notFound(.init(body: .json(.init(error: .aggregateNotFound))))
+        } catch {
+            if let apiError = mapToApiError(error) {
+                return .unprocessableContent(.init(body: .json(.init(error: apiError))))
+            }
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
+    package func changeGrantScope(_ input: Operations.changeGrantScope.Input) async throws -> Operations.changeGrantScope.Output {
+        guard case let .json(payload) = input.body else {
+            return .unprocessableContent(.init(body: .json(.init(error: .invalidPayload))))
+        }
+        let employeeAccessId = input.path.employeeAccessId
+        let operatorId = input.headers.operatorId
+        let asInput = ChangeGrantScopeApplicationServiceInput(
+            employeeAccessId: employeeAccessId,
+            userId: payload.userId,
+            permission: payload.permission,
+            grantScopes: payload.grantScopes.map(GrantScope.init(dto:)),
+            operatorId: operatorId
+        )
+
+        let service = ChangeGrantScopeApplicationService(repository: repository, grantScopePolicy: grantScopePolicy)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
@@ -97,7 +138,7 @@ package struct ApiHandler: APIProtocol {
             operatorId: operatorId
         )
 
-        let service = AssignRolesApplicationService(repository: repository, roleDirectory: roleDirectory)
+        let service = AssignRolesApplicationService(repository: repository, roleDirectory: roleDirectory, grantScopePolicy: grantScopePolicy)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
@@ -240,6 +281,20 @@ package struct ApiHandler: APIProtocol {
             if let apiError = mapToApiError(error) {
                 return .unprocessableContent(.init(body: .json(.init(error: apiError))))
             }
+            return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
+        }
+    }
+
+    package func getPermissionGrantScopes(_ input: Operations.getPermissionGrantScopes.Input) async throws -> Operations.getPermissionGrantScopes.Output {
+        let service = GetPermissionGrantScopesApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverride: debugOverrideGrantScopes)
+        do {
+            let output = try await service.execute(input: .init(userId: input.path.userId))
+            return .ok(.init(body: .json(output.map {
+                .init(permission: $0.permission, grantScopes: $0.grantScopes.map(Components.Schemas.GrantScope.init(domain:)))
+            })))
+        } catch let error as ContextError<EmployeeAccessQueryError> where error.error == .notFound {
+            return .notFound(.init(body: .json(.init(error: .aggregateNotFound))))
+        } catch {
             return .serviceUnavailable(.init(body: .json(.init(error: .serviceUnavailable))))
         }
     }

@@ -46,6 +46,79 @@ package struct IAMContext_GetPermissionsResponse: Sendable {
   package init() {}
 }
 
+package struct IAMContext_GetPermissionGrantScopesRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  package var userID: String = String()
+
+  package var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  package init() {}
+}
+
+package struct IAMContext_GetPermissionGrantScopesResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  package var permissions: [IAMContext_PermissionGrantScopes] = []
+
+  package var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  package init() {}
+}
+
+package struct IAMContext_PermissionGrantScopes: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  package var permission: String = String()
+
+  package var grantScopes: [IAMContext_GrantScope] = []
+
+  package var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  package init() {}
+}
+
+/// 一項授權範圍。kind：company、firms、departments、ownFirm、ownDepartment（字串，日後可能新增）。
+package struct IAMContext_GrantScope: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  package var kind: String = String()
+
+  /// kind == firms：所統編清單。
+  package var firms: [String] = []
+
+  /// kind == departments：組清單。
+  package var departments: [IAMContext_GrantScopeDepartment] = []
+
+  package var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  package init() {}
+}
+
+package struct IAMContext_GrantScopeDepartment: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// 所統編
+  package var firm: String = String()
+
+  /// 組名（同一所內唯一）
+  package var department: String = String()
+
+  package var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  package init() {}
+}
+
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "IAMContext"
@@ -105,6 +178,176 @@ extension IAMContext_GetPermissionsResponse: SwiftProtobuf.Message, SwiftProtobu
 
   package static func ==(lhs: IAMContext_GetPermissionsResponse, rhs: IAMContext_GetPermissionsResponse) -> Bool {
     if lhs.permissions != rhs.permissions {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension IAMContext_GetPermissionGrantScopesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  package static let protoMessageName: String = _protobuf_package + ".GetPermissionGrantScopesRequest"
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}user_id\0")
+
+  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.userID) }()
+      default: break
+      }
+    }
+  }
+
+  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.userID.isEmpty {
+      try visitor.visitSingularStringField(value: self.userID, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  package static func ==(lhs: IAMContext_GetPermissionGrantScopesRequest, rhs: IAMContext_GetPermissionGrantScopesRequest) -> Bool {
+    if lhs.userID != rhs.userID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension IAMContext_GetPermissionGrantScopesResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  package static let protoMessageName: String = _protobuf_package + ".GetPermissionGrantScopesResponse"
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}permissions\0")
+
+  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.permissions) }()
+      default: break
+      }
+    }
+  }
+
+  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.permissions.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.permissions, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  package static func ==(lhs: IAMContext_GetPermissionGrantScopesResponse, rhs: IAMContext_GetPermissionGrantScopesResponse) -> Bool {
+    if lhs.permissions != rhs.permissions {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension IAMContext_PermissionGrantScopes: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  package static let protoMessageName: String = _protobuf_package + ".PermissionGrantScopes"
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}permission\0\u{3}grant_scopes\0")
+
+  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.permission) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.grantScopes) }()
+      default: break
+      }
+    }
+  }
+
+  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.permission.isEmpty {
+      try visitor.visitSingularStringField(value: self.permission, fieldNumber: 1)
+    }
+    if !self.grantScopes.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.grantScopes, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  package static func ==(lhs: IAMContext_PermissionGrantScopes, rhs: IAMContext_PermissionGrantScopes) -> Bool {
+    if lhs.permission != rhs.permission {return false}
+    if lhs.grantScopes != rhs.grantScopes {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension IAMContext_GrantScope: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  package static let protoMessageName: String = _protobuf_package + ".GrantScope"
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{1}firms\0\u{1}departments\0")
+
+  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.kind) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.firms) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.departments) }()
+      default: break
+      }
+    }
+  }
+
+  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.kind.isEmpty {
+      try visitor.visitSingularStringField(value: self.kind, fieldNumber: 1)
+    }
+    if !self.firms.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.firms, fieldNumber: 2)
+    }
+    if !self.departments.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.departments, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  package static func ==(lhs: IAMContext_GrantScope, rhs: IAMContext_GrantScope) -> Bool {
+    if lhs.kind != rhs.kind {return false}
+    if lhs.firms != rhs.firms {return false}
+    if lhs.departments != rhs.departments {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension IAMContext_GrantScopeDepartment: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  package static let protoMessageName: String = _protobuf_package + ".GrantScopeDepartment"
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}firm\0\u{1}department\0")
+
+  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.firm) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.department) }()
+      default: break
+      }
+    }
+  }
+
+  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.firm.isEmpty {
+      try visitor.visitSingularStringField(value: self.firm, fieldNumber: 1)
+    }
+    if !self.department.isEmpty {
+      try visitor.visitSingularStringField(value: self.department, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  package static func ==(lhs: IAMContext_GrantScopeDepartment, rhs: IAMContext_GrantScopeDepartment) -> Bool {
+    if lhs.firm != rhs.firm {return false}
+    if lhs.department != rhs.department {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -24,7 +24,7 @@ struct RevokePrivilegeIntegrationTests {
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
-            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
             ))
 

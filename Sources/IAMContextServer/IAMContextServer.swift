@@ -84,9 +84,21 @@ struct IAMContextServer {
         // 階段二（role-permission-composition）：角色定義出埠。HTTP ApiHandler 與 gRPC PermissionsService
         // 必須注入**同一個**實例——只接一邊會出現「HTTP 有角色權限、gRPC 沒有」的不一致。
         let roleDirectory = RoleAggregateDirectory(kdbClient: kdbClient)
-        try EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverridePermissions: debugOverridePermissions)
+        // 權限帶範圍（docs/discussions/2026-11-25-scoped-permission-grant.md）：哪些權限是範圍化的、允許哪些範圍種類，
+        // 從權限清單的 grantScopeKinds 建。授權、改範圍、指派角色、角色加權限都靠它檢查；HTTP 與 gRPC 共用同一份。
+        let grantScopePolicy = StaticGrantScopePolicy(catalog: PermissionCatalog.grantScopeKinds)
+        let debugOverrideGrantScopes: [PermissionGrantScopes]? = debugConfig.fullPermissions
+            ? GetPermissionGrantScopesApplicationService.debugOverride(scopedPermissions: PermissionCatalog.grantScopeKinds.keys)
+            : nil
+        try EmployeeAccessAggregate.ApiHandler(
+            kdbClient: kdbClient,
+            roleDirectory: roleDirectory,
+            grantScopePolicy: grantScopePolicy,
+            debugOverridePermissions: debugOverridePermissions,
+            debugOverrideGrantScopes: debugOverrideGrantScopes
+        )
             .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
-        try RoleAggregate.ApiHandler(kdbClient: kdbClient)
+        try RoleAggregate.ApiHandler(kdbClient: kdbClient, grantScopePolicy: grantScopePolicy)
             .registerHandlers(on: router, serverURL: serverURL, middlewares: [])
 
         // TODO(Phase 1.m v2): projection subscription wiring

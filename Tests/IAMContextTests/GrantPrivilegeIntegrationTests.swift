@@ -25,7 +25,7 @@ struct GrantPrivilegeIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, permissions: ["custom:new"], operatorId: operatorId
             ))
             let aggregate = try #require(try await repository.find(byId: employeeAccessId))
@@ -41,7 +41,7 @@ struct GrantPrivilegeIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline)
+            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none)
             // 先授一條使其存在
             _ = try await usecase.execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, permissions: ["OpportunityContext.AuditQuoting.AddAccounting"], operatorId: operatorId
@@ -66,7 +66,7 @@ struct GrantPrivilegeIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
 
-            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline)
+            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none)
             let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
                 let _: GrantPrivilegeOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: wrongUserId, permissions: ["custom:new"], operatorId: operatorId
@@ -82,7 +82,7 @@ struct GrantPrivilegeIntegrationTests {
             let employeeAccessId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)   // 未 seed
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
-            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline)
+            let usecase = GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none)
             let error = await #expect(throws: DDDError.self) {
                 let _: GrantPrivilegeOutput = try await usecase.execute(input: .init(
                     employeeAccessId: employeeAccessId, userId: userId, permissions: ["it:read"], operatorId: operatorId

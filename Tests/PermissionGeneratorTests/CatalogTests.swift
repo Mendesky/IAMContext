@@ -46,4 +46,56 @@ struct CatalogTests {
         #expect(doc.permissions.count == 1)
         #expect(doc.serverPrefix == "")
     }
+
+    @Test func grantScopeKindsParseAndEmit() throws {
+        // 範圍化權限：yaml 的 grantScopeKinds 選填；有寫的進 PermissionInfo 與 grantScopeKinds 對照表，沒寫的不進。
+        let yaml = """
+        context: C
+        permissions:
+          - slot: S
+            operationId: viewBoard
+            grantScopeKinds: [company, firms, ownDepartment]
+          - slot: S
+            operationId: plain
+        """
+        let doc = try PermissionDocument.load(yaml: yaml)
+        #expect(doc.permissions.first { $0.operationId == "viewBoard" }?.grantScopeKinds == ["company", "firms", "ownDepartment"])
+        #expect(doc.permissions.first { $0.operationId == "plain" }?.grantScopeKinds == nil)
+
+        let swift = PermissionCatalogEmitter(documents: [doc]).render()
+        #expect(swift.contains("rawValue: \"C.S.ViewBoard\", description: nil, grantScopeKinds: [\"company\", \"firms\", \"ownDepartment\"]),"))
+        #expect(swift.contains("rawValue: \"C.S.Plain\", description: nil),"))   // 沒寫就不帶，跟原本的輸出一樣
+        #expect(swift.contains("public static let grantScopeKinds: [String: [String]]"))
+    }
+
+    @Test func grantScopeKindsDoNotAffectContextEmitter() throws {
+        // 各 context 用的 PermissionEmitter 不讀 grantScopeKinds：同一份 yaml 有沒有這個欄位，輸出完全相同。
+        let withKinds = try PermissionDocument.load(yaml: """
+        context: C
+        serverPrefix: /c
+        permissions:
+          - slot: S
+            operationId: viewBoard
+            grantScopeKinds: [company]
+        rules:
+          - method: get
+            path: /board
+            requires: [S.viewBoard]
+        """)
+        let withoutKinds = try PermissionDocument.load(yaml: """
+        context: C
+        serverPrefix: /c
+        permissions:
+          - slot: S
+            operationId: viewBoard
+        rules:
+          - method: get
+            path: /board
+            requires: [S.viewBoard]
+        """)
+        let a = try PermissionEmitter(document: withKinds).render()
+        let b = try PermissionEmitter(document: withoutKinds).render()
+        #expect(a.permissionSwift == b.permissionSwift)
+        #expect(a.rulesSwift == b.rulesSwift)
+    }
 }

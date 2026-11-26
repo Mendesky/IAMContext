@@ -109,6 +109,8 @@ let package = Package(
         //   protoc --swift_out=Sources/Generated --swift_opt=Visibility=Package \
         //          --grpc-swift-2_out=Sources/Generated --grpc-swift-2_opt=Visibility=Package \
         //          -I proto proto/PermissionsService.proto
+        // 版本：protoc-gen-swift 1.37.0、protoc-gen-grpc-swift-2（grpc-swift-protobuf 2.4.0，grpc-swift-2 2.4.1）。
+        // 用這組版本重產，既有內容會跟原本逐字相同；較新的 protoc-gen-swift（1.38+）會多 nonisolated、整份都變。
         .target(
             name: "Generated",
             dependencies: [

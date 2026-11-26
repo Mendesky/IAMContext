@@ -1,4 +1,5 @@
 import Foundation
+import IAMContextShared
 
 /// KurrentDB 全域日誌位置（`$all` 的排序鍵）。P-a：client 的 `StreamPosition` 只有 Equatable，排序鍵自己定義。
 /// 全序：先比 commit、再比 prepare（字典序，與 `$all` 自己的排序一致）。
@@ -24,7 +25,8 @@ package struct LogPosition: Sendable, Hashable, Comparable {
 package enum TimelineEvent: Sendable, Equatable {
     // EmployeeAccess stream
     case profileCreated(permissions: Set<String>, roles: Set<String>)
-    case privilegeGranted(permissions: Set<String>)
+    /// `grantScopes`：範圍化權限授予時帶的範圍（2026-11-25 設計文件 D12）；舊事件、不是範圍化的權限沒有。
+    case privilegeGranted(permissions: Set<String>, grantScopes: [String: [GrantScope]] = [:])
     case privilegeRevoked(permissions: Set<String>)
     case rolesAssigned(roleIds: Set<String>)
     case rolesRevoked(roleIds: Set<String>)
@@ -33,6 +35,18 @@ package enum TimelineEvent: Sendable, Equatable {
     case rolePermissionsAdded(roleId: String, permissions: Set<String>)
     case rolePermissionsRemoved(roleId: String, permissions: Set<String>)
     case roleDeleted(roleId: String)
+}
+
+/// 重播結果：有效權限，以及其中範圍化權限的授權範圍。
+package struct EffectiveAccess: Sendable, Equatable {
+    package let permissions: Set<String>
+    /// 有效權限裡、直接授予時帶了範圍的權限 → 範圍清單。
+    package let grantScopes: [String: [GrantScope]]
+
+    package init(permissions: Set<String>, grantScopes: [String: [GrantScope]] = [:]) {
+        self.permissions = permissions
+        self.grantScopes = grantScopes
+    }
 }
 
 package struct TimelineEntry: Sendable, Equatable {
@@ -92,9 +106,21 @@ package enum PermissionTimeline {
     }
 
     /// 重播：`entries` 可為任意順序（員工事件與角色事件混在一起），內部依 `(position, 輸入順序)` 排序。
-    /// 規則見 §d。純函式、無 I/O。
+    /// 規則見 §d。純函式、無 I/O。結果與 `replayAccess(_:).permissions` 相同。
     package static func replay(_ entries: [TimelineEntry]) -> Set<String> {
+        replayAccess(entries).permissions
+    }
+
+    /// 重播出有效權限，以及其中範圍化權限的授權範圍（2026-11-25 設計文件 D12）。
+    /// 範圍只來自直接授予（角色不能放範圍化的權限，D13），規則：
+    /// - 建檔：範圍清空（建檔是重設起點）。
+    /// - 授予 p：帶了範圍就記下（覆蓋），沒帶就清掉。
+    /// - 撤銷 p（不論來源）：範圍一起拿掉。改範圍＝撤銷後帶新範圍授予，結果就是換範圍。
+    /// - 最後只保留仍是有效權限的範圍。
+    /// 範圍原樣保留（含不認得的種類）；略過不認得的種類是查詢端的事。
+    package static func replayAccess(_ entries: [TimelineEntry]) -> EffectiveAccess {
         var effective: Set<String> = []           // S：有效權限集合
+        var scopes: [String: [GrantScope]] = [:]  // 直接授予時帶的範圍
         var held: Set<String> = []                // H：員工目前持有的 roleId
         var content: [String: Set<String>] = [:]  // C[r]：角色 r 重播到目前時間點的內容
 
@@ -114,10 +140,17 @@ package enum PermissionTimeline {
                 // readModel.permissions 的行為一致（2026-10-01 部署前檢查發現，開發環境 354 人有兩筆建檔）。
                 held = roles
                 effective = permissions.union(contents(of: roles))
-            case let .privilegeGranted(permissions):
+                scopes = [:]
+            case let .privilegeGranted(permissions, grantScopes):
                 effective.formUnion(permissions)
+                for permission in permissions {
+                    scopes[permission] = grantScopes[permission]
+                }
             case let .privilegeRevoked(permissions):
                 effective.subtract(permissions)
+                for permission in permissions {
+                    scopes[permission] = nil
+                }
             case let .rolesAssigned(roleIds):
                 held.formUnion(roleIds)
                 effective.formUnion(contents(of: roleIds))
@@ -143,6 +176,6 @@ package enum PermissionTimeline {
                 }
             }
         }
-        return effective
+        return EffectiveAccess(permissions: effective, grantScopes: scopes.filter { effective.contains($0.key) })
     }
 }

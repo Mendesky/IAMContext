@@ -43,7 +43,7 @@ struct RoleIntegrationTests {
             let roleId = try await createRole(bundle: bundle, operatorId: operatorId)
             let permissions = catalogPermissions(count: 3)
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: roleId,
                 permissions: permissions,
                 operatorId: operatorId
@@ -113,7 +113,7 @@ struct RoleIntegrationTests {
             let validPermission = catalogPermissions(count: 1)[0]
 
             let error = await #expect(throws: ContextError<RoleError>.self) {
-                let _: AddPermissionsOutput = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+                let _: AddPermissionsOutput = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                     roleId: roleId,
                     permissions: [validPermission, "Nope.Not.Real"],
                     operatorId: operatorId
@@ -131,7 +131,7 @@ struct RoleIntegrationTests {
             let operatorId = await bundle.generateId(for: "operatorId")
             let roleId = try await createRole(bundle: bundle, operatorId: operatorId)
             let permissions = catalogPermissions(count: 2)
-            let service = AddPermissionsService(repository: roleRepository)
+            let service = AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none)
 
             _ = try await service.execute(input: .init(roleId: roleId, permissions: permissions, operatorId: operatorId))
             let error = await #expect(throws: ContextError<RoleError>.self) {
@@ -151,7 +151,7 @@ struct RoleIntegrationTests {
             let roleId = try await createRole(bundle: bundle, operatorId: operatorId)
             let permissions = catalogPermissions(count: 3)
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: roleId,
                 permissions: Array(permissions.prefix(2)),
                 operatorId: operatorId
@@ -198,7 +198,7 @@ struct RoleIntegrationTests {
             #expect(role.name == name)
             #expect(role.description == "Visible description")
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: created.roleId,
                 permissions: permissions,
                 operatorId: operatorId
@@ -269,7 +269,7 @@ struct RoleIntegrationTests {
                 repository: employeeAccessRepository
             )
 
-            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory()).execute(input: .init(
+            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId,
                 userId: userId,
                 roles: [roleId],

@@ -25,6 +25,13 @@ extension Components.Schemas.EmployeeAccessApiError {
         case .firmRequired: self = .firmRequired
         // 2026-09-24（role-permission-composition）：assignRoles 的 roleId 存在性驗證 → 客戶端錯誤，走 422。
         case .roleNotFound: self = .roleNotFound
+        // 2026-11-26（權限帶範圍）：授權範圍的檢查 → 客戶端錯誤，走 422。
+        case .grantScopeRequired: self = .grantScopeRequired
+        case .grantScopeKindNotAllowed: self = .grantScopeKindNotAllowed
+        case .grantScopeNotApplicable: self = .grantScopeNotApplicable
+        case .grantScopeInvalid: self = .grantScopeInvalid
+        case .grantScopeUnchanged: self = .grantScopeUnchanged
+        case .roleContainsScopedPermission: self = .roleContainsScopedPermission
         }
     }
 }

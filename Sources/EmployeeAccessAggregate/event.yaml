@@ -6,6 +6,10 @@ PrivilegeGranted:
   properties:
     userId: "String"
     permissions: "[String]"
+    # 範圍化權限的授權範圍（權限 → 範圍清單）。只有範圍化的權限會出現在裡面。
+    # 一定要是 Optional：舊事件沒有這個 key 才解得開；舊版 IAM 讀新事件時會略過這個欄位。
+    # 改範圍不新增事件型別：同一次寫入發 PrivilegeRevoked＋帶新範圍的 PrivilegeGranted（2026-11-25 設計文件 D12）。
+    grantScopes: "[String: [GrantScope]]?"
 
 PrivilegeRevoked:
   kind: domainEvent

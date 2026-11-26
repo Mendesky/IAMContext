@@ -91,7 +91,7 @@ struct RolePermissionCompositionIntegrationTests {
             let directPermission = catalogPermission(at: 13)
             let roleId = try await createRole(bundle: bundle, operatorId: operatorId, permissions: [rolePermission])
             let (eaId, userId) = try await seedEmployee(bundle: bundle, operatorId: operatorId, roles: [roleId])
-            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, permissions: [directPermission], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -113,7 +113,7 @@ struct RolePermissionCompositionIntegrationTests {
             let permission = catalogPermission(at: 14)
             let roleId = try await createRole(bundle: bundle, operatorId: operatorId, permissions: [permission])
             let (eaId, userId) = try await seedEmployee(bundle: bundle, operatorId: operatorId, roles: [roleId])
-            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, permissions: [permission], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -159,14 +159,14 @@ struct RolePermissionCompositionIntegrationTests {
             let unknownRoleId = UUID().uuidString
 
             let error = await #expect(throws: ContextError<EmployeeAccessError>.self) {
-                let _: AssignRolesOutput = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory).execute(input: .init(
+                let _: AssignRolesOutput = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                     employeeAccessId: eaId, userId: userId, roles: [unknownRoleId], operatorId: operatorId
                 ))
             }
             #expect(error?.error == .roleNotFound)
 
             let fakeError = await #expect(throws: ContextError<EmployeeAccessError>.self) {
-                let _: AssignRolesOutput = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory(resolved: [:])).execute(input: .init(
+                let _: AssignRolesOutput = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory(resolved: [:]), grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                     employeeAccessId: eaId, userId: userId, roles: ["any-role"], operatorId: operatorId
                 ))
             }
@@ -185,10 +185,10 @@ struct RolePermissionCompositionIntegrationTests {
             let directPermission = catalogPermission(at: 16)
             let (eaId, userId) = try await seedEmployee(bundle: bundle, operatorId: operatorId, roles: [])
             // 用 permissive fake 繞過存在性驗證，寫入一筆帶舊字串的 RolesAssigned（模擬歷史資料）。
-            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory()).execute(input: .init(
+            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, roles: ["legacy-admin"], operatorId: operatorId
             ))
-            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, permissions: [directPermission], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -208,7 +208,7 @@ struct RolePermissionCompositionIntegrationTests {
             let fakePermission = await bundle.generateId(for: "fakePermission")
             let fake = FakeRoleDirectory(resolved: [fakeRoleId: [fakePermission]])
             let (eaId, userId) = try await seedEmployee(bundle: bundle, operatorId: operatorId, roles: [])
-            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: fake).execute(input: .init(
+            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: fake, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, roles: [fakeRoleId], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -304,7 +304,7 @@ struct RolePermissionCompositionIntegrationTests {
             let directPermission = catalogPermission(at: 22)
             let roleA = try await createRole(bundle: bundle, operatorId: operatorId, permissions: [rolePermission])
             let (eaId, userId) = try await seedEmployee(bundle: bundle, operatorId: operatorId, roles: [roleA])
-            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline).execute(input: .init(
+            _ = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, permissions: [directPermission], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -370,7 +370,7 @@ struct RolePermissionCompositionIntegrationTests {
             #expect(!((try await httpPermissions(userId: userId, directory: directory)).contains(p)))
             #expect(!((try await grpcPermissions(userId: userId, directory: directory)).contains(p)))
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: roleId, permissions: [p], operatorId: operatorId
             ))
             #expect((try await httpPermissions(userId: userId, directory: directory)).contains(p))
@@ -415,7 +415,7 @@ struct RolePermissionCompositionIntegrationTests {
                 employeeAccessId: eaId, userId: userId, roles: [roleId], operatorId: operatorId
             ))
             try await waitForProjection()
-            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory).execute(input: .init(
+            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: eaId, userId: userId, roles: [roleId], operatorId: operatorId
             ))
             try await waitForProjection()
@@ -442,7 +442,7 @@ struct RolePermissionCompositionIntegrationTests {
             ))
             #expect(!((try await grpcPermissions(userId: userId, directory: directory)).contains(p)))
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: roleId, permissions: [p], operatorId: operatorId
             ))
             #expect((try await httpPermissions(userId: userId, directory: directory)).contains(p))
@@ -521,7 +521,7 @@ struct RolePermissionCompositionIntegrationTests {
             try await waitForProjection()
             let before = try await streamVersions(of: [ea1, ea2])
 
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(roleId: roleId, permissions: [q], operatorId: operatorId))
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(roleId: roleId, permissions: [q], operatorId: operatorId))
             #expect(Set(try await httpPermissions(userId: u1, directory: directory)) == Set([p, q]))
             #expect(Set(try await grpcPermissions(userId: u2, directory: directory)) == Set([p, q]))
 
@@ -721,7 +721,7 @@ struct RolePermissionCompositionIntegrationTests {
                 return
             }
 
-            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
             let http = try await handler.getPermissions(.init(path: .init(userId: userId)))
             guard case .serviceUnavailable(let response) = http else {
                 Issue.record("expected 503 after bogus role event, got \(http)")
@@ -769,7 +769,7 @@ struct RolePermissionCompositionIntegrationTests {
             operatorId: operatorId
         ))
         if !permissions.isEmpty {
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: output.roleId, permissions: permissions, operatorId: operatorId
             ))
         }
@@ -782,7 +782,7 @@ struct RolePermissionCompositionIntegrationTests {
         let userId = await bundle.generateId(for: "userId")
         try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, department: department, repository: employeeAccessRepository)
         if !roles.isEmpty {
-            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory).execute(input: .init(
+            _ = try await AssignRolesService(repository: employeeAccessRepository, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, roles: roles, operatorId: operatorId
             ))
         }
@@ -797,7 +797,7 @@ struct RolePermissionCompositionIntegrationTests {
         viaApiHandler: Bool = true
     ) async throws -> EmployeeAccessAggregate.Operations.revokePrivilege.Output {
         if viaApiHandler {
-            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
             return try await handler.revokePrivilege(.init(
                 path: .init(employeeAccessId: employeeAccessId),
                 headers: .init(operatorId: operatorId),
@@ -830,7 +830,7 @@ struct RolePermissionCompositionIntegrationTests {
         viaApiHandler: Bool = true
     ) async throws -> EmployeeAccessAggregate.Operations.grantPrivilege.Output {
         if viaApiHandler {
-            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+            let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
             return try await handler.grantPrivilege(.init(
                 path: .init(employeeAccessId: employeeAccessId),
                 headers: .init(operatorId: operatorId),
@@ -839,7 +839,7 @@ struct RolePermissionCompositionIntegrationTests {
         }
 
         do {
-            let output = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline).execute(input: .init(
+            let output = try await GrantPrivilegeService(repository: employeeAccessRepository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId,
                 userId: userId,
                 permissions: permissions,
@@ -857,7 +857,7 @@ struct RolePermissionCompositionIntegrationTests {
 
     /// HTTP 入口：EmployeeAccessAggregate.ApiHandler.getPermissions。
     private func httpPermissions(userId: String, directory: any RoleDirectory) async throws -> [String] {
-        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
         let output = try await handler.getPermissions(.init(path: .init(userId: userId)))
         guard case .ok(let ok) = output, case .json(let permissions) = ok.body else {
             Issue.record("expected 200 json permissions, got \(output)")

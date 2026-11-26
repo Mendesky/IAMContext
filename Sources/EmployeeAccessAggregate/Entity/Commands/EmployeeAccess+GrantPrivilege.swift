@@ -2,7 +2,18 @@ import DDDKit
 import Foundation
 import IAMContextShared
 extension EmployeeAccess {
-    package func grantPrivilege(employeeAccessId: String, userId: String, permissions: [String], lapsedDirectGrants: Set<String> = []) throws {
+    /// - Parameters:
+    ///   - grantScopes: 範圍化權限的授權範圍（權限 → 範圍清單）。
+    ///   - allowedKinds: 這次授予的權限裡，範圍化的權限 → 允許的範圍種類（由 usecase 從 `GrantScopePolicy` 查好傳進來）。
+    ///     範圍化的權限一定要帶範圍；不是範圍化的權限不能帶（`GrantScopeRules.validatedGrant`）。
+    package func grantPrivilege(
+        employeeAccessId: String,
+        userId: String,
+        permissions: [String],
+        grantScopes: [String: [GrantScope]] = [:],
+        allowedKinds: [String: Set<GrantScopeKind>],
+        lapsedDirectGrants: Set<String> = []
+    ) throws {
         // PRECONDITION: permissions cannot be both directly granted and still effective.
         let direct = self.permissions ?? []
         guard !permissions.contains(where: { direct.contains($0) && !lapsedDirectGrants.contains($0) }) else {
@@ -14,7 +25,15 @@ extension EmployeeAccess {
         guard userId == self.userId else {
             throw ContextError<EmployeeAccessError>.userIdMismatch(function: #function, message: "request userId does not match this profile's userId")
         }
-        let event = PrivilegeGranted(employeeAccessId: self.id, userId: userId, permissions: permissions, occurred: .now)
+        // 授權範圍（2026-11-25 設計文件 D7、D10）：範圍化的權限一定要帶合法的範圍，不是範圍化的權限不能帶。
+        let validatedScopes = try GrantScopeRules.validatedGrant(permissions: permissions, grantScopes: grantScopes, allowedKinds: allowedKinds)
+        let event = PrivilegeGranted(
+            employeeAccessId: self.id,
+            userId: userId,
+            permissions: permissions,
+            grantScopes: validatedScopes.isEmpty ? nil : validatedScopes,
+            occurred: .now
+        )
         try self.apply(event: event)
     }
 
@@ -24,5 +43,9 @@ extension EmployeeAccess {
         // PrivilegeGranted state transition is not strict-safe (empty payload / collection / type-mismatch / new-old rename / nested).
         // domain-fill: 聯集加入 event.permissions（nil 視為空集合）
         self.permissions = (self.permissions ?? []).union(event.permissions)
+        // 授權範圍：這次授予的權限，有範圍的記下（覆蓋），沒有的清掉（舊事件、不是範圍化的權限都沒有）。
+        for permission in event.permissions {
+            self.grantScopes[permission] = event.grantScopes?[permission]
+        }
     }
 }

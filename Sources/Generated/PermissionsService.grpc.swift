@@ -35,9 +35,23 @@ package enum IAMContext_PermissionsService: Sendable {
                 type: .unary
             )
         }
+        /// Namespace for "GetPermissionGrantScopes" metadata.
+        package enum GetPermissionGrantScopes: Sendable {
+            /// Request type for "GetPermissionGrantScopes".
+            package typealias Input = IAMContext_GetPermissionGrantScopesRequest
+            /// Response type for "GetPermissionGrantScopes".
+            package typealias Output = IAMContext_GetPermissionGrantScopesResponse
+            /// Descriptor for "GetPermissionGrantScopes".
+            package static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "IAMContext.PermissionsService"),
+                method: "GetPermissionGrantScopes",
+                type: .unary
+            )
+        }
         /// Descriptors for all methods in the "IAMContext.PermissionsService" service.
         package static let descriptors: [GRPCCore.MethodDescriptor] = [
-            GetPermissions.descriptor
+            GetPermissions.descriptor,
+            GetPermissionGrantScopes.descriptor
         ]
     }
 }
@@ -76,6 +90,26 @@ extension IAMContext_PermissionsService {
             request: GRPCCore.StreamingServerRequest<IAMContext_GetPermissionsRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.StreamingServerResponse<IAMContext_GetPermissionsResponse>
+
+        /// Handle the "GetPermissionGrantScopes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 尚未建檔回空清單（同 GetPermissions）。
+        ///
+        /// - Parameters:
+        ///   - request: A streaming request of `IAMContext_GetPermissionGrantScopesRequest` messages.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A streaming response of `IAMContext_GetPermissionGrantScopesResponse` messages.
+        func getPermissionGrantScopes(
+            request: GRPCCore.StreamingServerRequest<IAMContext_GetPermissionGrantScopesRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.StreamingServerResponse<IAMContext_GetPermissionGrantScopesResponse>
     }
 
     /// Service protocol for the "IAMContext.PermissionsService" service.
@@ -99,6 +133,26 @@ extension IAMContext_PermissionsService {
             request: GRPCCore.ServerRequest<IAMContext_GetPermissionsRequest>,
             context: GRPCCore.ServerContext
         ) async throws -> GRPCCore.ServerResponse<IAMContext_GetPermissionsResponse>
+
+        /// Handle the "GetPermissionGrantScopes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 尚未建檔回空清單（同 GetPermissions）。
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `IAMContext_GetPermissionGrantScopesRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A response containing a single `IAMContext_GetPermissionGrantScopesResponse` message.
+        func getPermissionGrantScopes(
+            request: GRPCCore.ServerRequest<IAMContext_GetPermissionGrantScopesRequest>,
+            context: GRPCCore.ServerContext
+        ) async throws -> GRPCCore.ServerResponse<IAMContext_GetPermissionGrantScopesResponse>
     }
 
     /// Simple service protocol for the "IAMContext.PermissionsService" service.
@@ -120,6 +174,26 @@ extension IAMContext_PermissionsService {
             request: IAMContext_GetPermissionsRequest,
             context: GRPCCore.ServerContext
         ) async throws -> IAMContext_GetPermissionsResponse
+
+        /// Handle the "GetPermissionGrantScopes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 尚未建檔回空清單（同 GetPermissions）。
+        ///
+        /// - Parameters:
+        ///   - request: A `IAMContext_GetPermissionGrantScopesRequest` message.
+        ///   - context: Context providing information about the RPC.
+        /// - Throws: Any error which occurred during the processing of the request. Thrown errors
+        ///     of type `RPCError` are mapped to appropriate statuses. All other errors are converted
+        ///     to an internal error.
+        /// - Returns: A `IAMContext_GetPermissionGrantScopesResponse` to respond with.
+        func getPermissionGrantScopes(
+            request: IAMContext_GetPermissionGrantScopesRequest,
+            context: GRPCCore.ServerContext
+        ) async throws -> IAMContext_GetPermissionGrantScopesResponse
     }
 }
 
@@ -133,6 +207,17 @@ extension IAMContext_PermissionsService.StreamingServiceProtocol {
             serializer: GRPCProtobuf.ProtobufSerializer<IAMContext_GetPermissionsResponse>(),
             handler: { request, context in
                 try await self.getPermissions(
+                    request: request,
+                    context: context
+                )
+            }
+        )
+        router.registerHandler(
+            forMethod: IAMContext_PermissionsService.Method.GetPermissionGrantScopes.descriptor,
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IAMContext_GetPermissionGrantScopesRequest>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<IAMContext_GetPermissionGrantScopesResponse>(),
+            handler: { request, context in
+                try await self.getPermissionGrantScopes(
                     request: request,
                     context: context
                 )
@@ -154,6 +239,17 @@ extension IAMContext_PermissionsService.ServiceProtocol {
         )
         return GRPCCore.StreamingServerResponse(single: response)
     }
+
+    package func getPermissionGrantScopes(
+        request: GRPCCore.StreamingServerRequest<IAMContext_GetPermissionGrantScopesRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.StreamingServerResponse<IAMContext_GetPermissionGrantScopesResponse> {
+        let response = try await self.getPermissionGrantScopes(
+            request: GRPCCore.ServerRequest(stream: request),
+            context: context
+        )
+        return GRPCCore.StreamingServerResponse(single: response)
+    }
 }
 
 // Default implementation of methods from 'ServiceProtocol'.
@@ -165,6 +261,19 @@ extension IAMContext_PermissionsService.SimpleServiceProtocol {
     ) async throws -> GRPCCore.ServerResponse<IAMContext_GetPermissionsResponse> {
         return GRPCCore.ServerResponse<IAMContext_GetPermissionsResponse>(
             message: try await self.getPermissions(
+                request: request.message,
+                context: context
+            ),
+            metadata: [:]
+        )
+    }
+
+    package func getPermissionGrantScopes(
+        request: GRPCCore.ServerRequest<IAMContext_GetPermissionGrantScopesRequest>,
+        context: GRPCCore.ServerContext
+    ) async throws -> GRPCCore.ServerResponse<IAMContext_GetPermissionGrantScopesResponse> {
+        return GRPCCore.ServerResponse<IAMContext_GetPermissionGrantScopesResponse>(
+            message: try await self.getPermissionGrantScopes(
                 request: request.message,
                 context: context
             ),
@@ -199,6 +308,31 @@ extension IAMContext_PermissionsService {
             deserializer: some GRPCCore.MessageDeserializer<IAMContext_GetPermissionsResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IAMContext_GetPermissionsResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "GetPermissionGrantScopes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 尚未建檔回空清單（同 GetPermissions）。
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `IAMContext_GetPermissionGrantScopesRequest` message.
+        ///   - serializer: A serializer for `IAMContext_GetPermissionGrantScopesRequest` messages.
+        ///   - deserializer: A deserializer for `IAMContext_GetPermissionGrantScopesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func getPermissionGrantScopes<Result>(
+            request: GRPCCore.ClientRequest<IAMContext_GetPermissionGrantScopesRequest>,
+            serializer: some GRPCCore.MessageSerializer<IAMContext_GetPermissionGrantScopesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IAMContext_GetPermissionGrantScopesResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IAMContext_GetPermissionGrantScopesResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -247,6 +381,42 @@ extension IAMContext_PermissionsService {
                 onResponse: handleResponse
             )
         }
+
+        /// Call the "GetPermissionGrantScopes" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 尚未建檔回空清單（同 GetPermissions）。
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `IAMContext_GetPermissionGrantScopesRequest` message.
+        ///   - serializer: A serializer for `IAMContext_GetPermissionGrantScopesRequest` messages.
+        ///   - deserializer: A deserializer for `IAMContext_GetPermissionGrantScopesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        package func getPermissionGrantScopes<Result>(
+            request: GRPCCore.ClientRequest<IAMContext_GetPermissionGrantScopesRequest>,
+            serializer: some GRPCCore.MessageSerializer<IAMContext_GetPermissionGrantScopesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IAMContext_GetPermissionGrantScopesResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IAMContext_GetPermissionGrantScopesResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: IAMContext_PermissionsService.Method.GetPermissionGrantScopes.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
     }
 }
 
@@ -273,6 +443,37 @@ extension IAMContext_PermissionsService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<IAMContext_GetPermissionsRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<IAMContext_GetPermissionsResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetPermissionGrantScopes" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+    /// > 尚未建檔回空清單（同 GetPermissions）。
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `IAMContext_GetPermissionGrantScopesRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    package func getPermissionGrantScopes<Result>(
+        request: GRPCCore.ClientRequest<IAMContext_GetPermissionGrantScopesRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IAMContext_GetPermissionGrantScopesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.getPermissionGrantScopes(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<IAMContext_GetPermissionGrantScopesRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IAMContext_GetPermissionGrantScopesResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -305,6 +506,41 @@ extension IAMContext_PermissionsService.ClientProtocol {
             metadata: metadata
         )
         return try await self.getPermissions(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetPermissionGrantScopes" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+    /// > 尚未建檔回空清單（同 GetPermissions）。
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    package func getPermissionGrantScopes<Result>(
+        _ message: IAMContext_GetPermissionGrantScopesRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IAMContext_GetPermissionGrantScopesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<IAMContext_GetPermissionGrantScopesRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.getPermissionGrantScopes(
             request: request,
             options: options,
             onResponse: handleResponse

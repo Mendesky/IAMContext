@@ -30,14 +30,16 @@ package struct AssignRolesApplicationService: ApplicationService {
 
     private let repository: EmployeeAccessRepository
     private let roleDirectory: RoleDirectory
+    private let grantScopePolicy: GrantScopePolicy
 
-    package init(repository: EmployeeAccessRepository, roleDirectory: RoleDirectory) {
+    package init(repository: EmployeeAccessRepository, roleDirectory: RoleDirectory, grantScopePolicy: GrantScopePolicy) {
         self.repository = repository
         self.roleDirectory = roleDirectory
+        self.grantScopePolicy = grantScopePolicy
     }
 
     package func execute(input: Input) async throws -> Output {
-        let service = AssignRolesService(repository: repository, roleDirectory: roleDirectory)
+        let service = AssignRolesService(repository: repository, roleDirectory: roleDirectory, grantScopePolicy: grantScopePolicy)
         _ = try await service.execute(input: .init(
             employeeAccessId: input.employeeAccessId,
             userId: input.userId,

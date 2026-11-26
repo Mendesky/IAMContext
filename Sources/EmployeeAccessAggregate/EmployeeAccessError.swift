@@ -19,6 +19,13 @@ package enum EmployeeAccessError: Error, Equatable {
     // Added post-role-permission-composition (2026-09-24): assignRoles 指到不存在或已刪除的 roleId（RoleDirectory 解析不到）。
     // 與 roleNotExist（撤銷「該員工身上沒有的角色」）語意不同，不共用。
     case roleNotFound
+    // Added 2026-11-26（權限帶範圍，docs/discussions/2026-11-25-scoped-permission-grant.md D7、D9、D10、D12、D13）：
+    case grantScopeRequired  // 範圍化的權限沒有帶範圍（或範圍是空的）
+    case grantScopeKindNotAllowed  // 範圍種類不在這個權限允許的清單裡
+    case grantScopeNotApplicable  // 不是範圍化的權限卻帶了範圍；或 grantScopes 裡有這次沒授予的權限；或改範圍的權限不是範圍化的權限
+    case grantScopeInvalid  // 範圍內容不合法（種類不認得、指定所是空的、指定組缺所或組名、全公司／本人的卻帶了清單）
+    case grantScopeUnchanged  // 改範圍時，新範圍跟現在一樣
+    case roleContainsScopedPermission  // 指派的角色裡有範圍化的權限（角色不能帶範圍）
 }
 
 extension ContextError where ErrorType == EmployeeAccessError {
@@ -57,5 +64,23 @@ extension ContextError where ErrorType == EmployeeAccessError {
     }
     static func roleNotFound(function: String = #function, message: String = "") -> Self {
         .init(error: .roleNotFound, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func grantScopeRequired(function: String = #function, message: String = "") -> Self {
+        .init(error: .grantScopeRequired, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func grantScopeKindNotAllowed(function: String = #function, message: String = "") -> Self {
+        .init(error: .grantScopeKindNotAllowed, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func grantScopeNotApplicable(function: String = #function, message: String = "") -> Self {
+        .init(error: .grantScopeNotApplicable, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func grantScopeInvalid(function: String = #function, message: String = "") -> Self {
+        .init(error: .grantScopeInvalid, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func grantScopeUnchanged(function: String = #function, message: String = "") -> Self {
+        .init(error: .grantScopeUnchanged, in: .class(EmployeeAccess.self, function: function), message: message)
+    }
+    static func roleContainsScopedPermission(function: String = #function, message: String = "") -> Self {
+        .init(error: .roleContainsScopedPermission, in: .class(EmployeeAccess.self, function: function), message: message)
     }
 }
