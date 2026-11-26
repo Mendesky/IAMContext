@@ -58,7 +58,7 @@ paths:
   /employee-access/{employeeAccessId}/change-grant-scope:
     post:
       operationId: changeGrantScope
-      description: '改一個範圍化權限的授權範圍（整組換掉）。權限要是這個人直接持有、而且是範圍化的權限（權限清單上標了 grantScopeKinds）；範圍至少一項、種類要在允許清單內、內容要合法；新範圍跟現在一樣回 422 grantScopeUnchanged。同一次寫入記 PrivilegeRevoked＋帶新範圍的 PrivilegeGranted（不新增事件型別）。也用來幫「已持有、還沒有範圍」的人補範圍。'
+      description: '改一個範圍化權限的授權範圍（整組換掉）。權限要是這個人直接持有、目前有效、而且是範圍化的權限（權限清單上標了 grantScopeKinds）；範圍至少一項、種類要在允許清單內、內容要合法；新範圍跟現在一樣回 422 grantScopeUnchanged；權限已失效（直接授予後因撤銷含它的角色而失效）回 422 permissionNotExist。寫入一筆 PrivilegeScopeChanged。⚠️ 新事件型別：舊版 IAM（1.8.0）讀到會 fail-closed，新版上線初期先不要用（設錯時改用撤銷＋重新授權），確定不退版再開始用。也用來幫「已持有、還沒有範圍」的人補範圍。'
       parameters:
         - $ref: '#/components/parameters/employeeAccessId'
         - $ref: '#/components/parameters/operatorId'
