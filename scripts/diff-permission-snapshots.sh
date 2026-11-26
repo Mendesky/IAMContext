@@ -23,6 +23,7 @@ REF="${REF:-main}"
 SOURCES="
 MCPContext|Mendesky/MCPContext|Sources/MendeskyTools/MCPContext.permissions.yaml
 VersionManagementContext|Mendesky/VersionManagementContext|Sources/VMCAuthorization/VersionManagementContext.permissions.yaml
+OIDCContext|Mendesky/OIDCContext|Sources/OIDCAuthorization/OIDCContext.permissions.yaml
 "
 
 case "${REF}" in
