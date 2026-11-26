@@ -2,16 +2,20 @@ import DDDCore
 import Foundation
 import KurrentDB
 import IAMContextShared
+import EmployeeAccessAggregate
 
 package struct ApiHandler: APIProtocol {
 
     private let kdbClient: KurrentDBClient
+    /// 角色不能放範圍化的權限（2026-11-25 設計文件 D13）。IAMContextServer 從權限清單建好注入。
+    private let grantScopePolicy: GrantScopePolicy
     private var repository: RoleRepository {
         .init(coordinator: .init(client: kdbClient, eventMapper: RoleAggregateEventMapper()))
     }
 
-    package init(kdbClient: KurrentDBClient) {
+    package init(kdbClient: KurrentDBClient, grantScopePolicy: GrantScopePolicy) {
         self.kdbClient = kdbClient
+        self.grantScopePolicy = grantScopePolicy
     }
 
     private func mapToApiError(_ error: Error) -> Components.Schemas.RoleApiError? {
@@ -114,7 +118,7 @@ package struct ApiHandler: APIProtocol {
         guard case let .json(payload) = input.body else {
             return .unprocessableContent(.init(body: .json(.init(error: .invalidPayload))))
         }
-        let service = AddPermissionsApplicationService(repository: repository)
+        let service = AddPermissionsApplicationService(repository: repository, grantScopePolicy: grantScopePolicy)
         do {
             let output = try await service.execute(input: .init(
                 roleId: input.path.roleId,

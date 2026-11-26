@@ -21,7 +21,7 @@ struct RevokeRolesIntegrationTests {
             let userId = await bundle.generateId(for: "userId")
             let operatorId = await bundle.generateId(for: "operatorId")
             try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
-            _ = try await AssignRolesService(repository: repository, roleDirectory: FakeRoleDirectory()).execute(input: .init(
+            _ = try await AssignRolesService(repository: repository, roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, roles: ["dev"], operatorId: operatorId
             ))
 

@@ -3,6 +3,8 @@ GetPermissions:
   events:
     - PrivilegeGranted
     - PrivilegeRevoked
+    # 投影會把改範圍連進同一條 link stream；presenter 遇到沒列名的事件會中止整段重播，所以一定要列（no-op）。
+    - PrivilegeScopeChanged
     - RolesAssigned
     - RolesRevoked
     - UserPromoted

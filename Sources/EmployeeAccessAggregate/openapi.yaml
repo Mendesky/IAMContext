@@ -55,6 +55,32 @@ paths:
           $ref: '#/components/responses/UnprocessableEntityError'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/{employeeAccessId}/change-grant-scope:
+    post:
+      operationId: changeGrantScope
+      description: '改一個範圍化權限的授權範圍（整組換掉）。權限要是這個人直接持有、目前有效、而且是範圍化的權限（權限清單上標了 grantScopeKinds）；範圍至少一項、種類要在允許清單內、內容要合法；新範圍跟現在一樣回 422 grantScopeUnchanged；權限已失效（直接授予後因撤銷含它的角色而失效）回 422 permissionNotExist。寫入一筆 PrivilegeScopeChanged。⚠️ 新事件型別：舊版 IAM（1.8.0）讀到會 fail-closed，新版上線初期先不要用（設錯時改用撤銷＋重新授權），確定不退版再開始用。也用來幫「已持有、還沒有範圍」的人補範圍。'
+      parameters:
+        - $ref: '#/components/parameters/employeeAccessId'
+        - $ref: '#/components/parameters/operatorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeGrantScopeRequest'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAccessId'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
   /employee-access/{employeeAccessId}/assign-roles:
     post:
       operationId: assignRoles
@@ -204,6 +230,25 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '422':
           $ref: '#/components/responses/UnprocessableEntityError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+  /employee-access/permissions/{userId}/grant-scopes:
+    get:
+      operationId: getPermissionGrantScopes
+      description: '這個人持有的範圍化權限與各自的授權範圍（多項取聯集，由呼叫端解讀）。只列有範圍的權限；不認得的範圍種類略過那一項，一項都不剩的權限不列。ownFirm／ownDepartment 原樣回標記，由呼叫端用 StaffContext 名冊解析。尚未建檔回 404（同 getPermissions）。IAM_DEBUG_FULL_PERMISSIONS 開啟時，權限清單上每個範圍化的權限都回 company。'
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: 'success'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionGrantScopes'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
   /employee-access/permission-holders:
@@ -395,6 +440,12 @@ components:
         - profileAlreadyExists
         - firmRequired
         - roleNotFound
+        - grantScopeRequired
+        - grantScopeKindNotAllowed
+        - grantScopeNotApplicable
+        - grantScopeInvalid
+        - grantScopeUnchanged
+        - roleContainsScopedPermission
     GrantPrivilegeRequest:
       type: object
       required:
@@ -407,6 +458,68 @@ components:
           type: array
           items:
             type: string
+        grantScopes:
+          description: '範圍化權限的授權範圍（權限 → 範圍清單）。範圍化的權限（權限清單上標了 grantScopeKinds）一定要帶、至少一項；不是範圍化的權限不能帶；key 一定要在 permissions 裡。'
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/GrantScope'
+    ChangeGrantScopeRequest:
+      type: object
+      required:
+        - userId
+        - permission
+        - grantScopes
+      properties:
+        userId:
+          type: string
+        permission:
+          type: string
+        grantScopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantScope'
+    GrantScope:
+      description: '一項授權範圍。kind：company（全公司）、firms（指定所，帶 firms：所統編清單）、departments（指定組，帶 departments：(所統編, 組名) 清單）、ownFirm（本人的所）、ownDepartment（本人的組）。company／ownFirm／ownDepartment 不帶清單。'
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+        firms:
+          type: array
+          items:
+            type: string
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantScopeDepartment'
+    GrantScopeDepartment:
+      type: object
+      required:
+        - firm
+        - department
+      properties:
+        firm:
+          type: string
+          description: '所統編'
+        department:
+          type: string
+          description: '組名（同一所內唯一）'
+    PermissionGrantScopes:
+      type: object
+      required:
+        - permission
+        - grantScopes
+      properties:
+        permission:
+          type: string
+        grantScopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantScope'
     RevokePrivilegeRequest:
       type: object
       required:

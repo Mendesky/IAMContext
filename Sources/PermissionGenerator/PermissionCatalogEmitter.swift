@@ -26,6 +26,7 @@ public struct PermissionCatalogEmitter {
         let operationId: String
         let rawValue: String
         let description: String?
+        let grantScopeKinds: [String]?
     }
 
     private static func escape(_ s: String) -> String {
@@ -41,7 +42,8 @@ public struct PermissionCatalogEmitter {
                 if seen.contains(raw) { continue }
                 seen.insert(raw)
                 records.append(Record(context: doc.context, slot: e.slot,
-                                       operationId: e.operationId, rawValue: raw, description: e.description))
+                                       operationId: e.operationId, rawValue: raw, description: e.description,
+                                       grantScopeKinds: e.grantScopeKinds))
             }
         }
         records.sort { $0.rawValue < $1.rawValue }
@@ -59,12 +61,15 @@ public struct PermissionCatalogEmitter {
         lines.append("    public let operationId: String")
         lines.append("    public let rawValue: String")
         lines.append("    public let description: String?")
-        lines.append("    public init(context: String, slot: String, operationId: String, rawValue: String, description: String?) {")
+        lines.append("    /// 範圍化權限允許的授權範圍種類；nil＝不是範圍化的權限。")
+        lines.append("    public let grantScopeKinds: [String]?")
+        lines.append("    public init(context: String, slot: String, operationId: String, rawValue: String, description: String?, grantScopeKinds: [String]? = nil) {")
         lines.append("        self.context = context")
         lines.append("        self.slot = slot")
         lines.append("        self.operationId = operationId")
         lines.append("        self.rawValue = rawValue")
         lines.append("        self.description = description")
+        lines.append("        self.grantScopeKinds = grantScopeKinds")
         lines.append("    }")
         lines.append("}")
         lines.append("")
@@ -73,7 +78,8 @@ public struct PermissionCatalogEmitter {
         lines.append("    public static let all: [PermissionInfo] = [")
         for r in records {
             let desc = r.description.map { "\"\(Self.escape($0))\"" } ?? "nil"
-            lines.append("        PermissionInfo(context: \"\(r.context)\", slot: \"\(r.slot)\", operationId: \"\(r.operationId)\", rawValue: \"\(r.rawValue)\", description: \(desc)),")
+            let kinds = r.grantScopeKinds.map { ", grantScopeKinds: [" + $0.map { "\"\(Self.escape($0))\"" }.joined(separator: ", ") + "]" } ?? ""
+            lines.append("        PermissionInfo(context: \"\(r.context)\", slot: \"\(r.slot)\", operationId: \"\(r.operationId)\", rawValue: \"\(r.rawValue)\", description: \(desc)\(kinds)),")
         }
         lines.append("    ]")
         lines.append("")
@@ -82,6 +88,11 @@ public struct PermissionCatalogEmitter {
         lines.append("")
         lines.append("    /// The universe of valid permission rawValues — e.g. to validate a grant.")
         lines.append("    public static let allRawValues: Set<String> = Set(all.map(\\.rawValue))")
+        lines.append("")
+        lines.append("    /// 範圍化的權限 → 允許的授權範圍種類（只列標了 grantScopeKinds 的權限）。")
+        lines.append("    public static let grantScopeKinds: [String: [String]] = Dictionary(uniqueKeysWithValues: all.compactMap { info in")
+        lines.append("        info.grantScopeKinds.map { (info.rawValue, $0) }")
+        lines.append("    })")
         lines.append("")
         lines.append("    public static func permissions(inContext context: String) -> [PermissionInfo] {")
         lines.append("        all.filter { $0.context == context }")

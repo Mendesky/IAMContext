@@ -54,4 +54,44 @@ actor PermissionsService: IAMContext_PermissionsService.ServiceProtocol {
         }
     }
 
+    /// 權限＋範圍查詢（docs/discussions/2026-11-25-scoped-permission-grant.md D14），規則同 HTTP getPermissionGrantScopes。
+    /// 尚未建檔回空清單（同 getPermissions）；IAM_DEBUG_FULL_PERMISSIONS 開啟時每個範圍化權限都回 company，並帶 x-iam-debug。
+    func getPermissionGrantScopes(request: ServerRequest<IAMContext_GetPermissionGrantScopesRequest>, context: ServerContext) async throws -> ServerResponse<IAMContext_GetPermissionGrantScopesResponse> {
+        do {
+            let override: [PermissionGrantScopes]? = debugConfig.fullPermissions
+                ? GetPermissionGrantScopesApplicationService.debugOverride(scopedPermissions: PermissionCatalog.grantScopeKinds.keys)
+                : nil
+            let service = GetPermissionGrantScopesApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverride: override)
+            let items = try await service.execute(input: .init(userId: request.message.userID))
+            let message = IAMContext_GetPermissionGrantScopesResponse.with { $0.permissions = items.map(Self.message(from:)) }
+            if debugConfig.fullPermissions {
+                var metadata = Metadata()
+                metadata.addString("1", forKey: "x-iam-debug")
+                return .init(message: message, metadata: metadata)
+            }
+            return .init(message: message)
+        } catch let error as ContextError<EmployeeAccessQueryError> where error.error == .notFound {
+            return .init(message: .init())
+        } catch {
+            return .init(error: .init(status: .init(code: .aborted, message: "getPermissionGrantScopes failed. error: \(error)"))!)
+        }
+    }
+
+    static func message(from item: PermissionGrantScopes) -> IAMContext_PermissionGrantScopes {
+        .with { message in
+            message.permission = item.permission
+            message.grantScopes = item.grantScopes.map { scope in
+                .with { grantScope in
+                    grantScope.kind = scope.kind
+                    grantScope.firms = scope.firms ?? []
+                    grantScope.departments = (scope.departments ?? []).map { department in
+                        .with {
+                            $0.firm = department.firm
+                            $0.department = department.department
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

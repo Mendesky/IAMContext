@@ -261,6 +261,7 @@ components:
         - descriptionUnchanged
         - permissionsUnchanged
         - invalidPermission
+        - scopedPermissionNotAllowed
     CreateRoleRequest:
       type: object
       required:

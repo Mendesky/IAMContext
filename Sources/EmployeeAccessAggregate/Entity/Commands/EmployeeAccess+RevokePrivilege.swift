@@ -23,5 +23,9 @@ extension EmployeeAccess {
         // PrivilegeRevoked state transition is not strict-safe (empty payload / collection / type-mismatch / new-old rename / nested).
         // domain-fill: 差集移除 event.permissions（nil 視為空集合）
         self.permissions = (self.permissions ?? []).subtracting(event.permissions)
+        // 撤銷不論來源：權限拿掉，範圍一起拿掉（2026-11-25 設計文件 D12）。
+        for permission in event.permissions {
+            self.grantScopes[permission] = nil
+        }
     }
 }

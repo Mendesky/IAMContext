@@ -19,7 +19,7 @@ struct ReadSideServiceUnavailableTests {
 
     @Test(.timeLimit(.minutes(1)))
     func get_roles_returns_503_when_kurrentdb_is_unreachable() async throws {
-        let handler = RoleAggregate.ApiHandler(kdbClient: try makeUnreachableKurrentDBClient())
+        let handler = RoleAggregate.ApiHandler(kdbClient: try makeUnreachableKurrentDBClient(), grantScopePolicy: StaticGrantScopePolicy.none)
 
         let output = try await handler.getRoles(.init())
 
@@ -34,8 +34,7 @@ struct ReadSideServiceUnavailableTests {
     func get_role_holders_returns_503_when_kurrentdb_is_unreachable() async throws {
         let handler = EmployeeAccessAggregate.ApiHandler(
             kdbClient: try makeUnreachableKurrentDBClient(),
-            roleDirectory: FakeRoleDirectory()
-        )
+            roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none)
 
         let output = try await handler.getRoleHolders(.init(query: .init(role: "any-role")))
 
@@ -50,8 +49,7 @@ struct ReadSideServiceUnavailableTests {
     func get_permission_holders_returns_503_when_kurrentdb_is_unreachable() async throws {
         let handler = EmployeeAccessAggregate.ApiHandler(
             kdbClient: try makeUnreachableKurrentDBClient(),
-            roleDirectory: FakeRoleDirectory()
-        )
+            roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none)
 
         let output = try await handler.getPermissionHolders(.init(query: .init(permission: "Nope.Not.Real")))
 
@@ -66,8 +64,7 @@ struct ReadSideServiceUnavailableTests {
     func check_permission_holders_returns_503_when_kurrentdb_is_unreachable() async throws {
         let handler = EmployeeAccessAggregate.ApiHandler(
             kdbClient: try makeUnreachableKurrentDBClient(),
-            roleDirectory: FakeRoleDirectory()
-        )
+            roleDirectory: FakeRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none)
 
         // userIds 非空才會讀員工 stream（空清單直接回 200，不碰 KDB）。
         let output = try await handler.checkPermissionHolders(.init(
@@ -91,8 +88,7 @@ struct ReadSideServiceUnavailableTests {
     func get_permission_holders_returns_503_when_role_directory_throws() async throws {
         let handler = EmployeeAccessAggregate.ApiHandler(
             kdbClient: makeTestKurrentDBClient(),
-            roleDirectory: ThrowingRoleDirectory()
-        )
+            roleDirectory: ThrowingRoleDirectory(), grantScopePolicy: StaticGrantScopePolicy.none)
         // 唯一的權限字串：其 IAM_GetPermissionHolders-<permission> stream 必不存在。
         let permission = "Nope.NoSuchPermission.\(UUID().uuidString)"
 

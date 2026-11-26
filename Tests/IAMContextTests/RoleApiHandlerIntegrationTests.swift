@@ -28,11 +28,10 @@ struct RoleApiHandlerIntegrationTests {
     let employeeAccessRepository: EmployeeAccessRepository
 
     init() {
-        self.roleApi = RoleAggregate.ApiHandler(kdbClient: kdbClient)
+        self.roleApi = RoleAggregate.ApiHandler(kdbClient: kdbClient, grantScopePolicy: StaticGrantScopePolicy.none)
         self.employeeAccessApi = EmployeeAccessAggregate.ApiHandler(
             kdbClient: kdbClient,
-            roleDirectory: RoleAggregateDirectory(kdbClient: kdbClient)
-        )
+            roleDirectory: RoleAggregateDirectory(kdbClient: kdbClient), grantScopePolicy: StaticGrantScopePolicy.none)
         self.employeeAccessRepository = EmployeeAccessRepository(
             coordinator: .init(client: kdbClient, eventMapper: EmployeeAccessAggregateEventMapper())
         )

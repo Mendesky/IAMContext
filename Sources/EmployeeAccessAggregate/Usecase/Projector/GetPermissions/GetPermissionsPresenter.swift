@@ -37,6 +37,13 @@ package struct GetPermissionsPresenter: GetPermissionsProjectorProtocol {
         readModel.permissions = permissions
     }
 
+    package func when(readModel: inout ReadModelType, event: PrivilegeScopeChanged) throws {
+        // no-op：這個 read model 不追蹤範圍（範圍以 PermissionTimeline 重播為準）。一定要有這個 when：
+        // 改範圍事件會被 IAM_GetPermissions 投影連進同一條 stream，沒列名會中止整段重播（後面的調部門就套不上）。
+        _ = readModel
+        _ = event
+    }
+
     package func when(readModel: inout ReadModelType, event: PrivilegeRevoked) throws {
         // hand-fill (human-authorized 2026-06-03): 差集移除被撤銷的權限。
         readModel.permissions = (readModel.permissions ?? []).filter { !event.permissions.contains($0) }

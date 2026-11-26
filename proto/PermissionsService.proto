@@ -5,6 +5,10 @@ package IAMContext;
 
 service PermissionsService {
   rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse);
+  // 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
+  // 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
+  // 尚未建檔回空清單（同 GetPermissions）。
+  rpc GetPermissionGrantScopes (GetPermissionGrantScopesRequest) returns (GetPermissionGrantScopesResponse);
 }
 
 message GetPermissionsRequest {
@@ -13,4 +17,33 @@ message GetPermissionsRequest {
 
 message GetPermissionsResponse {
   repeated string permissions = 1;
+}
+
+message GetPermissionGrantScopesRequest {
+  string user_id = 1;
+}
+
+message GetPermissionGrantScopesResponse {
+  repeated PermissionGrantScopes permissions = 1;
+}
+
+message PermissionGrantScopes {
+  string permission = 1;
+  repeated GrantScope grant_scopes = 2;
+}
+
+// 一項授權範圍。kind：company、firms、departments、ownFirm、ownDepartment（字串，日後可能新增）。
+message GrantScope {
+  string kind = 1;
+  // kind == firms：所統編清單。
+  repeated string firms = 2;
+  // kind == departments：組清單。
+  repeated GrantScopeDepartment departments = 3;
+}
+
+message GrantScopeDepartment {
+  // 所統編
+  string firm = 1;
+  // 組名（同一所內唯一）
+  string department = 2;
 }

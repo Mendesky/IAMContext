@@ -8,6 +8,8 @@ package enum RoleError: Error, Equatable {
     case descriptionUnchanged
     case permissionsUnchanged
     case invalidPermission
+    // Added 2026-11-26（權限帶範圍，docs/discussions/2026-11-25-scoped-permission-grant.md D13）：角色不能帶範圍，所以不能放範圍化的權限。
+    case scopedPermissionNotAllowed
 }
 
 extension ContextError where ErrorType == RoleError {
@@ -28,5 +30,8 @@ extension ContextError where ErrorType == RoleError {
     }
     static func invalidPermission(function: String = #function, message: String = "") -> Self {
         .init(error: .invalidPermission, in: .class(Role.self, function: function), message: message)
+    }
+    static func scopedPermissionNotAllowed(function: String = #function, message: String = "") -> Self {
+        .init(error: .scopedPermissionNotAllowed, in: .class(Role.self, function: function), message: message)
     }
 }

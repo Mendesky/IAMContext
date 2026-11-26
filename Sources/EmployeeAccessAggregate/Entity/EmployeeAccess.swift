@@ -15,6 +15,9 @@ package class EmployeeAccess: EmployeeAccessAggregateProtocol {
     package var firm: String?
     package var jobTitle: String?
     package var status: EmployeeStatus?
+    /// 範圍化權限的授權範圍（權限 → 正規化後的範圍清單）。只有直接授予、而且授予時帶了範圍的權限才有。
+    /// 用途：改範圍時判斷「新範圍跟現在一樣」。讀取端的範圍以 PermissionTimeline 重播為準，不讀這裡。
+    package var grantScopes: [String: [GrantScope]] = [:]
 
     package static var category: String {
         // NOTE: prefix 必須是 "IAM"（IAMContext → IAM），與 projection 的 $ce-IAMEmployeeAccess 及 presenter

@@ -224,8 +224,7 @@ struct CheckPermissionHoldersIntegrationTests {
 
             let handler = EmployeeAccessAggregate.ApiHandler(
                 kdbClient: kdbClient,
-                roleDirectory: directory,
-                debugOverridePermissions: Array(PermissionCatalog.allRawValues).sorted()
+                roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none, debugOverridePermissions: Array(PermissionCatalog.allRawValues).sorted()
             )
 
             // 前提確認：debug 確實開著——沒被授予的人 getPermissions 也拿得到該權限。
@@ -251,7 +250,7 @@ struct CheckPermissionHoldersIntegrationTests {
     // permission 為空字串／空白（含全形空白）→ 422 invalidPayload（不查 KDB）
     @Test(arguments: ["", "   ", "\u{3000}", "\n"])
     func handler_rejects_blank_permission_with_422(permission: String) async throws {
-        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
 
         let output = try await handler.checkPermissionHolders(.init(
             headers: .init(operatorId: "operator"),
@@ -267,7 +266,7 @@ struct CheckPermissionHoldersIntegrationTests {
 
     // 空 userIds → 200 { holders: [] }
     @Test func handler_returns_200_with_empty_holders_for_empty_userIds() async throws {
-        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory)
+        let handler = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none)
 
         let output = try await handler.checkPermissionHolders(.init(
             headers: .init(operatorId: "operator"),
@@ -290,7 +289,7 @@ struct CheckPermissionHoldersIntegrationTests {
             operatorId: operatorId
         ))
         if !permissions.isEmpty {
-            _ = try await AddPermissionsService(repository: roleRepository).execute(input: .init(
+            _ = try await AddPermissionsService(repository: roleRepository, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 roleId: output.roleId, permissions: permissions, operatorId: operatorId
             ))
         }
@@ -303,7 +302,7 @@ struct CheckPermissionHoldersIntegrationTests {
         let userId = await bundle.generateId(for: "userId")
         try await seedActiveProfile(employeeAccessId: employeeAccessId, userId: userId, operatorId: operatorId, repository: repository)
         if !roles.isEmpty {
-            _ = try await AssignRolesService(repository: repository, roleDirectory: directory).execute(input: .init(
+            _ = try await AssignRolesService(repository: repository, roleDirectory: directory, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
                 employeeAccessId: employeeAccessId, userId: userId, roles: roles, operatorId: operatorId
             ))
         }
@@ -311,7 +310,7 @@ struct CheckPermissionHoldersIntegrationTests {
     }
 
     private func grant(employeeAccessId: String, userId: String, permissions: [String], operatorId: String) async throws {
-        _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline).execute(input: .init(
+        _ = try await GrantPrivilegeService(repository: repository, effectivePermissionsReader: timeline, grantScopePolicy: StaticGrantScopePolicy.none).execute(input: .init(
             employeeAccessId: employeeAccessId, userId: userId, permissions: permissions, operatorId: operatorId
         ))
     }

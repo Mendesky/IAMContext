@@ -64,9 +64,14 @@ package struct PermissionTimelineService: EffectivePermissionsReader {
     }
 
     package func effectivePermissions(employeeAccessId: String) async throws -> Set<String> {
+        try await effectiveAccess(employeeAccessId: employeeAccessId).permissions
+    }
+
+    /// 以員工原始 stream（強一致、不經 projection）重播出的有效權限與授權範圍。stream 不存在回空結果。
+    package func effectiveAccess(employeeAccessId: String) async throws -> EffectiveAccess {
         let streamName = EmployeeAccess.getStreamName(id: employeeAccessId)
-        guard let entries = try await readEmployeeEntries(streamName: streamName, resolveLinks: false) else { return [] }
-        return try await replayAll([employeeAccessId: entries])[employeeAccessId] ?? []
+        guard let entries = try await readEmployeeEntries(streamName: streamName, resolveLinks: false) else { return .init(permissions: []) }
+        return try await replayAllAccess([employeeAccessId: entries])[employeeAccessId] ?? .init(permissions: [])
     }
 
     package func candidateUserIds(permission: String) async throws -> [String] {
@@ -96,18 +101,29 @@ package struct PermissionTimelineService: EffectivePermissionsReader {
         return granted + viaRoles.subtracting(granted).sorted()
     }
 
+    /// 這個人持有的範圍化權限與各自的授權範圍（範圍原樣，含不認得的種類）。stream 不存在回 nil。
+    /// 跟 `effectivePermissions(userId:)` 讀同一條 stream、同一套重播規則。
+    package func effectiveGrantScopes(userId: String) async throws -> [String: [GrantScope]]? {
+        guard let entries = try await readEmployeeEntries(userId: userId) else { return nil }
+        return try await replayAllAccess([userId: entries])[userId]?.grantScopes
+    }
+
     private func replayAll(_ employeeEntries: [String: [TimelineEntry]]) async throws -> [String: Set<String>] {
+        try await replayAllAccess(employeeEntries).mapValues(\.permissions)
+    }
+
+    private func replayAllAccess(_ employeeEntries: [String: [TimelineEntry]]) async throws -> [String: EffectiveAccess] {
         let mentioned = employeeEntries.mapValues { PermissionTimeline.mentionedRoleIds(in: $0) }
         let allRoleIds = mentioned.values.reduce(into: Set<String>()) { $0.formUnion($1) }
         var roleEntries: [TimelineEntry] = []
         if !allRoleIds.isEmpty {
             roleEntries = try await roleDirectory.history(ofRoles: allRoleIds)
         }
-        var result: [String: Set<String>] = [:]
+        var result: [String: EffectiveAccess] = [:]
         for (key, entries) in employeeEntries {
             let mine = mentioned[key] ?? []
             let relevant = roleEntries.filter { entry in entry.event.roleId.map { mine.contains($0) } ?? false }
-            result[key] = PermissionTimeline.replay(entries + relevant)
+            result[key] = PermissionTimeline.replayAccess(entries + relevant)
         }
         return result
     }
@@ -141,7 +157,9 @@ package struct PermissionTimelineService: EffectivePermissionsReader {
                 case let created as UserAccessProfileCreated:
                     entries.append(.init(position: position, event: .profileCreated(permissions: created.permissions, roles: created.roles)))
                 case let granted as PrivilegeGranted:
-                    entries.append(.init(position: position, event: .privilegeGranted(permissions: Set(granted.permissions))))
+                    entries.append(.init(position: position, event: .privilegeGranted(permissions: Set(granted.permissions), grantScopes: granted.grantScopes ?? [:])))
+                case let changed as PrivilegeScopeChanged:
+                    entries.append(.init(position: position, event: .privilegeScopeChanged(permission: changed.permission, grantScopes: changed.grantScopes)))
                 case let revoked as PrivilegeRevoked:
                     entries.append(.init(position: position, event: .privilegeRevoked(permissions: Set(revoked.permissions))))
                 case let assigned as RolesAssigned:

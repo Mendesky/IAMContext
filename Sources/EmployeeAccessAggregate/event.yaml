@@ -6,6 +6,22 @@ PrivilegeGranted:
   properties:
     userId: "String"
     permissions: "[String]"
+    # 範圍化權限的授權範圍（權限 → 範圍清單）。只有範圍化的權限會出現在裡面。
+    # 一定要是 Optional：舊事件沒有這個 key 才解得開；舊版 IAM 讀新事件時會略過這個欄位。
+    grantScopes: "[String: [GrantScope]]?"
+
+# 改一個範圍化權限的授權範圍（整組換掉）。2026-11-26 設計文件 D12：用自己的事件型別如實記下「改範圍」，
+# 不用「撤銷＋授予」（那會記一筆實際沒發生的撤銷，且投影逐筆連結時中間可能查不到權限）。
+# ⚠️ 新事件型別：舊版 IAM（1.8.0）讀到會 fail-closed（那個人的查權限整個失敗）。上線後先不要改範圍，
+# 等新版穩定、確定不退版再開始用；IAM_GetPermissions 投影要加這個型別（只更新查詢、不重建）。
+PrivilegeScopeChanged:
+  kind: domainEvent
+  aggregateRootId:
+    alias: employeeAccessId
+  properties:
+    userId: "String"
+    permission: "String"
+    grantScopes: "[GrantScope]"
 
 PrivilegeRevoked:
   kind: domainEvent
