@@ -51,8 +51,9 @@ package enum GrantScopeRules {
 
     /// 一項範圍的內容檢查與正規化。
     /// - 全公司、本人的所、本人的組：不能帶清單。
-    /// - 指定所：至少一個所統編、不能空白；去重、排序。
-    /// - 指定組：至少一組、所統編與組名都不能空白；去重、排序。
+    /// - 指定所：至少一個所、每個都要是統編（8 碼數字）；去重、排序。
+    /// - 指定組：至少一組、所要是統編、組名不能空白；去重、排序。
+    /// 只檢查統編格式，不比對 StaffContext 的所別清單（IAM 不依賴 StaffContext，2026-09-03 決定）。
     static func normalized(_ scope: GrantScope, kind: GrantScopeKind, permission: String) throws -> GrantScope {
         let firms = (scope.firms ?? []).map(trimmed)
         let departments = (scope.departments ?? []).map { GrantScopeDepartment(firm: trimmed($0.firm), department: trimmed($0.department)) }
@@ -66,16 +67,24 @@ package enum GrantScopeRules {
         case .firms:
             guard departments.isEmpty else { throw invalid("must not carry departments") }
             guard !firms.isEmpty else { throw invalid("needs at least one firm") }
-            guard !firms.contains(where: \.isBlank) else { throw invalid("firm must not be blank") }
+            guard firms.allSatisfy(isBusinessId) else { throw invalid("firm must be an 8-digit business id (統編)") }
             return .firms(Array(Set(firms)).sorted())
         case .departments:
             guard firms.isEmpty else { throw invalid("must not carry firms") }
             guard !departments.isEmpty else { throw invalid("needs at least one department") }
-            guard !departments.contains(where: { $0.firm.isBlank || $0.department.isBlank }) else {
-                throw invalid("department needs both firm and department name")
+            guard departments.allSatisfy({ isBusinessId($0.firm) }) else {
+                throw invalid("department firm must be an 8-digit business id (統編)")
+            }
+            guard !departments.contains(where: { $0.department.isBlank }) else {
+                throw invalid("department name must not be blank")
             }
             return .departments(Array(Set(departments)).sorted { ($0.firm, $0.department) < ($1.firm, $1.department) })
         }
+    }
+
+    /// 統編：剛好 8 個半形數字（全形數字、少一碼、所別名稱都不算）。
+    package static func isBusinessId(_ s: String) -> Bool {
+        s.count == 8 && s.unicodeScalars.allSatisfy { ("0"..."9").contains($0) }
     }
 
     private static func trimmed(_ s: String) -> String {

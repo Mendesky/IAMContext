@@ -148,7 +148,7 @@ struct GrantScopeIntegrationTests {
 
     // MARK: - 改範圍
 
-    @Test func change_grant_scope_writes_revoke_and_grant_and_replaces_scopes() async throws {
+    @Test func change_grant_scope_writes_one_scope_changed_event_and_replaces_scopes() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
             let userId = await bundle.generateId(for: "userId")
@@ -163,9 +163,9 @@ struct GrantScopeIntegrationTests {
                                           permission: Self.view, grantScopes: [.firms(["47575385", "82576039"])])
             guard case .ok = output else { Issue.record("expected 200, got \(output)"); return }
 
-            // 不新增事件型別：多兩筆，依序是撤銷、帶新範圍的授予
+            // 改範圍是自己的事件型別，只多一筆（2026-11-26 設計文件 D12）
             let after = try await eventTypes(employeeAccessId: eaId)
-            #expect(Array(after.dropFirst(before.count)) == ["PrivilegeRevoked", "PrivilegeGranted"])
+            #expect(Array(after.dropFirst(before.count)) == ["PrivilegeScopeChanged"])
             let access = try await timeline.effectiveAccess(employeeAccessId: eaId)
             #expect(access.permissions == [Self.view])
             #expect(access.grantScopes == [Self.view: [.firms(["47575385", "82576039"])]])
@@ -191,6 +191,129 @@ struct GrantScopeIntegrationTests {
                                            permission: Self.plain, grantScopes: [.company]), .grantScopeNotApplicable)
             try expect422(try await change(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
                                            permission: Self.view, grantScopes: []), .grantScopeRequired)
+        }
+    }
+
+    // 連續改兩次：aggregate 從改範圍事件重建後狀態正確（相同範圍回 unchanged、不同範圍成功）。
+    @Test func change_grant_scope_twice() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let op = await bundle.generateId(for: "operatorId")
+            try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: op, repository: repository)
+            let sut = handler()
+            _ = try await grant(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                permissions: [Self.view], grantScopes: [Self.view: [.ownDepartment]])
+            guard case .ok = try await change(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                              permission: Self.view, grantScopes: [.ownFirm]) else { Issue.record("first change failed"); return }
+            try expect422(try await change(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                           permission: Self.view, grantScopes: [.ownFirm]), .grantScopeUnchanged)
+            guard case .ok = try await change(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                              permission: Self.view, grantScopes: [.company]) else { Issue.record("second change failed"); return }
+            #expect(try #require(try await repository.find(byId: eaId)).grantScopes == [Self.view: [.company]])
+            #expect(try await timeline.effectiveAccess(employeeAccessId: eaId).grantScopes == [Self.view: [.company]])
+        }
+    }
+
+    // 只經角色持有（不是直接授予）：不能改範圍。
+    @Test func change_grant_scope_rejects_permission_held_only_via_role() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let op = await bundle.generateId(for: "operatorId")
+            let roleId = await bundle.generateId(for: "roleId")
+            try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: op, repository: repository)
+            let directory = FakeRoleDirectory(resolved: [roleId: [Self.view]])
+            // 權限還沒標成範圍化時就放進角色、指派給他（之後才範圍化）
+            _ = try await handler(policy: .none, directory: directory).assignRoles(.init(
+                path: .init(employeeAccessId: eaId), headers: .init(operatorId: op),
+                body: .json(.init(userId: userId, roles: [roleId]))
+            ))
+            #expect(try await PermissionTimelineService(kdbClient: kdbClient, roleDirectory: directory)
+                .effectiveAccess(employeeAccessId: eaId).permissions.contains(Self.view))
+            try expect422(try await change(handler(directory: directory), employeeAccessId: eaId, userId: userId, operatorId: op,
+                                           permission: Self.view, grantScopes: [.ownDepartment]), .permissionNotExist)
+        }
+    }
+
+    // 直接授予後，因撤銷含它的角色而失效（撤銷不論來源）：改範圍會等於重新授權，所以拒絕。
+    @Test func change_grant_scope_rejects_lapsed_direct_grant() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let op = await bundle.generateId(for: "operatorId")
+            let roleId = await bundle.generateId(for: "roleId")
+            try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: op, repository: repository)
+            let directory = FakeRoleDirectory(resolved: [roleId: [Self.view]])
+            _ = try await grant(handler(directory: directory), employeeAccessId: eaId, userId: userId, operatorId: op,
+                                permissions: [Self.view], grantScopes: [Self.view: [.ownDepartment]])
+            _ = try await handler(policy: .none, directory: directory).assignRoles(.init(
+                path: .init(employeeAccessId: eaId), headers: .init(operatorId: op),
+                body: .json(.init(userId: userId, roles: [roleId]))
+            ))
+            _ = try await handler(policy: .none, directory: directory).revokeRoles(.init(
+                path: .init(employeeAccessId: eaId), headers: .init(operatorId: op),
+                body: .json(.init(userId: userId, roles: [roleId]))
+            ))
+            #expect(try await PermissionTimelineService(kdbClient: kdbClient, roleDirectory: directory)
+                .effectiveAccess(employeeAccessId: eaId).permissions.contains(Self.view) == false)
+            try expect422(try await change(handler(directory: directory), employeeAccessId: eaId, userId: userId, operatorId: op,
+                                           permission: Self.view, grantScopes: [.company]), .permissionNotExist)
+        }
+    }
+
+    // 錯誤優先順序：已持有的權限再授予（就算範圍不合法）回 permissionAlreadyExists。
+    @Test func grant_already_held_takes_precedence_over_scope_errors() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let op = await bundle.generateId(for: "operatorId")
+            try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: op, repository: repository)
+            let sut = handler()
+            _ = try await grant(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                permissions: [Self.view], grantScopes: [Self.view: [.company]])
+            try expect422(try await grant(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                          permissions: [Self.view], grantScopes: [Self.view: [.firms(["台中所"])]]), .permissionAlreadyExists)
+        }
+    }
+
+    // 改範圍之後，既有查詢（getPermissions、permission-holder-check、依部門過濾的 permission-holders）結果不變，
+    // 而且讀取模型沒有因為改範圍事件中止重播（之後的調部門照樣套上）。需要 IAM_GetPermissions projection。
+    @Test func existing_queries_unchanged_after_scope_change_and_read_model_keeps_replaying() async throws {
+        try await withTestBundle(client: kdbClient) { bundle in
+            let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
+            let userId = await bundle.generateId(for: "userId")
+            let op = await bundle.generateId(for: "operatorId")
+            try await seedActiveProfile(employeeAccessId: eaId, userId: userId, operatorId: op,
+                                        department: "資訊部門", firm: "88183980", repository: repository)
+            let sut = handler()
+            _ = try await grant(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                permissions: [Self.view, Self.plain], grantScopes: [Self.view: [.ownDepartment]])
+            _ = try await change(sut, employeeAccessId: eaId, userId: userId, operatorId: op,
+                                 permission: Self.view, grantScopes: [.firms(["47575385"])])
+            _ = try await TransferDepartmentService(repository: repository).execute(input: .init(
+                employeeAccessId: eaId, userId: userId, newDepartment: "業務部門", newJobTitle: "組長", operatorId: op, newFirm: "47575385"
+            ))
+            try await waitForProjection()
+
+            let permissions = try await sut.getPermissions(.init(path: .init(userId: userId)))
+            guard case .ok(let ok) = permissions else { Issue.record("expected 200, got \(permissions)"); return }
+            #expect(Set(try ok.body.json) == [Self.view, Self.plain])
+
+            let check = try await sut.checkPermissionHolders(.init(
+                headers: .init(operatorId: op),
+                body: .json(.init(permission: Self.view, userIds: [userId]))
+            ))
+            guard case .ok(let checked) = check else { Issue.record("expected 200, got \(check)"); return }
+            #expect(try checked.body.json.holders == [userId])
+
+            let holders = GetPermissionHoldersApplicationService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory())
+            #expect(try await holders.execute(input: .init(permission: Self.view, department: "業務部門")).contains(userId))
+            #expect(!(try await holders.execute(input: .init(permission: Self.view, department: "資訊部門")).contains(userId)))
+
+            let scopes = try await sut.getPermissionGrantScopes(.init(path: .init(userId: userId)))
+            guard case .ok(let scoped) = scopes else { Issue.record("expected 200, got \(scopes)"); return }
+            #expect(try scoped.body.json.first { $0.permission == Self.view }?.grantScopes.map { GrantScope(dto: $0) } == [.firms(["47575385"])])
         }
     }
 
@@ -255,6 +378,23 @@ struct GrantScopeIntegrationTests {
             #expect(GetPermissionGrantScopesApplicationService.listing(access.grantScopes) == [
                 PermissionGrantScopes(permission: Self.view, grantScopes: [.company]),
             ])
+
+            // 走完整的查詢（投影 → HTTP、gRPC）也一樣：不認得的種類略過，不會整筆失敗。
+            try await waitForProjection()
+            let output = try await handler().getPermissionGrantScopes(.init(path: .init(userId: userId)))
+            guard case .ok(let ok) = output else { Issue.record("expected 200, got \(output)"); return }
+            #expect(try ok.body.json.map { $0.grantScopes.map(\.kind) } == [["company"]])
+            let grpc = try await PermissionsService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory()).getPermissionGrantScopes(
+                request: .init(metadata: [:], message: .with { $0.userID = userId }),
+                context: .init(descriptor: .init(fullyQualifiedService: "IAMContext.PermissionsService", method: "GetPermissionGrantScopes"),
+                               remotePeer: "test", localPeer: "test", cancellation: .init())
+            )
+            switch grpc.accepted {
+            case .success(let contents):
+                #expect(contents.message.permissions.map { $0.grantScopes.map(\.kind) } == [["company"]])
+            case .failure(let error):
+                Issue.record("expected success, got gRPC error: \(error)")
+            }
         }
     }
 

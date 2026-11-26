@@ -1,4 +1,5 @@
 import Foundation
+import KurrentDB
 import IAMContextShared
 
 package struct ChangeGrantScopeApplicationServiceInput {
@@ -27,14 +28,16 @@ package struct ChangeGrantScopeApplicationService: ApplicationService {
 
     private let repository: EmployeeAccessRepository
     private let grantScopePolicy: GrantScopePolicy
+    private let effectivePermissionsReader: EffectivePermissionsReader
 
-    package init(repository: EmployeeAccessRepository, grantScopePolicy: GrantScopePolicy) {
+    package init(repository: EmployeeAccessRepository, kdbClient: KurrentDBClient, roleDirectory: RoleDirectory, grantScopePolicy: GrantScopePolicy) {
         self.repository = repository
         self.grantScopePolicy = grantScopePolicy
+        self.effectivePermissionsReader = PermissionTimelineService(kdbClient: kdbClient, roleDirectory: roleDirectory)
     }
 
     package func execute(input: Input) async throws -> Output {
-        let service = ChangeGrantScopeService(repository: repository, grantScopePolicy: grantScopePolicy)
+        let service = ChangeGrantScopeService(repository: repository, grantScopePolicy: grantScopePolicy, effectivePermissionsReader: effectivePermissionsReader)
         _ = try await service.execute(input: .init(
             employeeAccessId: input.employeeAccessId,
             userId: input.userId,

@@ -28,6 +28,8 @@ package enum TimelineEvent: Sendable, Equatable {
     /// `grantScopes`：範圍化權限授予時帶的範圍（2026-11-25 設計文件 D12）；舊事件、不是範圍化的權限沒有。
     case privilegeGranted(permissions: Set<String>, grantScopes: [String: [GrantScope]] = [:])
     case privilegeRevoked(permissions: Set<String>)
+    /// 改範圍（2026-11-26 設計文件 D12）：只換範圍，不改有效權限。
+    case privilegeScopeChanged(permission: String, grantScopes: [GrantScope])
     case rolesAssigned(roleIds: Set<String>)
     case rolesRevoked(roleIds: Set<String>)
     // Role stream
@@ -80,7 +82,7 @@ extension TimelineEvent {
              let .rolePermissionsRemoved(roleId, _),
              let .roleDeleted(roleId):
             return roleId
-        case .profileCreated, .privilegeGranted, .privilegeRevoked, .rolesAssigned, .rolesRevoked:
+        case .profileCreated, .privilegeGranted, .privilegeRevoked, .privilegeScopeChanged, .rolesAssigned, .rolesRevoked:
             return nil
         }
     }
@@ -97,7 +99,7 @@ package enum PermissionTimeline {
                 roleIds.formUnion(roles)
             case let .rolesAssigned(ids), let .rolesRevoked(ids):
                 roleIds.formUnion(ids)
-            case .privilegeGranted, .privilegeRevoked,
+            case .privilegeGranted, .privilegeRevoked, .privilegeScopeChanged,
                  .roleCreated, .rolePermissionsAdded, .rolePermissionsRemoved, .roleDeleted:
                 break   // 不列 default：日後新增 case 時編譯器會強迫這裡表態
             }
@@ -115,7 +117,8 @@ package enum PermissionTimeline {
     /// 範圍只來自直接授予（角色不能放範圍化的權限，D13），規則：
     /// - 建檔：範圍清空（建檔是重設起點）。
     /// - 授予 p：帶了範圍就記下（覆蓋），沒帶就清掉。
-    /// - 撤銷 p（不論來源）：範圍一起拿掉。改範圍＝撤銷後帶新範圍授予，結果就是換範圍。
+    /// - 撤銷 p（不論來源）：範圍一起拿掉。
+    /// - 改範圍：p 仍有效時換成新範圍；p 已經不是有效權限時不理（指令會擋，這裡防禦）。
     /// - 最後只保留仍是有效權限的範圍。
     /// 範圍原樣保留（含不認得的種類）；略過不認得的種類是查詢端的事。
     package static func replayAccess(_ entries: [TimelineEntry]) -> EffectiveAccess {
@@ -150,6 +153,10 @@ package enum PermissionTimeline {
                 effective.subtract(permissions)
                 for permission in permissions {
                     scopes[permission] = nil
+                }
+            case let .privilegeScopeChanged(permission, grantScopes):
+                if effective.contains(permission) {
+                    scopes[permission] = grantScopes
                 }
             case let .rolesAssigned(roleIds):
                 held.formUnion(roleIds)

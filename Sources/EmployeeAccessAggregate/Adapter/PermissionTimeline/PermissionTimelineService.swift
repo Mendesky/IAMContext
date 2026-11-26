@@ -158,6 +158,8 @@ package struct PermissionTimelineService: EffectivePermissionsReader {
                     entries.append(.init(position: position, event: .profileCreated(permissions: created.permissions, roles: created.roles)))
                 case let granted as PrivilegeGranted:
                     entries.append(.init(position: position, event: .privilegeGranted(permissions: Set(granted.permissions), grantScopes: granted.grantScopes ?? [:])))
+                case let changed as PrivilegeScopeChanged:
+                    entries.append(.init(position: position, event: .privilegeScopeChanged(permission: changed.permission, grantScopes: changed.grantScopes)))
                 case let revoked as PrivilegeRevoked:
                     entries.append(.init(position: position, event: .privilegeRevoked(permissions: Set(revoked.permissions))))
                 case let assigned as RolesAssigned:

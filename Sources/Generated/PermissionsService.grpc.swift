@@ -96,7 +96,7 @@ extension IAMContext_PermissionsService {
         /// > Source IDL Documentation:
         /// >
         /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
         /// > 尚未建檔回空清單（同 GetPermissions）。
         ///
         /// - Parameters:
@@ -139,7 +139,7 @@ extension IAMContext_PermissionsService {
         /// > Source IDL Documentation:
         /// >
         /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
         /// > 尚未建檔回空清單（同 GetPermissions）。
         ///
         /// - Parameters:
@@ -180,7 +180,7 @@ extension IAMContext_PermissionsService {
         /// > Source IDL Documentation:
         /// >
         /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
         /// > 尚未建檔回空清單（同 GetPermissions）。
         ///
         /// - Parameters:
@@ -315,7 +315,7 @@ extension IAMContext_PermissionsService {
         /// > Source IDL Documentation:
         /// >
         /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
         /// > 尚未建檔回空清單（同 GetPermissions）。
         ///
         /// - Parameters:
@@ -387,7 +387,7 @@ extension IAMContext_PermissionsService {
         /// > Source IDL Documentation:
         /// >
         /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+        /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
         /// > 尚未建檔回空清單（同 GetPermissions）。
         ///
         /// - Parameters:
@@ -453,7 +453,7 @@ extension IAMContext_PermissionsService.ClientProtocol {
     /// > Source IDL Documentation:
     /// >
     /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
     /// > 尚未建檔回空清單（同 GetPermissions）。
     ///
     /// - Parameters:
@@ -517,7 +517,7 @@ extension IAMContext_PermissionsService.ClientProtocol {
     /// > Source IDL Documentation:
     /// >
     /// > 這個人持有的範圍化權限與各自的授權範圍（docs/discussions/2026-11-25-scoped-permission-grant.md D14）。
-    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。own_firm／own_department 原樣回標記，由呼叫端用名冊解析。
+    /// > 只列有範圍的權限；不認得的範圍種類略過那一項。kind 為 ownFirm／ownDepartment 時原樣回標記，由呼叫端用名冊解析。
     /// > 尚未建檔回空清單（同 GetPermissions）。
     ///
     /// - Parameters:

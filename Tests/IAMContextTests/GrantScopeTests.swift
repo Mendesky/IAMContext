@@ -72,6 +72,11 @@ private func decodeScope(_ json: String) throws -> GrantScope {
         GrantScope(kind: "teams"),                                                  // 不認得的種類（寫入端嚴格）
         .firms([]),                                                                 // 指定所是空的
         .firms(["  "]),                                                             // 所統編空白
+        .firms(["台中所"]),                                                          // 所別名稱不是統編
+        .firms(["4757538"]),                                                        // 少一碼
+        .firms(["475753851"]),                                                      // 多一碼
+        .firms(["４７５７５３８５"]),                                                  // 全形數字
+        .departments([.init(firm: "台中所", department: "審1")]),                    // 指定組的所不是統編
         GrantScope(kind: "firms", firms: ["47575385"], departments: [.init(firm: "47575385", department: "審1")]),
         .departments([]),                                                           // 指定組是空的
         .departments([.init(firm: "47575385", department: " ")]),                   // 組名空白
@@ -122,6 +127,14 @@ private func decodeScope(_ json: String) throws -> GrantScope {
     }
 }
 
+// 第一個範圍化的權限：管理者看板（OC 權限清單逐字複製進來）。五種範圍都允許。
+@Test func managerDashboard_permission_is_scoped_with_all_kinds() {
+    let permission = "OpportunityContext.ManagerDashboard.ViewQuotingCases"
+    #expect(PermissionCatalog.allRawValues.contains(permission))
+    #expect(Set(PermissionCatalog.grantScopeKinds[permission] ?? []) == Set(GrantScopeKind.allCases.map(\.rawValue)))
+    #expect(StaticGrantScopePolicy(catalog: PermissionCatalog.grantScopeKinds).allowedKinds(for: [permission]) == [permission: Set(GrantScopeKind.allCases)])
+}
+
 // MARK: - 重播（PermissionTimeline.replayAccess）
 
 private func entry(_ commit: UInt64, _ event: TimelineEvent) -> TimelineEntry {
@@ -156,6 +169,26 @@ private func entry(_ commit: UInt64, _ event: TimelineEvent) -> TimelineEntry {
     ])
     #expect(access.permissions == ["p"])
     #expect(access.grantScopes == ["p": [.firms(["47575385", "82576039"])]])
+}
+
+// 改範圍事件：權限有效時換範圍、不改有效權限；權限已不是有效權限時不理。
+@Test func replay_scope_changed_event_replaces_scopes_only_for_effective_permission() {
+    let changed = PermissionTimeline.replayAccess([
+        entry(1, .profileCreated(permissions: [], roles: [])),
+        entry(2, .privilegeGranted(permissions: ["p"], grantScopes: ["p": [.ownDepartment]])),
+        entry(3, .privilegeScopeChanged(permission: "p", grantScopes: [.firms(["47575385"])])),
+    ])
+    #expect(changed.permissions == ["p"])
+    #expect(changed.grantScopes == ["p": [.firms(["47575385"])]])
+
+    let notHeld = PermissionTimeline.replayAccess([
+        entry(1, .profileCreated(permissions: [], roles: [])),
+        entry(2, .privilegeGranted(permissions: ["p"], grantScopes: ["p": [.ownDepartment]])),
+        entry(3, .privilegeRevoked(permissions: ["p"])),
+        entry(4, .privilegeScopeChanged(permission: "p", grantScopes: [.company])),
+    ])
+    #expect(notHeld.permissions.isEmpty)
+    #expect(notHeld.grantScopes.isEmpty)
 }
 
 // 舊事件（沒有 grantScopes）：權限照常有效，但沒有範圍。

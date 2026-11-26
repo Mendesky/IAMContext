@@ -5,6 +5,7 @@ fromStreams(["$ce-IAMEmployeeAccess"])
     },
     PrivilegeGranted: handleEvent,
     PrivilegeRevoked: handleEvent,
+    PrivilegeScopeChanged: handleEvent,
     RolesAssigned: handleEvent,
     RolesRevoked: handleEvent,
     UserPromoted: handleEvent,

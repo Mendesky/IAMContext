@@ -84,7 +84,7 @@ package struct ApiHandler: APIProtocol {
             operatorId: operatorId
         )
 
-        let service = ChangeGrantScopeApplicationService(repository: repository, grantScopePolicy: grantScopePolicy)
+        let service = ChangeGrantScopeApplicationService(repository: repository, kdbClient: kdbClient, roleDirectory: roleDirectory, grantScopePolicy: grantScopePolicy)
         do {
             let output = try await service.execute(input: asInput)
             return .ok(.init(body: .json(.init(employeeAccessId: output.employeeAccessId))))
