@@ -1,6 +1,14 @@
 context: NotificationContext
 serverPrefix: /notification-context
+
+# The admin API's permissions (/notification-context/admin/*, NotificationContext 1.8.0+). This file is the source;
+# IAMContext's catalog (Sources/IAMPermissionCatalog/NotificationContext.permissions.yaml) must hold a byte-identical copy
+# before these can be granted. Every admin route needs its permission in AdminPermissions.routes
+# (AdminPermissionsTests.everyAdminOperationHasARule and catalogMatchesTheRouteTable lock this).
+# Only signed-in users (at+jwt) are checked against these. The service, source and application tokens never reach IAM:
+# they keep their own fixed scope (definition hosting routes, and the send route for application tokens).
 permissions:
+  # Mail Cc rules (/admin/mail-cc-rules). Names kept from NotificationContext 1.3.0, so grants made then still hold.
   - slot: MailCcRule
     operationId: listMailCcRules
     description: 查詢通知信 Cc 規則
@@ -16,3 +24,31 @@ permissions:
   - slot: MailCcRule
     operationId: deleteMailCcRule
     description: 刪除通知信 Cc 規則
+  # Delivery console (/admin/delivery and its WebSocket).
+  - slot: Delivery
+    operationId: viewDeliveries
+    description: 查看通知發送監控：發送清單、單筆明細（含信件內容與收件人）、統計、健康狀態，以及即時更新的 WebSocket
+  - slot: Delivery
+    operationId: operateDeliveries
+    description: 操作通知發送：重送、放棄單一通道，或批次重送（重送已送達的信會再寄一次）
+  # Notification definitions and their templates (/admin/definitions, and the source reads they are edited from).
+  - slot: Definition
+    operationId: viewDefinitions
+    description: 查看通知定義與文案：來源與其事件、信件版型、定義、各通道文案與歷史，以及文案預覽與事件包格式檢查
+  - slot: Definition
+    operationId: editDefinitions
+    description: 修改通知定義與文案：發布定義、停用或啟用定義、發布或清除通道文案、停用或啟用通道；寫入後會自動重新展開重試期間內待處理與失敗的事件包，補寄先前沒寄出的通知
+  - slot: Definition
+    operationId: removeDefinition
+    description: 移除通知定義（不能復原）；移除後會自動重新展開這個來源重試期間內失敗的事件包
+  # Sources (/admin/sources/{source}).
+  - slot: Source
+    operationId: registerSource
+    description: 註冊或更新通知來源（capability catalog）；另需「修改通知定義與文案」，因為註冊會建立目錄裡的通知定義（建立即啟用）、發布預設文案，並自動重新展開這個來源待處理與失敗的事件包
+  # Fact bundles (/admin/fact-bundles).
+  - slot: FactBundle
+    operationId: viewFactBundles
+    description: 查看事件包：需要處理的（待處理、失敗）和已展開的
+  - slot: FactBundle
+    operationId: expandFactBundle
+    description: 重新展開事件包（可能重送通知）
