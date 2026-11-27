@@ -15,12 +15,16 @@ concurrency:
 jobs:
   # tag push 事件不帶 branch 資訊 → guard 判斷要不要 release（scripts/release-tag-guard.sh）：
   # tag 名稱要是版本號，tag 的 commit 要在 main 或某個 release/ 分支（release/ 底下任何名稱）的歷史上。
+  # 不是版本號的 tag 跳過（不 build、不 push、不 red-X）；版本號 tag 不在這些分支上則 job 失敗。
   # release/ 分支給「從舊版開出來、只帶少數改動」的暫訂版用；這種分支上要有這個版本的 workflow 和 guard，
-  # 因為 tag 觸發時跑的是 tag 那個 commit 上的檔案。其他 tag 一律跳過（不 build、不 push、不 red-X）。
+  # 因為 tag 觸發時跑的是 tag 那個 commit 上的檔案（更早的 commit 上的 tag 跑的仍是舊 workflow，會推 latest）。
   # guard 是發版流程的檢查，不是安全邊界（見腳本開頭）。
   guard:
     name: Verify tag is a version on main or a release/ branch
     runs-on: [self-hosted]
+    timeout-minutes: 10
+    permissions:
+      contents: read
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
     steps:
@@ -82,6 +86,20 @@ jobs:
             type=ref,event=tag
           flavor: |
             latest=false
+
+      # 推之前確認要推的 image tag 只有 tag 名稱這一個（metadata-action 的設定或版本變了也不會偷偷推 latest）。
+      - name: Check image tags
+        shell: bash
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          WANT: ${{ env.IMAGE }}:${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          got="$(printf '%s\n' "$TAGS" | sed '/^[[:space:]]*$/d')"
+          if [ "$got" != "$WANT" ]; then
+            echo "::error::要推的 image tag 應該只有 ${WANT}，實際是：${got}" >&2
+            exit 1
+          fi
 
       - name: Build and push
         uses: docker/build-push-action@v6
