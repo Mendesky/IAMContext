@@ -103,6 +103,16 @@ rule "both checkouts pinned to github.sha"    "$(count '^ +ref: \$\{\{ github.sh
 rule "build needs allowed"                    "$(count "needs.guard.outputs.allowed == 'true'")" 1
 rule "latest=false"                           "$(count '^ +latest=false$')" 1
 rule "no other latest"                        "$(count 'latest' | tr -d ' ')" 1
+# 自架 runner 共用家目錄：每個 job 用自己的 DOCKER_CONFIG、build 和 cache 匯出都指定這個 job 的 builder、不 --use；
+# cache 只用本機目錄（不靠 GitHub cache 服務），匯出失敗不擋 release。
+rule "isolated DOCKER_CONFIG"                 "$(count '^ +echo "DOCKER_CONFIG=\$cfg" >> "\$GITHUB_ENV"$')" 1
+rule "builder pinned on both builds"          "$(count '^ +builder: \$\{\{ steps\.buildx\.outputs\.name \}\}$')" 2
+rule "setup-buildx does not --use"            "$(count '^ +use: false$')" 1
+rule "no GitHub Actions cache"                "$(count 'type=gha')" 0
+export_block=$(awk '/^ +- name: Export build cache$/{f=1;print;next} f&&/^ +- name:/{exit} f' "$code")
+rule "cache export cannot fail the release"   "$(printf '%s\n' "$export_block" | grep -cE '^ +continue-on-error: true$' || true)" 1
+iso=$(grep -nE '^ +- name: Isolate docker config$' "$code" | cut -d: -f1); login=$(grep -nE '^ +- name: Login to Artifact Registry$' "$code" | cut -d: -f1)
+rule "docker config isolated before login"    "$([ -n "$iso" ] && [ -n "$login" ] && [ "$iso" -lt "$login" ] && echo yes || echo no)" yes
 
 echo "fails=$fails"
 [ "$fails" = 0 ]
