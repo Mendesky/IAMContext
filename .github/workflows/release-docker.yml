@@ -93,13 +93,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           WANT: ${{ env.IMAGE }}:${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          got="$(printf '%s\n' "$TAGS" | sed '/^[[:space:]]*$/d')"
-          if [ "$got" != "$WANT" ]; then
-            echo "::error::要推的 image tag 應該只有 ${WANT}，實際是：${got}" >&2
-            exit 1
-          fi
+        run: bash scripts/check-image-tags.sh
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -14,6 +14,8 @@ fails=0
 # 從 hook 或 rebase --exec 裡跑時，外層的 GIT_* 不能漏進來；使用者的全域設定（gpgsign、hooks）也不能。
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+# git 2.32 以前不認 GIT_CONFIG_GLOBAL：HOME 也換成空目錄。
+mkdir -p "$TMP/home"; export HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/home/.config"
 g() { git -c init.defaultBranch=main -c user.email=t@t -c user.name=t -c commit.gpgsign=false "$@"; }
 
 g init -q --bare "$TMP/origin.git"
@@ -54,6 +56,7 @@ expect latest-name   "$MAINONLY" latest         0 allowed=false "不是版本號
 expect v-prefix      "$MAINONLY" v1.2.3         0 allowed=false "不是版本號 tag"
 expect leading-zero  "$MAINONLY" 01.2.3         0 allowed=false "不是版本號 tag"
 expect trailing-dash "$MAINONLY" 1.2.3-         0 allowed=false "不是版本號 tag"
+expect uppercase     "$MAINONLY" 1.2.3-RC1      0 allowed=false "不是版本號 tag"
 expect too-long      "$MAINONLY" "1.2.3-$(printf 'a%.0s' $(seq 1 123))" 0 allowed=false "不是版本號 tag"
 expect max-length    "$MAINONLY" "1.2.3-$(printf 'a%.0s' $(seq 1 122))" 0 allowed=true
 expect missing-sha   1111111111111111111111111111111111111111 1.2.3 1 "" "merge-base rc=128"
@@ -76,12 +79,30 @@ g clone -q "$TMP/origin.git" "$TMP/nofetch" 2>/dev/null
 git -C "$TMP/nofetch" remote set-url origin "$TMP/does-not-exist.git"
 expect fetch-fails   "$MAINONLY" 1.2.3          1 ""           "fetch origin" "$TMP/nofetch"
 
-# release-docker.yml：guard 用這支腳本，build 要 allowed，不推 latest。
-check() { if grep -qE -- "$2" "$WORKFLOW"; then [ "$1" = has ]; else [ "$1" = lacks ]; fi; }
-for rule in "has|run: bash scripts/release-tag-guard.sh" "has|needs.guard.outputs.allowed == 'true'" \
-    "has|latest=false" "lacks|value=latest" "has|ref: \\$\\{\\{ github.sha \\}\\}"; do
-    if check "${rule%%|*}" "${rule#*|}"; then echo "ok   workflow ${rule}"; else echo "FAIL workflow ${rule}"; fails=$((fails + 1)); fi
-done
+# check-image-tags.sh：只有 <IMAGE>:<tag> 一個時才過。
+tags_case() {
+    local name=$1 want_rc=$2 tags=$3 rc=0
+    TAGS="$tags" WANT="img:1.2.3" bash "$ROOT/scripts/check-image-tags.sh" > "$TMP/log.tags.$name" 2>&1 || rc=$?
+    if [ "$rc" = "$want_rc" ]; then echo "ok   image-tags $name (rc=$rc)"; else echo "FAIL image-tags $name: want rc=$want_rc got rc=$rc"; fails=$((fails + 1)); fi
+}
+tags_case exact          0 "img:1.2.3"
+tags_case trailing-blank 0 "$(printf 'img:1.2.3\n\n')"
+tags_case with-latest    1 "$(printf 'img:1.2.3\nimg:latest')"
+tags_case only-latest    1 "img:latest"
+tags_case lowercased     1 "img:1.2.3-rc1"
+tags_case empty          1 ""
+
+# release-docker.yml：guard 用這支腳本、兩個 job 都固定 commit、build 要 allowed、push 前檢查 tag、不推 latest。
+# 註解行不算（不然寫在註解裡的字會讓檢查過關）。
+code="$TMP/workflow.code"; grep -vE '^[[:space:]]*#' "$WORKFLOW" > "$code"
+count() { grep -cE -- "$1" "$code" || true; }
+rule() { if [ "$2" = "$3" ]; then echo "ok   workflow $1"; else echo "FAIL workflow $1: want $3, got $2"; fails=$((fails + 1)); fi; }
+rule "guard runs release-tag-guard.sh"        "$(count '^ +run: bash scripts/release-tag-guard.sh$')" 1
+rule "push checks image tags"                 "$(count '^ +run: bash scripts/check-image-tags.sh$')" 1
+rule "both checkouts pinned to github.sha"    "$(count '^ +ref: \$\{\{ github.sha \}\}')" 2
+rule "build needs allowed"                    "$(count "needs.guard.outputs.allowed == 'true'")" 1
+rule "latest=false"                           "$(count '^ +latest=false$')" 1
+rule "no other latest"                        "$(count 'latest' | tr -d ' ')" 1
 
 echo "fails=$fails"
 [ "$fails" = 0 ]

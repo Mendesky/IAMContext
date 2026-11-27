@@ -5,7 +5,8 @@
 #   GITHUB_SHA=<tag 指向的 commit> GITHUB_REF_NAME=<tag 名稱> GITHUB_OUTPUT=<輸出檔> bash scripts/release-tag-guard.sh
 #
 # 結果：
-#   - tag 名稱不是版本號（1.2.3、1.2.3-beta.0；數字不能有前導零，全長最多 128 字元）：寫 allowed=false，exit 0
+#   - tag 名稱不是版本號（1.2.3、1.2.3-beta.0；主版號三段數字不能有前導零，預發行段只能用小寫英數字、. 和 -，
+#     全長最多 128 字元）：寫 allowed=false，exit 0
 #     （跳過，不 build、不 push、不 red-X；例如名為 latest 的 tag 不會推成 :latest）。
 #   - 版本號 tag，commit 是 origin/main 或任一 origin/release/ 分支（release/ 底下任何名稱，含多層）的 ancestor：
 #     寫 allowed=true，exit 0。
@@ -18,7 +19,7 @@
 #
 # 測試：bash scripts/test-release-tag-guard.sh（拋棄式 bare repo，不連網路）。
 set -euo pipefail
-export LC_ALL=C                 # 版本號的字元範圍只比 ASCII
+export LC_ALL=C                 # 版本號的字元範圍只比 ASCII（小寫：image tag 和 git tag 一字不差）
 export GIT_NO_REPLACE_OBJECTS=1 # ancestor 判斷不受 workspace 裡殘留的 replace refs 影響
 
 : "${GITHUB_SHA:?GITHUB_SHA is required}"
@@ -37,7 +38,7 @@ fail() {
 }
 
 if [ "${#GITHUB_REF_NAME}" -gt 128 ] ||
-    ! [[ "$GITHUB_REF_NAME" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+    ! [[ "$GITHUB_REF_NAME" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9a-z][0-9a-z.-]*)?$ ]]; then
     echo "allowed=false" >> "$GITHUB_OUTPUT"
     echo "::notice::${GITHUB_REF_NAME} 不是版本號 tag（要像 1.2.3 或 1.2.3-beta.0），跳過 release"
     exit 0
