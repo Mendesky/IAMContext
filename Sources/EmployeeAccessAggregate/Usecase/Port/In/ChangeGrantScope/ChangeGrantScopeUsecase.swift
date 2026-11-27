@@ -22,7 +22,7 @@ extension ChangeGrantScopeUsecase {
                 userId: input.userId,
                 permission: input.permission,
                 grantScopes: input.grantScopes,
-                allowedKinds: grantScopePolicy.allowedKinds(for: [input.permission])[input.permission],
+                rule: grantScopePolicy.rules(for: [input.permission])[input.permission],
                 isEffective: effective.contains(input.permission)
             )
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)

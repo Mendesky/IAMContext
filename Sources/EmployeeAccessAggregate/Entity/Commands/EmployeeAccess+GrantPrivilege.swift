@@ -4,14 +4,14 @@ import IAMContextShared
 extension EmployeeAccess {
     /// - Parameters:
     ///   - grantScopes: 範圍化權限的授權範圍（權限 → 範圍清單）。
-    ///   - allowedKinds: 這次授予的權限裡，範圍化的權限 → 允許的範圍種類（由 usecase 從 `GrantScopePolicy` 查好傳進來）。
+    ///   - grantScopeRules: 這次授予的權限裡，範圍化的權限 → 範圍規則（類型、允許的種類；由 usecase 從 `GrantScopePolicy` 查好傳進來）。
     ///     範圍化的權限一定要帶範圍；不是範圍化的權限不能帶（`GrantScopeRules.validatedGrant`）。
     package func grantPrivilege(
         employeeAccessId: String,
         userId: String,
         permissions: [String],
         grantScopes: [String: [GrantScope]] = [:],
-        allowedKinds: [String: Set<GrantScopeKind>],
+        grantScopeRules: [String: GrantScopeRule],
         lapsedDirectGrants: Set<String> = []
     ) throws {
         // PRECONDITION: permissions cannot be both directly granted and still effective.
@@ -26,7 +26,7 @@ extension EmployeeAccess {
             throw ContextError<EmployeeAccessError>.userIdMismatch(function: #function, message: "request userId does not match this profile's userId")
         }
         // 授權範圍（2026-11-25 設計文件 D7、D10）：範圍化的權限一定要帶合法的範圍，不是範圍化的權限不能帶。
-        let validatedScopes = try GrantScopeRules.validatedGrant(permissions: permissions, grantScopes: grantScopes, allowedKinds: allowedKinds)
+        let validatedScopes = try GrantScopeRules.validatedGrant(permissions: permissions, grantScopes: grantScopes, rules: grantScopeRules)
         let event = PrivilegeGranted(
             employeeAccessId: self.id,
             userId: userId,

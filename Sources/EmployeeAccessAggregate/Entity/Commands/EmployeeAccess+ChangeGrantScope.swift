@@ -9,7 +9,7 @@ extension EmployeeAccess {
     /// 轉換時幫「權限標成範圍化之前就持有、還沒有範圍」的人補範圍，也用這個指令。
     ///
     /// - Parameters:
-    ///   - allowedKinds: 這個權限允許的範圍種類；nil＝不是範圍化的權限（由 usecase 從 `GrantScopePolicy` 查好傳進來）。
+    ///   - rule: 這個權限的範圍規則（類型、允許的種類）；nil＝不是範圍化的權限（由 usecase 從 `GrantScopePolicy` 查好傳進來）。
     ///   - isEffective: 這個權限目前是否有效（由 usecase 用時間軸重播查好傳進來）。直接授予後可能因為撤銷含它的角色而失效
     ///     （撤銷不論來源），那時改範圍等於重新授權，所以拒絕，要用授權。
     package func changeGrantScope(
@@ -17,7 +17,7 @@ extension EmployeeAccess {
         userId: String,
         permission: String,
         grantScopes: [GrantScope],
-        allowedKinds: Set<GrantScopeKind>?,
+        rule: GrantScopeRule?,
         isEffective: Bool
     ) throws {
         // IDENTITY GUARD：同 grantPrivilege，event 的 userId 必須等於本 profile 的 self.userId。
@@ -28,10 +28,10 @@ extension EmployeeAccess {
         guard (self.permissions ?? []).contains(permission), isEffective else {
             throw ContextError<EmployeeAccessError>.permissionNotExist(function: #function, message: "permission \(permission) is not directly granted to user or no longer effective")
         }
-        guard let allowedKinds else {
+        guard let rule else {
             throw ContextError<EmployeeAccessError>.grantScopeNotApplicable(function: #function, message: "permission \(permission) does not take a grant scope")
         }
-        let validated = try GrantScopeRules.validated(grantScopes, allowed: allowedKinds, permission: permission)
+        let validated = try GrantScopeRules.validated(grantScopes, rule: rule, permission: permission)
         guard validated != (self.grantScopes[permission] ?? []) else {
             throw ContextError<EmployeeAccessError>.grantScopeUnchanged(function: #function, message: "grant scope of \(permission) is unchanged")
         }

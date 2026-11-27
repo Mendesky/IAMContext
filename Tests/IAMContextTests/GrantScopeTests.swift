@@ -3,11 +3,12 @@ import Foundation
 import EmployeeAccessAggregate
 import IAMContextShared
 import IAMPermissionCatalog
+@testable import IAMContextServer
 
 // 權限帶範圍的純函式測試（不需要 KurrentDB）：範圍解碼、寫入端檢查、重播、權限清單、事件格式相容。
 // 設計：docs/discussions/2026-11-25-scoped-permission-grant.md。
 
-private let allKinds: Set<GrantScopeKind> = Set(GrantScopeKind.allCases)
+private let organization = OrganizationScope.rule()
 
 private func expectError(_ expected: EmployeeAccessError, _ body: () throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) {
     let error = #expect(throws: ContextError<EmployeeAccessError>.self, sourceLocation: sourceLocation) { try body() }
@@ -20,23 +21,31 @@ private func decodeScope(_ json: String) throws -> GrantScope {
 
 // MARK: - GrantScope 解碼（讀取端寬鬆）
 
-@Test func grantScope_decodes_unknown_kind_without_failing() throws {
-    let scope = try decodeScope(#"{"kind":"teams","teams":["x"]}"#)
-    #expect(scope.kind == "teams")
-    #expect(scope.knownKind == nil)
+@Test func grantScope_decodes_unknown_type_and_kind_without_failing() throws {
+    let scope = try decodeScope(#"{"type":"accountingType","kind":"specified","values":["稅務帳"],"extra":1}"#)
+    #expect(scope == GrantScope(type: "accountingType", kind: "specified", values: ["稅務帳"]))
+    #expect(scope.isComplete)
 }
 
 @Test func grantScope_decodes_malformed_fields_as_absent() throws {
-    let missingKind = try decodeScope(#"{"firms":["01020314"]}"#)
-    #expect(missingKind.knownKind == nil)
-    let wrongType = try decodeScope(#"{"kind":"firms","firms":"01020314"}"#)
-    #expect(wrongType.knownKind == .firms)
-    #expect(wrongType.firms == nil)
+    let wrongValues = try decodeScope(#"{"type":"organization","kind":"firms","values":"01020314"}"#)
+    #expect(wrongValues.values == nil)
+    #expect(wrongValues.isComplete)
+    let missingKind = try decodeScope(#"{"type":"organization","values":["01020314"]}"#)
+    #expect(!missingKind.isComplete)
 }
 
-@Test func grantScope_roundtrips_known_kinds() throws {
-    let scopes: [GrantScope] = [.company, .ownFirm, .ownDepartment, .firms(["47575385"]),
-                                .departments([.init(firm: "47575385", department: "審1")])]
+// 2026-11-27 改格式前（.55 的 1.11.0-beta.0 寫過）的 {kind, firms}：解得開，但沒有類型，讀取端略過。
+@Test func grantScope_decodes_pre_type_format_as_incomplete() throws {
+    let old = try decodeScope(#"{"kind":"firms","firms":["47575385"]}"#)
+    #expect(old.kind == "firms")
+    #expect(old.type.isEmpty)
+    #expect(old.values == nil)
+    #expect(!old.isComplete)
+}
+
+@Test func grantScope_roundtrips() throws {
+    let scopes: [GrantScope] = [.company, .ownFirm, .ownDepartment, .firms(["47575385"]), .departments(["47575385/審1"])]
     let data = try JSONEncoder().encode(scopes)
     #expect(try JSONDecoder().decode([GrantScope].self, from: data) == scopes)
 }
@@ -45,48 +54,61 @@ private func decodeScope(_ json: String) throws -> GrantScope {
 
 @Test func validatedGrant_requires_scope_for_scoped_permission() {
     expectError(.grantScopeRequired) {
-        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: [:], allowedKinds: ["p": allKinds])
+        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: [:], rules: ["p": organization])
     }
     expectError(.grantScopeRequired) {
-        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": []], allowedKinds: ["p": allKinds])
+        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": []], rules: ["p": organization])
     }
 }
 
 @Test func validatedGrant_rejects_scope_on_unscoped_permission_and_extra_keys() {
     expectError(.grantScopeNotApplicable) {
-        _ = try GrantScopeRules.validatedGrant(permissions: ["plain"], grantScopes: ["plain": [.company]], allowedKinds: [:])
+        _ = try GrantScopeRules.validatedGrant(permissions: ["plain"], grantScopes: ["plain": [.company]], rules: [:])
     }
     expectError(.grantScopeNotApplicable) {
-        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [.company], "other": [.company]], allowedKinds: ["p": allKinds])
+        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [.company], "other": [.company]], rules: ["p": organization])
     }
 }
 
 @Test func validatedGrant_rejects_kind_not_allowed() {
     expectError(.grantScopeKindNotAllowed) {
-        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [.company]], allowedKinds: ["p": [.ownDepartment, .departments]])
+        _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [.company]],
+                                               rules: ["p": OrganizationScope.rule(["ownDepartment", "departments"])])
+    }
+}
+
+// 類型要是這個權限的類型：別的類型（包括沒有類型的舊格式）一律拒絕。
+@Test func validatedGrant_rejects_other_type() {
+    for scope in [GrantScope(type: "accountingType", kind: "company"), GrantScope(type: "", kind: "company")] {
+        expectError(.grantScopeKindNotAllowed) {
+            _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [scope]], rules: ["p": organization])
+        }
     }
 }
 
 @Test func validatedGrant_rejects_invalid_scope_content() {
     let cases: [GrantScope] = [
-        GrantScope(kind: "teams"),                                                  // 不認得的種類（寫入端嚴格）
+        GrantScope(type: "organization", kind: "teams"),                          // 類型底下沒有的種類（寫入端嚴格）
         .firms([]),                                                                 // 指定所是空的
+        GrantScope(type: "organization", kind: "firms"),                            // 指定所沒帶值
         .firms(["  "]),                                                             // 所統編空白
         .firms(["台中所"]),                                                          // 所別名稱不是統編
         .firms(["4757538"]),                                                        // 少一碼
         .firms(["475753851"]),                                                      // 多一碼
         .firms(["４７５７５３８５"]),                                                  // 全形數字
-        .departments([.init(firm: "台中所", department: "審1")]),                    // 指定組的所不是統編
-        GrantScope(kind: "firms", firms: ["47575385"], departments: [.init(firm: "47575385", department: "審1")]),
+        .departments(["台中所/審1"]),                                                // 指定組的所不是統編
+        .departments(["47575385"]),                                                 // 指定組沒有組名
+        .departments(["47575385/"]),                                                // 組名空的
+        .departments(["47575385/ 審1"]),                                            // 組名前面有空白
+        .departments(["47575385/　"]),                                              // 組名是全形空白
         .departments([]),                                                           // 指定組是空的
-        .departments([.init(firm: "47575385", department: " ")]),                   // 組名空白
-        .departments([.init(firm: "", department: "審1")]),                         // 所統編空白
-        GrantScope(kind: "company", firms: ["47575385"]),                           // 全公司帶清單
-        GrantScope(kind: "ownDepartment", departments: [.init(firm: "47575385", department: "審1")]),
+        .departments(["/審1"]),                                                     // 所統編空白
+        GrantScope(type: "organization", kind: "company", values: ["47575385"]),   // 全公司帶值
+        GrantScope(type: "organization", kind: "ownDepartment", values: ["47575385/審1"]),
     ]
     for scope in cases {
         expectError(.grantScopeInvalid) {
-            _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [scope]], allowedKinds: ["p": allKinds])
+            _ = try GrantScopeRules.validatedGrant(permissions: ["p"], grantScopes: ["p": [scope]], rules: ["p": organization])
         }
     }
 }
@@ -98,41 +120,77 @@ private func decodeScope(_ json: String) throws -> GrantScope {
             .firms([" 82576039", "47575385", "82576039"]),
             .company,
             .company,
-            .departments([.init(firm: "47575385", department: "審3 "), .init(firm: "47575385", department: "審1")]),
+            .departments(["47575385/審3 ", "47575385/審1"]),
+            GrantScope(type: "organization", kind: "ownFirm", values: []),        // 不帶值的種類給空清單也可以，存成 nil
         ]],
-        allowedKinds: ["p": allKinds]
+        rules: ["p": organization]
     )
     #expect(result.keys.sorted() == ["p"])   // 不是範圍化的權限不出現在結果裡
     #expect(result["p"] == [
         .company,
-        .departments([.init(firm: "47575385", department: "審1"), .init(firm: "47575385", department: "審3")]),
+        .departments(["47575385/審1", "47575385/審3"]),
         .firms(["47575385", "82576039"]),
+        .ownFirm,
     ])
 }
 
-@Test func staticPolicy_from_catalog_ignores_unknown_kind_strings() {
-    let policy = StaticGrantScopePolicy(catalog: ["p": ["company", "teams"], "q": ["ownDepartment"]])
-    #expect(policy.allowedKinds(for: ["p", "q", "plain"]) == ["p": [.company], "q": [.ownDepartment]])
-    #expect(policy.scopedPermissions(in: ["p", "plain"]) == ["p"])
-    #expect(StaticGrantScopePolicy.none.allowedKinds(for: ["p"]).isEmpty)
-}
-
-// 權限清單上寫的 grantScopeKinds 一定都要是認得的種類（打錯字會讓權限少了允許的種類，而且不會報錯）。
-@Test func catalog_grantScopeKinds_are_all_known() {
-    for (permission, kinds) in PermissionCatalog.grantScopeKinds {
-        #expect(!kinds.isEmpty, "\(permission) has empty grantScopeKinds")
-        for kind in kinds {
-            #expect(GrantScopeKind(rawValue: kind) != nil, "\(permission) has unknown grant scope kind \(kind)")
-        }
+// 類型定義是資料：換一個測試用的類型，同一套檢查照樣能用（以後加類型不用改 GrantScopeRules）。
+@Test func validated_works_for_any_type_definition() throws {
+    let accountingType = GrantScopeTypeDefinition(type: "accountingType", unrestrictedKind: "all", kinds: [
+        GrantScopeKindDefinition(kind: "all", takesValues: false),
+        GrantScopeKindDefinition(kind: "specified", takesValues: true, valuePattern: "(tax|finance)"),
+    ])
+    let rule = GrantScopeRule(type: accountingType, allowedKinds: ["all", "specified"])
+    let result = try GrantScopeRules.validated(
+        [GrantScope(type: "accountingType", kind: "specified", values: ["tax", "finance", "tax"])], rule: rule, permission: "p")
+    #expect(result == [GrantScope(type: "accountingType", kind: "specified", values: ["finance", "tax"])])
+    expectError(.grantScopeInvalid) {
+        _ = try GrantScopeRules.validated([GrantScope(type: "accountingType", kind: "specified", values: ["taxes"])], rule: rule, permission: "p")
+    }
+    expectError(.grantScopeKindNotAllowed) {
+        _ = try GrantScopeRules.validated([.company], rule: rule, permission: "p")
     }
 }
 
-// 第一個範圍化的權限：管理者看板（OC 權限清單逐字複製進來）。五種範圍都允許。
-@Test func managerDashboard_permission_is_scoped_with_all_kinds() {
+// MARK: - 權限清單 → 範圍規則
+
+@Test func staticPolicy_from_catalog_ignores_unknown_types_and_kinds() {
+    let policy = StaticGrantScopePolicy(types: [OrganizationScope.type], permissions: [
+        "p": (type: "organization", kinds: ["company", "teams"]),
+        "q": (type: "accountingType", kinds: ["all"]),
+        "r": (type: "organization", kinds: ["ownDepartment"]),
+    ])
+    #expect(policy.rules(for: ["p", "q", "r", "plain"]) == [
+        "p": OrganizationScope.rule(["company"]),
+        "r": OrganizationScope.rule(["ownDepartment"]),
+    ])
+    #expect(policy.scopedPermissions(in: ["p", "plain"]) == ["p"])
+    #expect(StaticGrantScopePolicy.none.rules(for: ["p"]).isEmpty)
+}
+
+// 權限清單的類型定義：組織類型的五個種類、不限範圍是全公司；指定所、指定組帶值。
+@Test func catalog_defines_organization_type() {
+    let type = OrganizationScope.type
+    #expect(Set(type.kinds.keys) == ["company", "firms", "departments", "ownFirm", "ownDepartment"])
+    #expect(type.unrestrictedKind == "company")
+    #expect(type.kinds.values.filter(\.takesValues).map(\.kind).sorted() == ["departments", "firms"])
+}
+
+// 權限清單上每個範圍化的權限，類型與種類都對得上類型定義（build 時 permission-catalog-gen 也會檢查）。
+@Test func catalog_grantScopes_all_resolve() {
+    let rules = GrantScopeCatalog.policy.rulesByPermission
+    #expect(Set(rules.keys) == Set(PermissionCatalog.grantScopes.keys))
+    for (permission, scope) in PermissionCatalog.grantScopes {
+        #expect(rules[permission]?.allowedKinds == Set(scope.kinds), "\(permission) has kinds not in type \(scope.type)")
+    }
+}
+
+// 第一個範圍化的權限：管理者看板（OC 權限清單逐字複製進來）。組織類型、五種範圍都允許。
+@Test func managerDashboard_permission_is_scoped_with_all_organization_kinds() {
     let permission = "OpportunityContext.ManagerDashboard.ViewQuotingCases"
     #expect(PermissionCatalog.allRawValues.contains(permission))
-    #expect(Set(PermissionCatalog.grantScopeKinds[permission] ?? []) == Set(GrantScopeKind.allCases.map(\.rawValue)))
-    #expect(StaticGrantScopePolicy(catalog: PermissionCatalog.grantScopeKinds).allowedKinds(for: [permission]) == [permission: Set(GrantScopeKind.allCases)])
+    #expect(PermissionCatalog.grantScopes[permission]?.type == "organization")
+    #expect(GrantScopeCatalog.policy.rules(for: [permission]) == [permission: OrganizationScope.rule()])
 }
 
 // MARK: - 重播（PermissionTimeline.replayAccess）
@@ -159,7 +217,7 @@ private func entry(_ commit: UInt64, _ event: TimelineEvent) -> TimelineEntry {
     #expect(revoked.grantScopes.isEmpty)
 }
 
-// 改範圍＝撤銷後帶新範圍授予（同一次寫入的兩筆事件）。
+// 撤銷後帶新範圍授予：範圍換成新的。
 @Test func replay_change_scope_replaces_scopes() {
     let access = PermissionTimeline.replayAccess([
         entry(1, .profileCreated(permissions: [], roles: [])),
@@ -232,20 +290,27 @@ private func entry(_ commit: UInt64, _ event: TimelineEvent) -> TimelineEntry {
 
 // MARK: - 查詢的清單（略過不認得的種類）
 
-@Test func listing_skips_unknown_kinds_and_drops_empty_permissions() {
+@Test func listing_skips_incomplete_items_and_drops_empty_permissions() {
     let listing = GetPermissionGrantScopesApplicationService.listing([
-        "b": [GrantScope(kind: "teams"), .company],
-        "a": [GrantScope(kind: "teams")],
+        "b": [GrantScope(type: "", kind: "firms"), .company],
+        "a": [GrantScope(type: "organization", kind: "")],
         "c": [.ownDepartment],
+        "d": [GrantScope(type: "accountingType", kind: "all")],   // 不認得的類型照樣回，由呼叫端略過
     ])
     #expect(listing == [
         PermissionGrantScopes(permission: "b", grantScopes: [.company]),
         PermissionGrantScopes(permission: "c", grantScopes: [.ownDepartment]),
+        PermissionGrantScopes(permission: "d", grantScopes: [GrantScope(type: "accountingType", kind: "all")]),
     ])
 }
 
-@Test func debugOverride_returns_company_for_each_scoped_permission() {
-    #expect(GetPermissionGrantScopesApplicationService.debugOverride(scopedPermissions: ["q", "p", "p"]) == [
+@Test func debugOverride_returns_unrestricted_kind_for_each_scoped_permission() {
+    let noUnrestricted = GrantScopeTypeDefinition(type: "t", kinds: [GrantScopeKindDefinition(kind: "k", takesValues: false)])
+    #expect(GetPermissionGrantScopesApplicationService.debugOverride(rules: [
+        "q": OrganizationScope.rule(["ownDepartment"]),
+        "p": OrganizationScope.rule(),
+        "r": GrantScopeRule(type: noUnrestricted, allowedKinds: ["k"]),   // 類型沒有不限範圍種類：不列
+    ]) == [
         PermissionGrantScopes(permission: "p", grantScopes: [.company]),
         PermissionGrantScopes(permission: "q", grantScopes: [.company]),
     ])

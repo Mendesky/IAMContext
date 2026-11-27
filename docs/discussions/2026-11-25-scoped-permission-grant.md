@@ -100,9 +100,9 @@ OpportunityContext 的管理者看板要決定「誰能看、看到哪裡」（�
 | D4 | **分配合成一個權限；負責的所另一個**：`AssignDepartment`（能不能分配）與 6 個 `AllocateTo<所>`（能分到哪個所）功能重複——一定要一起給才有用——合成一個，沿用 `AssignDepartment`，範圍＝可分到的所。6 個 `AllocateFor<所>` 收成一個 `AllocateFor`，範圍＝負責的所；分配人員的資格比對案件的**報價單位** | 使用者 2026-11-26 定 |
 | D5 | **權限與範圍一律在後端驗**：mendesky-web 只決定按鈕顯不顯示。現在只在 web 擋的（被指定的分配人員有沒有資格、指定與撤回分配人員時的關係）都要補到後端 | 使用者 2026-11-26 定 |
 | D6 | **分三階段**：一、看板（新權限，沒有存量）；二、歸屬、註記、移除組長；三、分配。範圍的格式（D7～D9）在第一階段就定好 | 使用者 2026-11-26 同意 |
-| D7 | **權限清單標「可選的範圍種類」**：範圍種類有全公司、指定所、指定組、本人的所、本人的組，每個權限只允許其中幾種（見「各權限的範圍」）。授權時選了不允許的種類就拒絕 | 使用者 2026-11-26 同意方向；每個權限的種類實作時再確認 |
-| D8 | **範圍可以有多項，取聯集**：寫法參考 `ReviewerScope`：每一項是 `kind`（company／firms／departments／ownFirm／ownDepartment）＋清單，所別一律統編（`2026-09-03` 文件；IAM 檢查是 8 碼半形數字，不比對 StaffContext 的所別清單，2026-11-26），組存（所統編, 組名） | 使用者 2026-11-26 同意 |
-| D9 | **範圍種類可以往後加**：`kind` 以字串存，解碼時不能因為不認得的種類而失敗；舊版讀到不認得的種類，只略過那一項 | 使用者 2026-11-26 同意 |
+| D7 | **權限清單標「可選的範圍種類」**：範圍種類有全公司、指定所、指定組、本人的所、本人的組，每個權限只允許其中幾種（見「各權限的範圍」）。授權時選了不允許的種類就拒絕。2026-11-27 起先標範圍類型、再標那個類型底下的種類（D22） | 使用者 2026-11-26 同意方向；每個權限的種類實作時再確認 |
+| D8 | **範圍可以有多項，取聯集**：每一項是 `type`＋`kind`＋`values`（D22；原本參考 `ReviewerScope` 寫成 `kind`＋`firms`／`departments` 清單）。組織類型：所別一律統編（`2026-09-03` 文件；IAM 檢查是 8 碼半形數字，不比對 StaffContext 的所別清單，2026-11-26），組寫成「所統編/組名」 | 使用者 2026-11-26 同意 |
+| D9 | **範圍類型、種類可以往後加**：`type`、`kind` 以字串存，解碼時不能因為不認得的類型、種類而失敗；讀到不認得的，只略過那一項（IAM 的範圍查詢照樣回，由消費端略過） | 使用者 2026-11-26 同意 |
 | D10 | **授權範圍化的權限時一定要帶範圍，沒帶就拒絕**；不是範圍化的權限帶了範圍也拒絕。讀取時，範圍化的權限沒有範圍，範圍查詢不列它。已經有人持有、之後才範圍化的權限，先幫這些人補範圍，各服務才改成看範圍（見「轉換順序」） | 使用者 2026-11-25 同意 |
 | D11 | **「本人的所／組」在查詢當下由消費端用 StaffContext 名冊解析**，不用 IAM 自己存的 `firm`／`department` | 使用者 2026-11-25 同意 |
 | D12 | **改範圍是另一個指令，用自己的事件型別 `PrivilegeScopeChanged`**：已持有的權限不能再授權一次（`permissionAlreadyExists`），所以改範圍用 `changeGrantScope { permission, scopes }`，發 `PrivilegeScopeChanged { userId, permission, grantScopes }`，如實記下「誰、什麼時候、把範圍改成什麼」，跟這個 aggregate 的調部門、升職一樣各有自己的事件。不用「撤銷＋授予」（會記一筆實際沒發生的撤銷；投影逐筆連結時中間可能查不到權限；兩筆時間各自取，重建時順序可能顛倒）。代價是新事件型別讓舊版 IAM fail-closed：上線後先不改範圍，等新版穩定、確定不退版再開始用（見「退版與部署」）。撤銷照現在「不論來源」，範圍一起拿掉 | 使用者 2026-11-26 定（取代 11-25「不新增事件型別」） |
@@ -110,6 +110,7 @@ OpportunityContext 的管理者看板要決定「誰能看、看到哪裡」（�
 | D14 | **既有查詢不變；新增範圍查詢與反查**：`getPermissions` 照舊只回權限字串；範圍不能編進權限字串（各處都是字串完全比對）。新增「權限＋範圍」查詢（第一階段）。第二階段起要反查「誰的歸屬範圍涵蓋某組」「誰的負責的所涵蓋某所」：全公司、指定所、指定組這些寫死的範圍，由 IAM 建一份「權限 → 人和範圍」的讀模型直接查；本人的所、組，從名冊成員找、再問 IAM 這些人的範圍 | 使用者 2026-11-26 同意方向 |
 | D15 | **報價審核不改**：一級、二級照常直接授權、不帶範圍；誰審誰留在 StaffContext 審核主管設定（業務是指定一位主管審） | 使用者 2026-11-26 定 |
 | D16 | **這次不處理**：訪談表管理（還沒上線）、訪談表資料（查詢訪談表、各卡片讀寫、電子發票密碼、AuditContext／EvidencePurchaseContext 客戶資料）照現在的行為 | 使用者 2026-11-26 定 |
+| D22 | **範圍先有類型**（像標籤：先說是哪一類範圍，再說值）：每一項範圍是 `{ type, kind, values }`，`values` 是字串清單、意思由類型與種類決定；類型、種類、要不要帶值、值的格式（正規表示式）、console 顯示名稱定義在 IAM 的 `Sources/IAMPermissionCatalog/grant-scope-types.yaml`；權限清單寫 `grantScope: { type, kinds }`（取代 `grantScopeKinds`），一個權限只用一個類型。目前只有 `organization`（組織）：company、firms（值＝所統編）、departments（值＝「所統編/組名」，StaffContext 的組沒有編號）、ownFirm、ownDepartment；不限範圍的種類（除錯模式回它）也寫在類型定義（組織是 company）。IAM 不認得任何具體類型：以後確定要加類型時，在類型定義檔加一段、權限標上 `grantScope`，IAM 不用改程式，事件、HTTP、gRPC 格式都不變；用到的服務（範圍怎麼對到資料）與 console（選值的畫面）照樣要寫。每一項都存類型（不從權限推）：消費端不用查權限清單就看得懂。permission-catalog-gen 在 build 時檢查權限的類型、種類都有定義，寫錯 build 不過。原本的 `{kind, firms, departments}` 只在 .55 的 1.11.0-beta.0 寫過（正式沒有），新版讀到沒有類型的項目會略過，.55 已授權的用改範圍重寫。gRPC `GrantScope` 改成 `kind = 1`、`type = 4`、`values = 5`，2、3 保留不用。（D17～D21 在第二、三階段的分支上） | 使用者 2026-11-27 定（「應該是要先有這個 scope 是什麼類型」「之後確定有要加的類型可以好擴充」） |
 
 ### 各權限的範圍
 
@@ -193,15 +194,16 @@ OpportunityContext 的管理者看板要決定「誰能看、看到哪裡」（�
 
 ### 權限清單
 
-- 每筆權限加選填欄位 `grantScopeKinds: [...]`（沒寫＝不是範圍化的權限）。寫在權限所屬 context 的權威 yaml（這次都在 OC 的 `OpportunityContext.permissions.yaml`），IAM 的 `IAMPermissionCatalog` 逐字複本跟著。
+- 每筆權限加選填欄位 `grantScope: { type, kinds }`（沒寫＝不是範圍化的權限；D22）。寫在權限所屬 context 的權威 yaml（這次都在 OC 的 `OpportunityContext.permissions.yaml`），IAM 的 `IAMPermissionCatalog` 逐字複本跟著。
+- 範圍類型定義在 IAM 自己的 `grant-scope-types.yaml`（不是複本），`PermissionCatalogPlugin` 一起讀；permission-catalog-gen 檢查權限的類型、種類都有定義、類型定義本身合法（寫錯 build 不過），再把定義產進 `PermissionCatalog.grantScopeTypes`。console 的 `generate-iam-catalog.mjs` 也讀這份檔。
 - 舊版解析器遇到不認得的 key 會略過；`PermissionCatalogEntry` 的欄位一定要是選填。
-- IAM 的 `PermissionCatalogEmitter` 另外產出「範圍化的權限 → 可選種類」，給授權、改範圍、角色加權限、指派角色的檢查用。`EmployeeAccessAggregate` 要能讀到這份清單（加依賴 `IAMPermissionCatalog`，或在 server 組裝時注入）。
+- IAM 的 `PermissionCatalogEmitter` 另外產出「範圍化的權限 → 類型與可選種類」，給授權、改範圍、角色加權限、指派角色的檢查用。`EmployeeAccessAggregate` 不依賴權限清單，由 IAMContextServer 組裝時建好 `GrantScopePolicy` 注入（`GrantScopeCatalog`）。
 
 ### EmployeeAccess
 
 - `grantPrivilege` 的輸入加選填 `grantScopes`（權限 → 範圍清單）。`PrivilegeGranted` 事件加同名欄位，**一定要是 Optional**：非 Optional 的話舊事件解不開，aggregate 讀取會略過那筆（權限默默消失），時間軸整個 503。
 - 新指令 `changeGrantScope { permission, scopes }`：權限要是直接持有、目前有效（直接授予後可能因撤銷含它的角色而失效）、而且是範圍化的權限；範圍跟現在一樣回 `grantScopeUnchanged`；發 `PrivilegeScopeChanged { userId, permission, grantScopes }`。轉換時幫已持有、還沒有範圍的人補範圍，也用這個指令。
-- 檢查（D7、D10、D13）：範圍化的權限每個都要有至少一項範圍、種類要在允許的清單裡；不是範圍化的權限不能有範圍；範圍內容要合法（指定所至少一個、所別是 8 碼統編、指定組要所＋組）。
+- 檢查（D7、D10、D13、D22）：範圍化的權限每個都要有至少一項範圍；每項的類型要是這個權限的類型、種類要在允許的清單裡、值要符合類型定義（要帶值的至少一個、不空白、合格式；不帶值的不能帶）；不是範圍化的權限不能有範圍。檢查只看類型定義，不認得任何具體類型。
 
 ### 有效權限重播
 
@@ -282,3 +284,4 @@ OpportunityContext 的管理者看板要決定「誰能看、看到哪裡」（�
 - 2026-11-26：使用者定「用權限決定能做的事，不看職稱、不設身分」：移除組長機制（拿掉 `AssignStaffMember`），歸屬改成帶範圍；分配時「除了做這次分配的人以外，還要有人的歸屬範圍涵蓋這組」；通知給歸屬範圍涵蓋這組的人、不給操作者；刪別人的註記另做一個帶範圍的權限。
 - 2026-11-26：實作審查後，使用者定：所別檢查 8 碼統編；改範圍改用自己的事件型別 `PrivilegeScopeChanged`（取代 11-25 的「撤銷＋授予」，以設計正確為準，退版風險用「上線後先不改範圍」處理）；除錯模式範圍一律回全公司。
 - 2026-11-26：正式環境掃描後，註記也改成帶範圍；訪談表資料照現在、這次不處理；權限與範圍一律後端驗；`AssignDepartment` 與 `AllocateTo<所>` 合成一個「分配」權限、`AllocateFor` 收成一個「負責的所」，分配人員比對案件的報價單位。
+- 2026-11-27：使用者提出範圍要像標籤、先有類型，以後有別的資料層權限才好擴充；改成每一項 `{ type, kind, values }`，類型定義放 `grant-scope-types.yaml`，目前只有組織（D22）。

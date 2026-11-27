@@ -15,9 +15,12 @@ import Foundation
 
 public struct PermissionCatalogEmitter {
     public let documents: [PermissionDocument]
+    /// 授權範圍類型定義（IAM 的 grant-scope-types.yaml）。權限的 `grantScope` 一定要對得上這裡的類型與種類。
+    public let grantScopeTypes: GrantScopeTypesDocument
 
-    public init(documents: [PermissionDocument]) {
+    public init(documents: [PermissionDocument], grantScopeTypes: GrantScopeTypesDocument = GrantScopeTypesDocument(grantScopeTypes: [])) {
         self.documents = documents
+        self.grantScopeTypes = grantScopeTypes
     }
 
     private struct Record {
@@ -26,14 +29,24 @@ public struct PermissionCatalogEmitter {
         let operationId: String
         let rawValue: String
         let description: String?
-        let grantScopeKinds: [String]?
+        let grantScope: GrantScopeSpec?
     }
 
     private static func escape(_ s: String) -> String {
         s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
     }
 
-    public func render() -> String {
+    private static func literal(_ s: String?) -> String {
+        s.map { "\"\(escape($0))\"" } ?? "nil"
+    }
+
+    private static func literal(_ list: [String]) -> String {
+        "[" + list.map { "\"\(escape($0))\"" }.joined(separator: ", ") + "]"
+    }
+
+    /// 產生 PermissionCatalog.swift。範圍類型定義或權限的 `grantScope` 寫錯（類型、種類不存在等）丟 `GrantScopeCatalogError`，build 失敗。
+    public func render() throws -> String {
+        try grantScopeTypes.validate()
         var records: [Record] = []
         var seen = Set<String>()  // dedup by rawValue (context prefix keeps these globally unique)
         for doc in documents {
@@ -41,9 +54,10 @@ public struct PermissionCatalogEmitter {
                 let raw = "\(doc.context).\(e.slot).\(PermissionEmitter.pascal(e.operationId))"
                 if seen.contains(raw) { continue }
                 seen.insert(raw)
+                if let spec = e.grantScope { try grantScopeTypes.validate(spec, permission: raw) }
                 records.append(Record(context: doc.context, slot: e.slot,
                                        operationId: e.operationId, rawValue: raw, description: e.description,
-                                       grantScopeKinds: e.grantScopeKinds))
+                                       grantScope: e.grantScope))
             }
         }
         records.sort { $0.rawValue < $1.rawValue }
@@ -61,15 +75,55 @@ public struct PermissionCatalogEmitter {
         lines.append("    public let operationId: String")
         lines.append("    public let rawValue: String")
         lines.append("    public let description: String?")
-        lines.append("    /// 範圍化權限允許的授權範圍種類；nil＝不是範圍化的權限。")
-        lines.append("    public let grantScopeKinds: [String]?")
-        lines.append("    public init(context: String, slot: String, operationId: String, rawValue: String, description: String?, grantScopeKinds: [String]? = nil) {")
+        lines.append("    /// 範圍化權限的授權範圍（類型＋允許的種類）；nil＝不是範圍化的權限。")
+        lines.append("    public let grantScope: CatalogGrantScope?")
+        lines.append("    public init(context: String, slot: String, operationId: String, rawValue: String, description: String?, grantScope: CatalogGrantScope? = nil) {")
         lines.append("        self.context = context")
         lines.append("        self.slot = slot")
         lines.append("        self.operationId = operationId")
         lines.append("        self.rawValue = rawValue")
         lines.append("        self.description = description")
-        lines.append("        self.grantScopeKinds = grantScopeKinds")
+        lines.append("        self.grantScope = grantScope")
+        lines.append("    }")
+        lines.append("}")
+        lines.append("")
+        lines.append("/// 權限的授權範圍：用哪個類型、允許那個類型底下哪些種類。")
+        lines.append("public struct CatalogGrantScope: Sendable, Hashable, Codable {")
+        lines.append("    public let type: String")
+        lines.append("    public let kinds: [String]")
+        lines.append("    public init(type: String, kinds: [String]) {")
+        lines.append("        self.type = type")
+        lines.append("        self.kinds = kinds")
+        lines.append("    }")
+        lines.append("}")
+        lines.append("")
+        lines.append("/// 授權範圍類型的定義（grant-scope-types.yaml）。")
+        lines.append("public struct CatalogGrantScopeType: Sendable, Hashable, Codable {")
+        lines.append("    public let type: String")
+        lines.append("    public let name: String?")
+        lines.append("    /// 不限範圍的種類（除錯模式回這個）；nil＝沒有。")
+        lines.append("    public let unrestrictedKind: String?")
+        lines.append("    public let kinds: [CatalogGrantScopeKind]")
+        lines.append("    public init(type: String, name: String?, unrestrictedKind: String?, kinds: [CatalogGrantScopeKind]) {")
+        lines.append("        self.type = type")
+        lines.append("        self.name = name")
+        lines.append("        self.unrestrictedKind = unrestrictedKind")
+        lines.append("        self.kinds = kinds")
+        lines.append("    }")
+        lines.append("}")
+        lines.append("")
+        lines.append("/// 類型底下的一個種類。`values` 有值＝要帶值清單（內容是值的說明）。")
+        lines.append("public struct CatalogGrantScopeKind: Sendable, Hashable, Codable {")
+        lines.append("    public let kind: String")
+        lines.append("    public let name: String?")
+        lines.append("    public let values: String?")
+        lines.append("    public let valuePattern: String?")
+        lines.append("    public var takesValues: Bool { values != nil }")
+        lines.append("    public init(kind: String, name: String?, values: String?, valuePattern: String?) {")
+        lines.append("        self.kind = kind")
+        lines.append("        self.name = name")
+        lines.append("        self.values = values")
+        lines.append("        self.valuePattern = valuePattern")
         lines.append("    }")
         lines.append("}")
         lines.append("")
@@ -78,8 +132,8 @@ public struct PermissionCatalogEmitter {
         lines.append("    public static let all: [PermissionInfo] = [")
         for r in records {
             let desc = r.description.map { "\"\(Self.escape($0))\"" } ?? "nil"
-            let kinds = r.grantScopeKinds.map { ", grantScopeKinds: [" + $0.map { "\"\(Self.escape($0))\"" }.joined(separator: ", ") + "]" } ?? ""
-            lines.append("        PermissionInfo(context: \"\(r.context)\", slot: \"\(r.slot)\", operationId: \"\(r.operationId)\", rawValue: \"\(r.rawValue)\", description: \(desc)\(kinds)),")
+            let scope = r.grantScope.map { ", grantScope: CatalogGrantScope(type: \(Self.literal($0.type)), kinds: \(Self.literal($0.kinds)))" } ?? ""
+            lines.append("        PermissionInfo(context: \"\(r.context)\", slot: \"\(r.slot)\", operationId: \"\(r.operationId)\", rawValue: \"\(r.rawValue)\", description: \(desc)\(scope)),")
         }
         lines.append("    ]")
         lines.append("")
@@ -89,10 +143,21 @@ public struct PermissionCatalogEmitter {
         lines.append("    /// The universe of valid permission rawValues — e.g. to validate a grant.")
         lines.append("    public static let allRawValues: Set<String> = Set(all.map(\\.rawValue))")
         lines.append("")
-        lines.append("    /// 範圍化的權限 → 允許的授權範圍種類（只列標了 grantScopeKinds 的權限）。")
-        lines.append("    public static let grantScopeKinds: [String: [String]] = Dictionary(uniqueKeysWithValues: all.compactMap { info in")
-        lines.append("        info.grantScopeKinds.map { (info.rawValue, $0) }")
+        lines.append("    /// 範圍化的權限 → 授權範圍（只列標了 grantScope 的權限）。")
+        lines.append("    public static let grantScopes: [String: CatalogGrantScope] = Dictionary(uniqueKeysWithValues: all.compactMap { info in")
+        lines.append("        info.grantScope.map { (info.rawValue, $0) }")
         lines.append("    })")
+        lines.append("")
+        lines.append("    /// 授權範圍類型的定義（grant-scope-types.yaml，依類型名稱排序）。")
+        lines.append("    public static let grantScopeTypes: [CatalogGrantScopeType] = [")
+        for t in grantScopeTypes.grantScopeTypes.sorted(by: { $0.type < $1.type }) {
+            lines.append("        CatalogGrantScopeType(type: \(Self.literal(t.type)), name: \(Self.literal(t.name)), unrestrictedKind: \(Self.literal(t.unrestrictedKind)), kinds: [")
+            for k in t.kinds {
+                lines.append("            CatalogGrantScopeKind(kind: \(Self.literal(k.kind)), name: \(Self.literal(k.name)), values: \(Self.literal(k.values)), valuePattern: \(Self.literal(k.valuePattern))),")
+            }
+            lines.append("        ]),")
+        }
+        lines.append("    ]")
         lines.append("")
         lines.append("    public static func permissions(inContext context: String) -> [PermissionInfo] {")
         lines.append("        all.filter { $0.context == context }")

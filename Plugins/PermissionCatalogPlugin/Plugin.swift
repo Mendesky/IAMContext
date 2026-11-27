@@ -23,11 +23,16 @@ struct PermissionCatalogPlugin {
             .filter { $0.url.lastPathComponent.hasSuffix("permissions.yaml") }
             .map { $0.url }
         guard !inputs.isEmpty else { return [] }
+        // 授權範圍類型定義（IAM 自己的檔案）：權限的 grantScope 要對得上這裡的類型與種類，一起產進 catalog。
+        let grantScopeTypes = sourceFiles.first { $0.url.lastPathComponent == "grant-scope-types.yaml" }?.url
 
         let generatedDirectory = pluginWorkDirectory.appending(component: "generated", directoryHint: .isDirectory)
         let output = generatedDirectory.appending(path: "PermissionCatalog.swift")
 
         var arguments = ["--output-dir", generatedDirectory.path()]
+        if let grantScopeTypes {
+            arguments.append(contentsOf: ["--grant-scope-types", grantScopeTypes.path()])
+        }
         arguments.append(contentsOf: inputs.map { $0.path() })
 
         return [
@@ -35,7 +40,7 @@ struct PermissionCatalogPlugin {
                 displayName: "Aggregating permission catalog from \(inputs.count) document(s)",
                 executable: tool("permission-catalog-gen"),
                 arguments: arguments,
-                inputFiles: inputs,
+                inputFiles: inputs + (grantScopeTypes.map { [$0] } ?? []),
                 outputFiles: [output]
             )
         ]

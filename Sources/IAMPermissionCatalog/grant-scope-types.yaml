@@ -1,0 +1,40 @@
+# 授權範圍的類型（IAM 自己的檔案，不是各 context 權限清單的複本）。
+# 設計：docs/discussions/2026-11-25-scoped-permission-grant.md D22。
+#
+# 範圍化的權限在權限清單寫 grantScope: { type: <這裡的類型>, kinds: [<這個類型底下的種類>...] }；
+# permission-catalog-gen 在 build 時檢查兩邊對得上（寫錯 build 不過），再一起產進 PermissionCatalog.swift。
+# 授權時每一項範圍存成 { type, kind, values }，values 的意思由類型與種類決定。
+#
+# 以後要加類型：在這裡加一段、權限標上 grantScope，IAM 不用改程式，事件、API、gRPC 格式都不變。
+# 用到這個權限的服務（解讀範圍：資料怎麼對到範圍）、console（選值的畫面）另外要改。
+#
+# 欄位：
+#   type              類型名稱（存進每一項範圍）
+#   name              顯示名稱（console 用）
+#   unrestrictedKind  不限範圍的種類；IAM_DEBUG_FULL_PERMISSIONS 開啟時範圍查詢回這個。要是不帶值的種類，可省略
+#   kinds[].kind      種類名稱
+#   kinds[].name      顯示名稱（console 用）
+#   kinds[].values    有寫＝要帶值清單，內容是值的說明；沒寫＝不能帶值
+#   kinds[].valuePattern  每個值要整個符合的正規表示式（IAM 授權時檢查），可省略
+grantScopeTypes:
+  - type: organization
+    name: 組織
+    unrestrictedKind: company
+    kinds:
+      - kind: company
+        name: 全公司
+      - kind: firms
+        name: 指定所
+        # IAM 只檢查格式，不比對 StaffContext 的所別清單（2026-09-03 決定）。
+        values: 所統編
+        valuePattern: '^[0-9]{8}$'
+      - kind: departments
+        name: 指定組
+        # 組名只在同一所內唯一，所以帶所統編；StaffContext 的組沒有編號。
+        values: 所統編/組名
+        valuePattern: '^[0-9]{8}/\S(.*\S)?$'
+      # 本人的所、本人的組只存標記，查詢當下由用到的服務用 StaffContext 名冊解析（D11）。
+      - kind: ownFirm
+        name: 本人的所
+      - kind: ownDepartment
+        name: 本人的組

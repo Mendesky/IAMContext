@@ -25,7 +25,7 @@ extension GrantPrivilegeUsecase {
                 userId: input.userId,
                 permissions: input.permissions,
                 grantScopes: input.grantScopes,
-                allowedKinds: grantScopePolicy.allowedKinds(for: input.permissions),
+                grantScopeRules: grantScopePolicy.rules(for: input.permissions),
                 lapsedDirectGrants: lapsedDirectGrants
             )
             try await repository.save(aggregateRoot: employeeAccess, userId: input.operatorId)
