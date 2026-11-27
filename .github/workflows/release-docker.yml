@@ -13,55 +13,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # tag push 事件不帶 branch 資訊 → 驗證 tag 的 commit 在 main 或某個 release/* 分支的歷史上，才 release。
-  # release/* 給「從舊版開出來、只帶少數改動」的暫訂版用（例：release/1.10.x 從 1.10.0 開出、只帶權限目錄的
-  # 1.11.0-beta.2）。其他分支上的 tag 一律跳過（不 build、不 push、不 red-X）。
+  # tag push 事件不帶 branch 資訊 → guard 判斷要不要 release（scripts/release-tag-guard.sh）：
+  # tag 名稱要是版本號，tag 的 commit 要在 main 或某個 release/ 分支（release/ 底下任何名稱）的歷史上。
+  # release/ 分支給「從舊版開出來、只帶少數改動」的暫訂版用；這種分支上要有這個版本的 workflow 和 guard，
+  # 因為 tag 觸發時跑的是 tag 那個 commit 上的檔案。其他 tag 一律跳過（不 build、不 push、不 red-X）。
+  # guard 是發版流程的檢查，不是安全邊界（見腳本開頭）。
   guard:
-    name: Verify tag is on main or a release/* branch
+    name: Verify tag is a version on main or a release/ branch
     runs-on: [self-hosted]
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # 需要完整歷史做 ancestor 判斷
-      - name: Check tag commit is an ancestor of origin/main or an origin/release/* branch
+          ref: ${{ github.sha }}   # guard 判斷的 commit，tag 之後被移動也不影響
+          fetch-depth: 0           # 需要完整歷史做 ancestor 判斷
+      - name: Check the tag
         id: check
         shell: bash
-        run: |
-          set -euo pipefail
-          # 只抓 main 和 release/*，其他分支的 ref 不在這裡出現，也就不可能被當成允許的來源。
-          # --prune：上游刪掉的 release/* 分支不能因為 runner 留著舊的 remote-tracking ref 而還被當成允許的來源。
-          git fetch --quiet --prune origin \
-            '+refs/heads/main:refs/remotes/origin/main' \
-            '+refs/heads/release/*:refs/remotes/origin/release/*'
-          # merge-base --is-ancestor：0 = 是祖先，1 = 不是，其他 = 出錯（出錯不能當成「不在分支上」而綠燈跳過）。
-          is_ancestor() {
-            set +e
-            git merge-base --is-ancestor "$GITHUB_SHA" "$1"
-            local rc=$?
-            set -e
-            case "$rc" in
-              0) return 0 ;;
-              1) return 1 ;;
-              *) echo "::error::無法判斷 ${GITHUB_SHA} 是否在 $1 上（git merge-base rc=${rc}）" >&2; exit 1 ;;
-            esac
-          }
-          if is_ancestor refs/remotes/origin/main; then
-            echo "allowed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ ${GITHUB_REF_NAME} 在 main 上，繼續 release"
-            exit 0
-          fi
-          while IFS= read -r ref; do
-            [ -n "$ref" ] || continue
-            if is_ancestor "$ref"; then
-              echo "allowed=true" >> "$GITHUB_OUTPUT"
-              echo "✅ ${GITHUB_REF_NAME} 在 ${ref#refs/remotes/origin/} 上，繼續 release"
-              exit 0
-            fi
-          done < <(git for-each-ref --format='%(refname)' 'refs/remotes/origin/release/')
-          echo "allowed=false" >> "$GITHUB_OUTPUT"
-          echo "::notice::${GITHUB_REF_NAME}（${GITHUB_SHA}）不在 main 或任何 release/* 分支上，跳過 release"
+        run: bash scripts/release-tag-guard.sh
 
   build-push:
     name: Build and push to Artifact Registry
@@ -70,6 +40,8 @@ jobs:
     runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}   # build guard 判斷過的同一個 commit
 
       # swift release build + docker layers 很吃磁碟；self-hosted 磁碟自管，
       # GitHub-hosted 時代的 free-disk-space 不再需要（對齊 OC release-docker.yml）
