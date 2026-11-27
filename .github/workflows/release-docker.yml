@@ -73,13 +73,18 @@ jobs:
       # 2026-11-27 五個服務同時發版：AC 的 build 跑在 IdentityContext 建的 builder 上（IC 晚 2 秒 --use），
       # IC 結束時 buildx rm 停掉那個 builder，AC 正在匯出 cache，連線被切斷（graceful_stop），release 判失敗。
       # 所以每個 job 用自己的 DOCKER_CONFIG（builder 清單、目前 builder、登入憑證都在這裡面），放在 RUNNER_TEMP，
-      # job 結束就清掉，憑證也不會留在共用的家目錄。之後的步驟（包括 login、buildx 的 post 清理）都讀這個值。
+      # 憑證不會留在共用的家目錄（最後一步刪掉 config.json）。之後的步驟（包括 login、buildx 的 post 清理）都讀這個值。
+      # 新目錄是空的，不複製共用的 config.json：裡面若有 credsStore，login 又會把憑證寫回共用的地方。
       # 換掉 DOCKER_CONFIG 之前先記下目前 docker context 的連線端點（DOCKER_HOST），並把家目錄的 cli-plugins 連過來：
-      # 這兩樣原本也從 ~/.docker 讀，主機把 buildx 外掛裝在那裡、或 context 不是 default 時才不會壞掉。
+      # 這兩樣原本也從 ~/.docker 讀。只接受 unix socket 的端點：TLS 的 tcp 端點要的憑證在 context 裡，這裡帶不過去，
+      # 遇到就明確失敗，不要用明文連。
       - name: Isolate docker config
         run: |
           host=$(docker context inspect -f '{{.Endpoints.docker.Host}}')
-          if [ -z "$host" ]; then echo "::error::讀不到目前 docker context 的連線端點"; exit 1; fi
+          case "$host" in
+            unix://*) ;;
+            *) echo "::error::docker context 的連線端點不是 unix socket（${host:-讀不到}）：Isolate docker config 只支援 unix socket"; exit 1 ;;
+          esac
           cfg="$RUNNER_TEMP/docker-config"
           mkdir -p "$cfg"
           if [ -d "$HOME/.docker/cli-plugins" ]; then ln -sfn "$HOME/.docker/cli-plugins" "$cfg/cli-plugins"; fi
@@ -109,6 +114,8 @@ jobs:
         run: |
           mkdir -p "$BUILDX_CACHE_DIR"
           rm -rf "${BUILDX_CACHE_DIR}-new-${GITHUB_RUN_ID}"
+          # 被中途殺掉的 run 留下的暫存 cache（job 最長 6 小時，超過 6 小時的不會有人還在寫）
+          find "$(dirname "$BUILDX_CACHE_DIR")" -maxdepth 1 -name "$(basename "$BUILDX_CACHE_DIR")-new-*" -mmin +360 -exec rm -rf {} + || true
           if [ -f "$BUILDX_CACHE_DIR/index.json" ]; then
             echo "from=type=local,src=$BUILDX_CACHE_DIR" >> "$GITHUB_OUTPUT"
             echo "使用既有 cache：$(du -sh "$BUILDX_CACHE_DIR" | cut -f1)"
@@ -151,9 +158,11 @@ jobs:
       # image 推完之後才匯出 build cache，獨立成一步：這一步不論怎麼失敗（cache 寫不進去、builder 連線中斷、
       # cache 服務出錯）都不會讓已經推好的 release 判失敗（continue-on-error）。
       # 同一個 builder、同樣的輸入，這次 build 全部命中剛才的結果，只做匯出；outputs type=cacheonly 不產生也不推 image。
+      # 萬一沒有命中（例如 base image 在兩次 build 之間被換掉），最多重跑 30 分鐘就放棄，不要佔住 runner。
       - name: Export build cache
         id: cache-export
         continue-on-error: true
+        timeout-minutes: 30
         uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
@@ -165,9 +174,10 @@ jobs:
           cache-from: ${{ steps.buildx-cache.outputs.from }}
           cache-to: type=local,dest=${{ env.BUILDX_CACHE_DIR }}-new-${{ github.run_id }},mode=max,ignore-error=true
 
-      # 新 cache 寫完整了才換上去；匯出失敗就保留舊的
+      # 新 cache 寫完整了才換上去；匯出失敗就保留舊的。cache 的整理出錯也不影響 release 的結果。
       - name: Rotate buildx local cache
         if: steps.cache-export.outcome == 'success'
+        continue-on-error: true
         run: |
           if [ -f "${BUILDX_CACHE_DIR}-new-${GITHUB_RUN_ID}/index.json" ]; then
             rm -rf "$BUILDX_CACHE_DIR"
@@ -179,4 +189,12 @@ jobs:
 
       - name: Discard partial buildx cache
         if: always()
+        continue-on-error: true
         run: rm -rf "${BUILDX_CACHE_DIR}-new-${GITHUB_RUN_ID}"
+
+      # 登入憑證只在這個 job 的 DOCKER_CONFIG 裡；不等 login 的 post 登出，先刪掉（post 登出變成什麼都不做）。
+      # 只刪 config.json：同一個目錄裡的 buildx 狀態，post 的 buildx rm 還要用。
+      - name: Remove registry credentials
+        if: always()
+        continue-on-error: true
+        run: rm -f "${DOCKER_CONFIG:-/nonexistent}/config.json"

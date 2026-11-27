@@ -109,7 +109,10 @@ rule "isolated DOCKER_CONFIG"                 "$(count '^ +echo "DOCKER_CONFIG=\
 rule "builder pinned on both builds"          "$(count '^ +builder: \$\{\{ steps\.buildx\.outputs\.name \}\}$')" 2
 rule "setup-buildx does not --use"            "$(count '^ +use: false$')" 1
 rule "no GitHub Actions cache"                "$(count 'type=gha')" 0
-rule "cache export cannot fail the release"   "$(count '^ +continue-on-error: true$')" 1
+export_block=$(awk '/^ +- name: Export build cache$/{f=1;print;next} f&&/^ +- name:/{exit} f' "$code")
+rule "cache export cannot fail the release"   "$(printf '%s\n' "$export_block" | grep -cE '^ +continue-on-error: true$' || true)" 1
+iso=$(grep -nE '^ +- name: Isolate docker config$' "$code" | cut -d: -f1); login=$(grep -nE '^ +- name: Login to Artifact Registry$' "$code" | cut -d: -f1)
+rule "docker config isolated before login"    "$([ -n "$iso" ] && [ -n "$login" ] && [ "$iso" -lt "$login" ] && echo yes || echo no)" yes
 
 echo "fails=$fails"
 [ "$fails" = 0 ]
