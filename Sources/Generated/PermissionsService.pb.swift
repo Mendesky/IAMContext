@@ -84,7 +84,9 @@ package struct IAMContext_PermissionGrantScopes: Sendable {
   package init() {}
 }
 
-/// 一項授權範圍。kind：company、firms、departments、ownFirm、ownDepartment（字串，日後可能新增）。
+/// 一項授權範圍：類型＋種類＋值清單（字串，日後可能新增類型、種類；不認得的略過）。
+/// 類型與種類定義在 IAM 權限清單的 grant-scope-types.yaml。目前只有 type = organization：
+/// kind = company、firms（values＝所統編）、departments（values＝「所統編/組名」）、ownFirm、ownDepartment。
 package struct IAMContext_GrantScope: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -92,27 +94,11 @@ package struct IAMContext_GrantScope: Sendable {
 
   package var kind: String = String()
 
-  /// kind == firms：所統編清單。
-  package var firms: [String] = []
+  /// 範圍類型，例如 organization。
+  package var type: String = String()
 
-  /// kind == departments：組清單。
-  package var departments: [IAMContext_GrantScopeDepartment] = []
-
-  package var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  package init() {}
-}
-
-package struct IAMContext_GrantScopeDepartment: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  /// 所統編
-  package var firm: String = String()
-
-  /// 組名（同一所內唯一）
-  package var department: String = String()
+  /// 值清單，意思由類型與種類決定；不帶值的種類是空的。
+  package var values: [String] = []
 
   package var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -280,7 +266,7 @@ extension IAMContext_PermissionGrantScopes: SwiftProtobuf.Message, SwiftProtobuf
 
 extension IAMContext_GrantScope: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   package static let protoMessageName: String = _protobuf_package + ".GrantScope"
-  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{1}firms\0\u{1}departments\0")
+  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{2}\u{3}type\0\u{1}values\0\u{b}firms\0\u{b}departments\0\u{c}\u{2}\u{1}\u{c}\u{3}\u{1}")
 
   package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -289,8 +275,8 @@ extension IAMContext_GrantScope: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.kind) }()
-      case 2: try { try decoder.decodeRepeatedStringField(value: &self.firms) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.departments) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.type) }()
+      case 5: try { try decoder.decodeRepeatedStringField(value: &self.values) }()
       default: break
       }
     }
@@ -300,54 +286,19 @@ extension IAMContext_GrantScope: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
     if !self.kind.isEmpty {
       try visitor.visitSingularStringField(value: self.kind, fieldNumber: 1)
     }
-    if !self.firms.isEmpty {
-      try visitor.visitRepeatedStringField(value: self.firms, fieldNumber: 2)
+    if !self.type.isEmpty {
+      try visitor.visitSingularStringField(value: self.type, fieldNumber: 4)
     }
-    if !self.departments.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.departments, fieldNumber: 3)
+    if !self.values.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.values, fieldNumber: 5)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   package static func ==(lhs: IAMContext_GrantScope, rhs: IAMContext_GrantScope) -> Bool {
     if lhs.kind != rhs.kind {return false}
-    if lhs.firms != rhs.firms {return false}
-    if lhs.departments != rhs.departments {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension IAMContext_GrantScopeDepartment: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  package static let protoMessageName: String = _protobuf_package + ".GrantScopeDepartment"
-  package static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}firm\0\u{1}department\0")
-
-  package mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.firm) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.department) }()
-      default: break
-      }
-    }
-  }
-
-  package func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.firm.isEmpty {
-      try visitor.visitSingularStringField(value: self.firm, fieldNumber: 1)
-    }
-    if !self.department.isEmpty {
-      try visitor.visitSingularStringField(value: self.department, fieldNumber: 2)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  package static func ==(lhs: IAMContext_GrantScopeDepartment, rhs: IAMContext_GrantScopeDepartment) -> Bool {
-    if lhs.firm != rhs.firm {return false}
-    if lhs.department != rhs.department {return false}
+    if lhs.type != rhs.type {return false}
+    if lhs.values != rhs.values {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

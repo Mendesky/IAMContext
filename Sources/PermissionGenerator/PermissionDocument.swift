@@ -184,19 +184,31 @@ public struct PermissionCatalogEntry: Codable, Sendable {
     public let operationId: String
     /// Optional human description (carried for catalog/docs; not used by codegen).
     public let description: String?
-    /// 範圍化權限允許的授權範圍種類（`company`／`firms`／`departments`／`ownFirm`／`ownDepartment`）。
-    /// 沒寫＝不是範圍化的權限。只有 IAM 的聚合 catalog 用它（授權時檢查範圍）；各 context 的 PermissionEmitter 不讀。
+    /// 範圍化權限的授權範圍：用哪個類型、允許那個類型底下哪些種類（`grantScope: { type: organization, kinds: [...] }`）。
+    /// 類型與種類定義在 IAM 的 `grant-scope-types.yaml`。沒寫＝不是範圍化的權限。
+    /// 只有 IAM 的聚合 catalog 用它（授權時檢查範圍）；各 context 的 PermissionEmitter 不讀。
     /// 一定要是選填：沒寫這個 key 的 yaml 才解得開；舊版解析器遇到這個 key 會略過。
-    public let grantScopeKinds: [String]?
+    public let grantScope: GrantScopeSpec?
 
     /// The reference key used by a rule's `requires`: `"<slot>.<operationId>"`.
     public var ref: String { "\(slot).\(operationId)" }
 
-    public init(slot: String, operationId: String, description: String? = nil, grantScopeKinds: [String]? = nil) {
+    public init(slot: String, operationId: String, description: String? = nil, grantScope: GrantScopeSpec? = nil) {
         self.slot = slot
         self.operationId = operationId
         self.description = description
-        self.grantScopeKinds = grantScopeKinds
+        self.grantScope = grantScope
+    }
+}
+
+/// 權限清單上一個範圍化權限的 `grantScope`：類型＋允許的種類。
+public struct GrantScopeSpec: Codable, Sendable, Hashable {
+    public let type: String
+    public let kinds: [String]
+
+    public init(type: String, kinds: [String]) {
+        self.type = type
+        self.kinds = kinds
     }
 }
 

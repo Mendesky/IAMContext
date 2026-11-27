@@ -32,18 +32,16 @@ message PermissionGrantScopes {
   repeated GrantScope grant_scopes = 2;
 }
 
-// 一項授權範圍。kind：company、firms、departments、ownFirm、ownDepartment（字串，日後可能新增）。
+// 一項授權範圍：類型＋種類＋值清單（字串，日後可能新增類型、種類；不認得的略過）。
+// 類型與種類定義在 IAM 權限清單的 grant-scope-types.yaml。目前只有 type = organization：
+// kind = company、firms（values＝所統編）、departments（values＝「所統編/組名」）、ownFirm、ownDepartment。
 message GrantScope {
+  // 2026-11-27 改成類型＋值清單前的欄位（firms、departments）不再使用。
+  reserved 2, 3;
+  reserved "firms", "departments";
   string kind = 1;
-  // kind == firms：所統編清單。
-  repeated string firms = 2;
-  // kind == departments：組清單。
-  repeated GrantScopeDepartment departments = 3;
-}
-
-message GrantScopeDepartment {
-  // 所統編
-  string firm = 1;
-  // 組名（同一所內唯一）
-  string department = 2;
+  // 範圍類型，例如 organization。
+  string type = 4;
+  // 值清單，意思由類型與種類決定；不帶值的種類是空的。
+  repeated string values = 5;
 }

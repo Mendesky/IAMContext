@@ -55,11 +55,11 @@ actor PermissionsService: IAMContext_PermissionsService.ServiceProtocol {
     }
 
     /// 權限＋範圍查詢（docs/discussions/2026-11-25-scoped-permission-grant.md D14），規則同 HTTP getPermissionGrantScopes。
-    /// 尚未建檔回空清單（同 getPermissions）；IAM_DEBUG_FULL_PERMISSIONS 開啟時每個範圍化權限都回 company，並帶 x-iam-debug。
+    /// 尚未建檔回空清單（同 getPermissions）；IAM_DEBUG_FULL_PERMISSIONS 開啟時每個範圍化權限都回它類型的不限範圍種類（組織是 company），並帶 x-iam-debug。
     func getPermissionGrantScopes(request: ServerRequest<IAMContext_GetPermissionGrantScopesRequest>, context: ServerContext) async throws -> ServerResponse<IAMContext_GetPermissionGrantScopesResponse> {
         do {
             let override: [PermissionGrantScopes]? = debugConfig.fullPermissions
-                ? GetPermissionGrantScopesApplicationService.debugOverride(scopedPermissions: PermissionCatalog.grantScopeKinds.keys)
+                ? GrantScopeCatalog.debugOverride
                 : nil
             let service = GetPermissionGrantScopesApplicationService(kdbClient: kdbClient, roleDirectory: roleDirectory, debugOverride: override)
             let items = try await service.execute(input: .init(userId: request.message.userID))
@@ -82,14 +82,9 @@ actor PermissionsService: IAMContext_PermissionsService.ServiceProtocol {
             message.permission = item.permission
             message.grantScopes = item.grantScopes.map { scope in
                 .with { grantScope in
+                    grantScope.type = scope.type
                     grantScope.kind = scope.kind
-                    grantScope.firms = scope.firms ?? []
-                    grantScope.departments = (scope.departments ?? []).map { department in
-                        .with {
-                            $0.firm = department.firm
-                            $0.department = department.department
-                        }
-                    }
+                    grantScope.values = scope.values ?? []
                 }
             }
         }

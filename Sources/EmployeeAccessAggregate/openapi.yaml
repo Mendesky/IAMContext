@@ -58,7 +58,7 @@ paths:
   /employee-access/{employeeAccessId}/change-grant-scope:
     post:
       operationId: changeGrantScope
-      description: '改一個範圍化權限的授權範圍（整組換掉）。權限要是這個人直接持有、目前有效、而且是範圍化的權限（權限清單上標了 grantScopeKinds）；範圍至少一項、種類要在允許清單內、內容要合法；新範圍跟現在一樣回 422 grantScopeUnchanged；權限已失效（直接授予後因撤銷含它的角色而失效）回 422 permissionNotExist。寫入一筆 PrivilegeScopeChanged。⚠️ 新事件型別：舊版 IAM（1.8.0）讀到會 fail-closed，新版上線初期先不要用（設錯時改用撤銷＋重新授權），確定不退版再開始用。也用來幫「已持有、還沒有範圍」的人補範圍。'
+      description: '改一個範圍化權限的授權範圍（整組換掉）。權限要是這個人直接持有、目前有效、而且是範圍化的權限（權限清單上標了 grantScope）；範圍至少一項、類型要是這個權限的類型、種類要在允許清單內、值要符合類型定義；新範圍跟現在一樣回 422 grantScopeUnchanged；權限已失效（直接授予後因撤銷含它的角色而失效）回 422 permissionNotExist。寫入一筆 PrivilegeScopeChanged。⚠️ 新事件型別：舊版 IAM（1.8.0）讀到會 fail-closed，新版上線初期先不要用（設錯時改用撤銷＋重新授權），確定不退版再開始用。也用來幫「已持有、還沒有範圍」的人補範圍。'
       parameters:
         - $ref: '#/components/parameters/employeeAccessId'
         - $ref: '#/components/parameters/operatorId'
@@ -235,7 +235,7 @@ paths:
   /employee-access/permissions/{userId}/grant-scopes:
     get:
       operationId: getPermissionGrantScopes
-      description: '這個人持有的範圍化權限與各自的授權範圍（多項取聯集，由呼叫端解讀）。只列有範圍的權限；不認得的範圍種類略過那一項，一項都不剩的權限不列。ownFirm／ownDepartment 原樣回標記，由呼叫端用 StaffContext 名冊解析。尚未建檔回 404（同 getPermissions）。IAM_DEBUG_FULL_PERMISSIONS 開啟時，權限清單上每個範圍化的權限都回 company。'
+      description: '這個人持有的範圍化權限與各自的授權範圍（多項取聯集，由呼叫端解讀）。只列有範圍的權限；不完整的項目（沒有類型或種類）略過，一項都不剩的權限不列；不認得的類型、種類由呼叫端略過。組織類型的 ownFirm／ownDepartment 原樣回標記，由呼叫端用 StaffContext 名冊解析。尚未建檔回 404（同 getPermissions）。IAM_DEBUG_FULL_PERMISSIONS 開啟時，權限清單上每個範圍化的權限都回它類型的不限範圍種類（組織是 company）。'
       parameters:
         - $ref: '#/components/parameters/userId'
       responses:
@@ -459,7 +459,7 @@ components:
           items:
             type: string
         grantScopes:
-          description: '範圍化權限的授權範圍（權限 → 範圍清單）。範圍化的權限（權限清單上標了 grantScopeKinds）一定要帶、至少一項；不是範圍化的權限不能帶；key 一定要在 permissions 裡。'
+          description: '範圍化權限的授權範圍（權限 → 範圍清單）。範圍化的權限（權限清單上標了 grantScope）一定要帶、至少一項；不是範圍化的權限不能帶；key 一定要在 permissions 裡。'
           type: object
           additionalProperties:
             type: array
@@ -481,33 +481,23 @@ components:
           items:
             $ref: '#/components/schemas/GrantScope'
     GrantScope:
-      description: '一項授權範圍。kind：company（全公司）、firms（指定所，帶 firms：所統編清單）、departments（指定組，帶 departments：(所統編, 組名) 清單）、ownFirm（本人的所）、ownDepartment（本人的組）。company／ownFirm／ownDepartment 不帶清單。'
+      description: '一項授權範圍：類型＋種類＋值清單。有哪些類型、種類，值要什麼格式，寫在權限清單的 grant-scope-types.yaml；每個範圍化的權限只能用一個類型、其中幾個種類（權限清單的 grantScope）。目前只有 organization（組織）：company（全公司）、firms（指定所，values＝所統編）、departments（指定組，values＝「所統編/組名」）、ownFirm（本人的所）、ownDepartment（本人的組）；company／ownFirm／ownDepartment 不帶 values。'
       type: object
       required:
+        - type
         - kind
       properties:
+        type:
+          type: string
+          description: '範圍類型，例如 organization'
         kind:
           type: string
-        firms:
+          description: '類型底下的種類，例如 firms'
+        values:
           type: array
+          description: '值清單，意思由類型與種類決定；不帶值的種類省略'
           items:
             type: string
-        departments:
-          type: array
-          items:
-            $ref: '#/components/schemas/GrantScopeDepartment'
-    GrantScopeDepartment:
-      type: object
-      required:
-        - firm
-        - department
-      properties:
-        firm:
-          type: string
-          description: '所統編'
-        department:
-          type: string
-          description: '組名（同一所內唯一）'
     PermissionGrantScopes:
       type: object
       required:

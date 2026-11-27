@@ -13,7 +13,7 @@ import IAMPermissionCatalog
 
 // 權限帶範圍的整合測試（需要 KurrentDB；用 ESDB_TEST_URL 指到測試用的 DB）。
 // 設計：docs/discussions/2026-11-25-scoped-permission-grant.md。
-// 權限清單現在還沒有範圍化的權限，所以用自己的 GrantScopePolicy 把測試權限標成範圍化。
+// 測試用的權限不在權限清單裡，所以用自己的 GrantScopePolicy 把它們標成範圍化（組織類型）。
 // 寫入結果用員工原始 stream 重播檢查（effectiveAccess，強一致、不經 projection）；以 userId 查詢的那幾條
 // 需要 IAM_GetPermissions projection（CI 有部署），比照 RolePermissionCompositionIntegrationTests 等一下再讀。
 @Suite(.serialized)
@@ -25,8 +25,8 @@ struct GrantScopeIntegrationTests {
     static let group = "Test.Scoped.Group"
     static let plain = "custom:plain"
     static let policy = StaticGrantScopePolicy([
-        view: Set(GrantScopeKind.allCases),
-        group: [.ownDepartment, .departments],
+        view: OrganizationScope.rule(),
+        group: OrganizationScope.rule(["ownDepartment", "departments"]),
     ])
 
     init() {
@@ -357,8 +357,9 @@ struct GrantScopeIntegrationTests {
         }
     }
 
-    // 讀取端寬鬆：事件裡有不認得的範圍種類（日後新增的種類），aggregate 照樣讀得出來，查詢只略過那一項。
-    @Test func unknown_kind_in_stored_event_is_skipped_on_read() async throws {
+    // 讀取端寬鬆：事件裡有不完整的範圍（改格式前的 {kind, firms}）或不認得的類型（日後新增的類型），
+    // aggregate 照樣讀得出來；查詢略過不完整的那一項，不認得的類型照樣回（由呼叫端略過）。
+    @Test func incomplete_or_unknown_scope_in_stored_event_is_tolerated_on_read() async throws {
         try await withTestBundle(client: kdbClient) { bundle in
             let eaId = await bundle.generateAggregateRootId(for: EmployeeAccess.self)
             let userId = await bundle.generateId(for: "userId")
@@ -367,7 +368,7 @@ struct GrantScopeIntegrationTests {
             let aggregate = try #require(try await repository.find(byId: eaId))
             try aggregate.apply(event: PrivilegeGranted(
                 employeeAccessId: eaId, userId: userId, permissions: [Self.view],
-                grantScopes: [Self.view: [GrantScope(kind: "teams", firms: nil, departments: nil), .company]],
+                grantScopes: [Self.view: [GrantScope(type: "", kind: "firms"), GrantScope(type: "accountingType", kind: "all"), .company]],
                 occurred: .now
             ))
             try await repository.save(aggregateRoot: aggregate, userId: op)
@@ -376,14 +377,14 @@ struct GrantScopeIntegrationTests {
             #expect(reloaded.permissions?.contains(Self.view) == true)
             let access = try await timeline.effectiveAccess(employeeAccessId: eaId)
             #expect(GetPermissionGrantScopesApplicationService.listing(access.grantScopes) == [
-                PermissionGrantScopes(permission: Self.view, grantScopes: [.company]),
+                PermissionGrantScopes(permission: Self.view, grantScopes: [GrantScope(type: "accountingType", kind: "all"), .company]),
             ])
 
-            // 走完整的查詢（投影 → HTTP、gRPC）也一樣：不認得的種類略過，不會整筆失敗。
+            // 走完整的查詢（投影 → HTTP、gRPC）也一樣：不完整的項目略過、不認得的類型照樣回，不會整筆失敗。
             try await waitForProjection()
             let output = try await handler().getPermissionGrantScopes(.init(path: .init(userId: userId)))
             guard case .ok(let ok) = output else { Issue.record("expected 200, got \(output)"); return }
-            #expect(try ok.body.json.map { $0.grantScopes.map(\.kind) } == [["company"]])
+            #expect(try ok.body.json.map { $0.grantScopes.map { GrantScope(dto: $0) } } == [[GrantScope(type: "accountingType", kind: "all"), .company]])
             let grpc = try await PermissionsService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory()).getPermissionGrantScopes(
                 request: .init(metadata: [:], message: .with { $0.userID = userId }),
                 context: .init(descriptor: .init(fullyQualifiedService: "IAMContext.PermissionsService", method: "GetPermissionGrantScopes"),
@@ -391,7 +392,7 @@ struct GrantScopeIntegrationTests {
             )
             switch grpc.accepted {
             case .success(let contents):
-                #expect(contents.message.permissions.map { $0.grantScopes.map(\.kind) } == [["company"]])
+                #expect(contents.message.permissions.map { $0.grantScopes.map { "\($0.type).\($0.kind)" } } == [["accountingType.all", "organization.company"]])
             case .failure(let error):
                 Issue.record("expected success, got gRPC error: \(error)")
             }
@@ -423,7 +424,7 @@ struct GrantScopeIntegrationTests {
         try await withTestBundle(client: kdbClient) { bundle in
             let op = await bundle.generateId(for: "operatorId")
             let catalogPermission = try #require(PermissionCatalog.allRawValues.sorted().first)
-            let roleApi = RoleAggregate.ApiHandler(kdbClient: kdbClient, grantScopePolicy: StaticGrantScopePolicy([catalogPermission: [.company]]))
+            let roleApi = RoleAggregate.ApiHandler(kdbClient: kdbClient, grantScopePolicy: StaticGrantScopePolicy([catalogPermission: OrganizationScope.rule(["company"])]))
             let created = try await roleApi.createRole(.init(
                 headers: .init(operatorId: op),
                 body: .json(.init(name: await bundle.generateId(for: "roleName"), description: "grant scope test"))
@@ -479,8 +480,9 @@ struct GrantScopeIntegrationTests {
             case .success(let contents):
                 #expect(contents.message.permissions.map(\.permission) == [Self.group, Self.view])
                 let view = contents.message.permissions.first { $0.permission == Self.view }
+                #expect(view?.grantScopes.map(\.type) == ["organization"])
                 #expect(view?.grantScopes.map(\.kind) == ["firms"])
-                #expect(view?.grantScopes.first?.firms == ["47575385"])
+                #expect(view?.grantScopes.first?.values == ["47575385"])
             case .failure(let error):
                 Issue.record("expected success, got gRPC error: \(error)")
             }
@@ -503,13 +505,13 @@ struct GrantScopeIntegrationTests {
     }
 
     @Test func debug_override_is_returned_for_any_user() async throws {
-        let override = GetPermissionGrantScopesApplicationService.debugOverride(scopedPermissions: [Self.view])
+        let override = GetPermissionGrantScopesApplicationService.debugOverride(rules: Self.policy.rules(for: [Self.view]))
         let sut = EmployeeAccessAggregate.ApiHandler(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory(),
                                                      grantScopePolicy: Self.policy, debugOverrideGrantScopes: override)
         let output = try await sut.getPermissionGrantScopes(.init(path: .init(userId: "any-user-debug")))
         guard case .ok(let ok) = output else { Issue.record("expected 200, got \(output)"); return }
         #expect(try ok.body.json.map(\.permission) == [Self.view])
-        #expect(try ok.body.json.first?.grantScopes.map(\.kind) == ["company"])
+        #expect(try ok.body.json.first?.grantScopes.map { GrantScope(dto: $0) } == [.company])
 
         let grpc = PermissionsService(kdbClient: kdbClient, roleDirectory: FakeRoleDirectory(), debugConfig: DebugConfig(fullPermissions: true))
         let response = try await grpc.getPermissionGrantScopes(
@@ -519,7 +521,8 @@ struct GrantScopeIntegrationTests {
         )
         switch response.accepted {
         case .success(let contents):
-            #expect(contents.message.permissions.map(\.permission) == PermissionCatalog.grantScopeKinds.keys.sorted())
+            #expect(contents.message.permissions.map(\.permission) == PermissionCatalog.grantScopes.keys.sorted())
+            #expect(contents.message.permissions.allSatisfy { $0.grantScopes.map(\.kind) == ["company"] })
             #expect(Array(contents.metadata[stringValues: "x-iam-debug"]).contains("1"))
         case .failure(let error):
             Issue.record("expected success, got gRPC error: \(error)")

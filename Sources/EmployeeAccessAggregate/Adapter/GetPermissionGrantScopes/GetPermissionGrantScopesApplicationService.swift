@@ -22,7 +22,8 @@ package struct PermissionGrantScopes: Sendable, Equatable {
 }
 
 /// 「權限＋範圍」查詢（2026-11-25 設計文件 D14）。只列有範圍的權限，依權限名稱排序。
-/// - 不認得的範圍種類只略過那一項（D9）；一項都不剩的權限不列（等同沒有範圍，D10）。
+/// - 不完整的項目（沒有類型或種類）只略過那一項；一項都不剩的權限不列（等同沒有範圍，D10）。
+///   不認得的類型、種類照樣回，由呼叫端略過（D9）：IAM 不解讀範圍的意思。
 /// - 「本人的所／組」原樣回標記，由呼叫端用 StaffContext 名冊解析（D11）。
 /// - 尚未建檔丟 `EmployeeAccessQueryError.notFound`（同 getPermissions）。
 package struct GetPermissionGrantScopesApplicationService: ApplicationService {
@@ -57,17 +58,21 @@ package struct GetPermissionGrantScopesApplicationService: ApplicationService {
         return Self.listing(scopes)
     }
 
-    /// 略過不認得的種類、去掉一項都不剩的權限，依權限名稱排序。
+    /// 略過不完整的項目、去掉一項都不剩的權限，依權限名稱排序。
     package static func listing(_ scopes: [String: [GrantScope]]) -> [PermissionGrantScopes] {
         scopes.compactMap { permission, grantScopes in
-            let known = grantScopes.filter { $0.knownKind != nil }
-            return known.isEmpty ? nil : PermissionGrantScopes(permission: permission, grantScopes: known)
+            let complete = grantScopes.filter(\.isComplete)
+            return complete.isEmpty ? nil : PermissionGrantScopes(permission: permission, grantScopes: complete)
         }
         .sorted { $0.permission < $1.permission }
     }
 
-    /// IAM_DEBUG_FULL_PERMISSIONS 用：每個範圍化的權限都回 company。
-    package static func debugOverride(scopedPermissions: some Sequence<String>) -> [PermissionGrantScopes] {
-        Set(scopedPermissions).sorted().map { PermissionGrantScopes(permission: $0, grantScopes: [.company]) }
+    /// IAM_DEBUG_FULL_PERMISSIONS 用：每個範圍化的權限都回它類型的不限範圍種類（組織是 company）；
+    /// 類型沒有不限範圍種類的權限不列。
+    package static func debugOverride(rules: [String: GrantScopeRule]) -> [PermissionGrantScopes] {
+        rules.compactMap { permission, rule in
+            rule.type.unrestrictedKind.map { PermissionGrantScopes(permission: permission, grantScopes: [GrantScope(type: rule.type.type, kind: $0)]) }
+        }
+        .sorted { $0.permission < $1.permission }
     }
 }

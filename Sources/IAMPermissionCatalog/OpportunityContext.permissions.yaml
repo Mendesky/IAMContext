@@ -675,7 +675,7 @@ permissions:
   - slot: ManagerDashboard
     operationId: viewQuotingCases
     description: "管理者看板：看範圍內的所、組，依負責人歸屬的報價案件統計與列表（唯讀）；要帶範圍"
-    grantScopeKinds: [company, firms, departments, ownFirm, ownDepartment]
+    grantScope: { type: organization, kinds: [company, firms, departments, ownFirm, ownDepartment] }
   - slot: Annotating
     operationId: markHighlightByTextQuote
     description: "以 TextQuote selector 在訪談表指定欄位劃記，並原子建立首則留言；aggregate 端只驗白名單身分（`requireMember`），「能不能劃記」就由本條授權決定"

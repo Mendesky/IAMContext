@@ -23,9 +23,13 @@ struct PermissionCatalogGenCommand: ParsableCommand {
     @Option(name: .customLong("output-dir"), help: "Directory to write PermissionCatalog.swift into.")
     var outputDir: String
 
+    @Option(name: .customLong("grant-scope-types"), help: "Path to grant-scope-types.yaml (授權範圍類型定義). Omit when no permission is scoped.")
+    var grantScopeTypes: String?
+
     func run() throws {
         let documents = try inputs.map { try PermissionDocument.load(yamlPath: $0) }
-        let swift = PermissionCatalogEmitter(documents: documents).render()
+        let types = try grantScopeTypes.map { try GrantScopeTypesDocument.load(yamlPath: $0) } ?? GrantScopeTypesDocument(grantScopeTypes: [])
+        let swift = try PermissionCatalogEmitter(documents: documents, grantScopeTypes: types).render()
 
         let dir = URL(fileURLWithPath: outputDir, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
